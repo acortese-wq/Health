@@ -58,12 +58,16 @@ Blutdruck ab 40 jährlich (ESC 2024) · Lipide/AGLA-Risiko ab 40 alle 5 Jahre ·
 HbA1c ab 35 alle 3 Jahre (ADA) · Darmkrebs 50–69: FIT alle 2 Jahre oder Koloskopie alle 10 Jahre (OKP) ·
 PSA 50–69 nur nach Aufklärung · dT mit 25/45/65 · Gürtelrose und Grippe ab 65 (Schweizerischer Impfplan, BAG).
 
-## Foto-Erkennung
+## Mahlzeiten-Erfassung (Foto, Beschreibung, Packung)
 
-- Modell zerlegt das Gericht in Bestandteile, schätzt Gramm (verzehrfertig), kcal mit Spanne und Makronährstoffe; unsichtbare Fette werden ausdrücklich als Annahme genannt.
-- Plausibilitätsprüfung nach Atwater (4 kcal/g Protein und Kohlenhydrate, 9 kcal/g Fett): Abweichung > 25 % → Hinweis.
-- Kalorienschätzungen anhand von Fotos weichen typischerweise 20–40 % ab (Portion, Öl, Saucen). Die App zeigt deshalb immer eine Spanne und empfiehlt im Zweifel den oberen Wert, weil Unterschätzung der häufigere Fehler ist.
-- Der adaptive Energiebedarf gleicht systematische Schätzfehler über die Zeit aus: Wer konsequent zu tief schätzt, erhält einen entsprechend tieferen gemessenen Bedarf.
+- Das Modell zerlegt das Gericht in Bestandteile, schätzt Gramm (verzehrfertig), kcal mit Spanne, Makronährstoffe, Zucker, gesättigte Fette, Ballaststoffe und Salz; unsichtbare Fette werden ausdrücklich als Annahme genannt.
+- Grammangaben pro Bestandteil sind korrigierbar; alle Werte werden linear von den Originalwerten aus umgerechnet.
+- Plausibilitätsprüfung nach Atwater (4 kcal/g Protein und Kohlenhydrate, 9 kcal/g Fett, 2 kcal/g Ballaststoffe): Abweichung > 25 % → Hinweis.
+- «Proteinreich» nach EU-Verordnung 1924/2006: mindestens 20 % der Energie aus Protein.
+- Tagesrichtwerte: Ballaststoffe ≥ 30 g (Schweizerische Gesellschaft für Ernährung), Salz < 5 g (WHO).
+- Fotoschätzungen weichen typischerweise 20–40 % ab (Portion, Öl, Saucen). Die App zeigt immer eine Spanne und empfiehlt im Zweifel den oberen Wert. Für verpackte Produkte sind Nährwerttabelle und Barcode genauer; Open-Food-Facts-Daten stammen aus der Community, bei Abweichungen gilt die Packung.
+- Herstellerangaben zur Genauigkeit von Foto-Apps (z. B. «± 2 %») sind nicht unabhängig geprüft und wurden nicht als Massstab übernommen.
+- Der adaptive Energiebedarf gleicht systematische Schätzfehler über die Zeit aus.
 
 ## Bewusste Grenzen
 

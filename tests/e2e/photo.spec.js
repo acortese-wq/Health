@@ -155,3 +155,122 @@ test('Kein Essen auf dem Foto', async ({ page }) => {
   await expect(page.getByText('Kein Essen erkannt')).toBeVisible();
   await expect(page.locator('#photo-save')).toHaveCount(0);
 });
+
+const CORS = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-headers': '*',
+  'access-control-allow-methods': 'GET, POST, OPTIONS',
+};
+
+test('Grammangabe pro Bestandteil ändern', async ({ page }) => {
+  await mockApi(page);
+  await setup(page);
+  await page.evaluate((k) => localStorage.setItem('gesundheitscockpit.apikey', k), KEY);
+  await page.setInputFiles('#photo-input', IMAGE);
+  await expect(page.locator('#photo-total-kcal')).toHaveText('730 kcal');
+  await page.fill('#photo-grams-0', '175');
+  await page.locator('#photo-grams-0').blur();
+  // Älplermagronen 350 g → 175 g: 650 → 325 kcal, plus Apfelmus 80
+  await expect(page.locator('#photo-total-kcal')).toHaveText('405 kcal');
+});
+
+test('Beschreiben statt fotografieren', async ({ page }) => {
+  const requests = await mockApi(page);
+  await setup(page);
+  await page.evaluate((k) => localStorage.setItem('gesundheitscockpit.apikey', k), KEY);
+  await page.click('#capture-text');
+  await page.fill('#meal-text', 'Älplermagronen mit Apfelmus, normale Portion');
+  await page.click('#meal-text-go');
+  await expect(page.locator('#photo-dish')).toHaveText('Älplermagronen mit Apfelmus');
+  const content = requests[0].body.messages[0].content;
+  expect(content).toHaveLength(1);
+  expect(content[0].text).toContain('Älplermagronen mit Apfelmus, normale Portion');
+  await page.click('#photo-save');
+  await expect(page.locator('.entries').first()).toContainText('Älplermagronen');
+});
+
+test('GPT als Anbieter: Responses-API mit Bild und JSON-Schema', async ({ page }) => {
+  /** @type {any[]} */
+  const calls = [];
+  await page.route('https://api.openai.com/**', async (route) => {
+    const req = route.request();
+    if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
+    calls.push({ url: req.url(), headers: req.headers(), body: req.postDataJSON() });
+    const body = {
+      id: 'resp_test',
+      object: 'response',
+      created_at: 0,
+      status: 'completed',
+      model: 'gpt-5.5',
+      output: [
+        {
+          type: 'message',
+          id: 'msg_1',
+          status: 'completed',
+          role: 'assistant',
+          content: [{ type: 'output_text', text: JSON.stringify(ESTIMATE), annotations: [] }],
+        },
+      ],
+      usage: { input_tokens: 10, output_tokens: 10, total_tokens: 20 },
+    };
+    return route.fulfill({ headers: { ...CORS, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  });
+  await setup(page);
+  await page.goto('/#profil');
+  await page.selectOption('#ai-provider', 'openai');
+  await expect(page.locator('#ai-model')).toHaveValue('gpt-5.5');
+  await page.fill('#api-key', 'sk-proj-test0123456789abcdefghij');
+  await page.click('#api-key-save');
+  await page.goto('/#heute');
+  await page.setInputFiles('#photo-input', IMAGE);
+  await expect(page.locator('#photo-dish')).toHaveText('Älplermagronen mit Apfelmus');
+  await expect(page.getByText('geschätzt mit GPT (OpenAI)')).toBeVisible();
+  expect(calls).toHaveLength(1);
+  expect(calls[0].url).toContain('/v1/responses');
+  expect(calls[0].headers.authorization).toBe('Bearer sk-proj-test0123456789abcdefghij');
+  const b = calls[0].body;
+  expect(b.model).toBe('gpt-5.5');
+  expect(b.text.format).toMatchObject({ type: 'json_schema', name: 'mahlzeit', strict: true });
+  expect(b.input[0].content[0].type).toBe('input_image');
+  expect(b.input[0].content[0].image_url).toMatch(/^data:image\/jpeg;base64,/);
+  // Schlüssel nie in den App-Daten (Backup)
+  expect(await page.evaluate(() => localStorage.getItem('gesundheitscockpit'))).not.toContain('sk-proj');
+});
+
+test('Packung per Barcode (Open Food Facts) ohne KI-Schlüssel', async ({ page }) => {
+  await page.route('https://world.openfoodfacts.org/**', (route) =>
+    route.fulfill({
+      headers: { ...CORS, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        status: 1,
+        product: {
+          product_name: 'Skyr Nature',
+          brands: 'Emmi',
+          quantity: '450 g',
+          serving_quantity: 150,
+          nutriments: { 'energy-kcal_100g': 63, proteins_100g: 11, carbohydrates_100g: 4, sugars_100g: 4, fat_100g: 0.2, salt_100g: 0.1 },
+        },
+      }),
+    }),
+  );
+  await setup(page);
+  await page.click('#capture-packung');
+  await page.fill('#barcode', '4006381333932');
+  await page.click('#barcode-go');
+  await expect(page.locator('.toast-error')).toContainText('Ungültiger Barcode');
+  await page.fill('#barcode', '4006381333931');
+  await page.click('#barcode-go');
+  await expect(page.locator('#photo-dish')).toHaveText('Skyr Nature');
+  // Packungsportion 150 g vorausgewählt: 63 × 1.5 = 94.5 → 95 kcal
+  await expect(page.locator('#photo-total-kcal')).toHaveText('95 kcal');
+  await page.fill('#product-grams', '250');
+  await page.locator('#product-grams').blur();
+  await expect(page.locator('#photo-total-kcal')).toHaveText('158 kcal');
+  await expect(page.locator('.photo .badge-ok', { hasText: 'proteinreich' })).toBeVisible();
+  await page.click('#photo-save');
+  await expect(page.locator('.entries').first()).toContainText('Skyr Nature');
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('gesundheitscockpit') ?? '{}'));
+  const day = Object.values(stored.days).find((d) => d.food?.some((f) => f.source === 'barcode'));
+  expect(day.food.find((f) => f.source === 'barcode')).toMatchObject({ kcal: 158, protein: 28, grams: 250, salt: 0.3 });
+  await expect(page.locator('#micro')).toContainText('Salz 0.3');
+});

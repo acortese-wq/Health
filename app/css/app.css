@@ -1484,3 +1484,67 @@ details summary {
 .review-list.improve li.focus span:last-child {
   color: var(--ink);
 }
+
+/* Erfassung: Modi, Grammangaben, Nährwerte */
+.capture-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.item-grams {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.item-grams input {
+  width: 5.5rem;
+  min-height: 36px;
+  padding: 4px 8px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.suffix-inline {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.nutri {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.nutri div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 2px;
+}
+.nutri dt {
+  color: var(--muted);
+}
+.nutri dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.micro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  color: var(--muted);
+}
+.micro .ok {
+  color: var(--ok);
+}
+.micro .over {
+  color: var(--alert);
+}
+.provider-note {
+  align-self: center;
+}
+textarea {
+  resize: vertical;
+}

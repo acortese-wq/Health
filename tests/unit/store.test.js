@@ -72,3 +72,54 @@ test('Gewichtsreihe sortiert, CSV mit Summen', () => {
   assert.equal(csv.length, 3);
   assert.equal(csv[1], '2026-10-17;95;500;30;;;;;ja');
 });
+
+test('Zusatz-Nährwerte und Herkunft werden gespeichert, ungültige verworfen', async () => {
+  const { sanitize } = await import('../../app/js/store.js');
+  const s = sanitize({
+    schema: 1,
+    days: {
+      '2026-10-17': {
+        food: [
+          {
+            id: 'a',
+            name: 'Skyr',
+            kcal: 158,
+            protein: 28,
+            time: '16:00',
+            fiber: 0,
+            salt: 0.3,
+            grams: 250,
+            source: 'barcode',
+            sugar: -1,
+            fat: 'x',
+          },
+        ],
+      },
+    },
+  });
+  assert.deepEqual(s.days['2026-10-17'].food?.[0], {
+    id: 'a',
+    name: 'Skyr',
+    kcal: 158,
+    protein: 28,
+    time: '16:00',
+    fiber: 0,
+    salt: 0.3,
+    grams: 250,
+    source: 'barcode',
+  });
+});
+
+test('Zuletzt gegessen: neueste zuerst, ohne Doppel und ohne Schnellknöpfe', async () => {
+  const { recentFoods } = await import('../../app/js/store.js');
+  const s = emptyState();
+  const f = (name, time = '12:00') => ({ id: name + time, name, kcal: 100, protein: 5, time });
+  s.days['2026-10-15'] = { food: [f('Rösti'), f('Apfel')] };
+  s.days['2026-10-16'] = { food: [f('Rösti', '19:00'), f('Skyr 250 g mit Beeren')] };
+  s.days['2026-10-17'] = { food: [f('Heute')] };
+  assert.deepEqual(
+    recentFoods(s, '2026-10-17').map((x) => x.name),
+    ['Rösti', 'Apfel'],
+  );
+  assert.equal(recentFoods(s, '2026-10-17')[0].time, '19:00');
+});

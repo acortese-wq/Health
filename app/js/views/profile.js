@@ -4,7 +4,7 @@ import { ACTIVITY_LEVELS } from '../domain/energy.js';
 import { emptyState, exportCSV, exportJSON, importJSON } from '../store.js';
 import { demoState } from '../demo.js';
 import { isISODate } from '../domain/util.js';
-import { getApiKey, setApiKey } from '../vision.js';
+import { getAiSettings, saveAiSettings, listModels, PROVIDERS } from '../vision.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 /** @typedef {import('../store.js').Profile} Profile */
@@ -436,17 +436,26 @@ function dataCard(ctx) {
   );
 }
 
+/** Vom Anbieter geladene Modellnamen (nur für die laufende Sitzung). */
+/** @type {Record<string, string[]>} */
+const modelOptions = { anthropic: [], openai: [] };
+
 /** @param {Ctx} ctx */
 function visionCard(ctx) {
-  const key = getApiKey();
+  const ai = getAiSettings();
+  const p = ai.provider;
+  const key = ai.keys[p];
+  const meta = PROVIDERS[p];
+  const options = modelOptions[p].includes(ai.models[p]) ? modelOptions[p] : [ai.models[p], ...modelOptions[p]];
+
   return h(
     'section',
     { class: 'card', 'aria-labelledby': 'vision-h' },
-    h('h2', { id: 'vision-h' }, 'Foto-Erkennung'),
+    h('h2', { id: 'vision-h' }, 'KI-Erfassung'),
     h(
       'p',
       { class: 'small' },
-      'Fotografiere eine Mahlzeit unter «Heute». Claude erkennt das Gericht und schätzt Kalorien und Protein. Dafür braucht es einen eigenen API-Schlüssel von Anthropic (console.anthropic.com → API Keys, mit Prepaid-Guthaben). Ein Foto kostet etwa 3–5 Rappen.',
+      'Mahlzeiten fotografieren oder beschreiben und Nährwerttabellen lesen. Dafür braucht es einen eigenen API-Schlüssel, wahlweise von Anthropic (Claude) oder OpenAI (GPT), jeweils mit aufgeladenem Guthaben. Ein ChatGPT- oder Claude-Abo reicht nicht. Ein Foto kostet je nach Modell etwa 1–5 Rappen. Barcodes funktionieren auch ohne Schlüssel.',
     ),
     h(
       'ul',
@@ -454,52 +463,132 @@ function visionCard(ctx) {
       h(
         'li',
         {},
-        'Das Foto wird verkleinert und direkt von diesem Gerät an Anthropic gesendet, ohne Zwischenserver. Gesundheitsdaten werden nicht mitgeschickt, nur dein restliches Tagesziel für den Tipp.',
+        'Das Foto wird verkleinert und direkt von diesem Gerät an den gewählten Anbieter gesendet, ohne Zwischenserver. Mitgeschickt wird nur dein restliches Tagesziel für den Tipp.',
       ),
-      h('li', {}, 'Der Schlüssel bleibt nur auf diesem Gerät gespeichert und ist nie Teil eines Backups.'),
-      h('li', {}, 'Setze in der Anthropic-Konsole ein Ausgabenlimit für den Schlüssel, zum Beispiel 5 USD pro Monat.'),
+      h('li', {}, 'Schlüssel bleiben nur auf diesem Gerät gespeichert und sind nie Teil eines Backups.'),
+      h('li', {}, 'Setze beim Anbieter ein Ausgabenlimit für den Schlüssel, zum Beispiel 5 USD pro Monat.'),
     ),
     h(
       'form',
       {
-        class: 'inline-form',
+        class: 'stack-sm',
         on: {
           submit: (e) => {
             e.preventDefault();
-            const v = str(new FormData(/** @type {HTMLFormElement} */ (e.target)), 'api-key');
-            if (!/^sk-ant-[A-Za-z0-9_-]{20,}$/.test(v))
-              return ctx.toast('Das sieht nicht wie ein Anthropic-Schlüssel aus (beginnt mit «sk-ant-»).', 'error');
-            if (!setApiKey(v)) return ctx.toast('Speichern nicht möglich (Browser-Speicher gesperrt).', 'error');
-            ctx.toast('Schlüssel gespeichert');
+            const fd = new FormData(/** @type {HTMLFormElement} */ (e.target));
+            const provider = str(fd, 'ai-provider') === 'openai' ? 'openai' : 'anthropic';
+            const newKey = str(fd, 'api-key');
+            const model = str(fd, 'ai-model') || PROVIDERS[provider].defaultModel;
+            if (newKey && !PROVIDERS[provider].keyPattern.test(newKey)) {
+              return ctx.toast(`Das sieht nicht wie ein ${provider === 'openai' ? 'OpenAI' : 'Anthropic'}-Schlüssel aus.`, 'error');
+            }
+            if (!/^[\w.:-]{2,80}$/.test(model)) return ctx.toast('Ungültiger Modellname.', 'error');
+            const next = getAiSettings();
+            next.provider = provider;
+            next.models[provider] = model;
+            if (newKey) next.keys[provider] = newKey;
+            if (!saveAiSettings(next)) return ctx.toast('Speichern nicht möglich (Browser-Speicher gesperrt).', 'error');
+            ctx.toast('KI-Einstellungen gespeichert');
             ctx.go('profil');
           },
         },
       },
       h(
         'div',
-        { class: 'field' },
-        h('label', { for: 'api-key' }, key ? `Schlüssel hinterlegt (…${key.slice(-4)})` : 'Anthropic-API-Schlüssel'),
-        h('input', { id: 'api-key', name: 'api-key', type: 'password', autocomplete: 'off', spellcheck: 'false', placeholder: 'sk-ant-…' }),
-      ),
-      h('button', { class: 'btn primary', type: 'submit', id: 'api-key-save' }, key ? 'Ersetzen' : 'Speichern'),
-      key
-        ? h(
-            'button',
+        { class: 'form-grid' },
+        h(
+          'div',
+          { class: 'field' },
+          h('label', { for: 'ai-provider' }, 'Anbieter'),
+          h(
+            'select',
             {
-              type: 'button',
-              class: 'btn',
-              id: 'api-key-delete',
+              id: 'ai-provider',
+              name: 'ai-provider',
               on: {
-                click: () => {
-                  setApiKey('');
-                  ctx.toast('Schlüssel entfernt');
+                change: (e) => {
+                  const next = getAiSettings();
+                  next.provider = /** @type {HTMLSelectElement} */ (e.target).value === 'openai' ? 'openai' : 'anthropic';
+                  saveAiSettings(next);
                   ctx.go('profil');
                 },
               },
             },
-            'Entfernen',
-          )
-        : null,
+            ...Object.entries(PROVIDERS).map(([id, m]) => h('option', { value: id, selected: id === p }, m.label)),
+          ),
+        ),
+        h(
+          'div',
+          { class: 'field' },
+          h('label', { for: 'ai-model' }, 'Modell'),
+          h(
+            'select',
+            { id: 'ai-model', name: 'ai-model' },
+            ...options.map((m) => h('option', { value: m, selected: m === ai.models[p] }, m)),
+          ),
+          h('p', { class: 'hint' }, `Standard: ${meta.defaultModel}. Das Modell muss Bilder verarbeiten können.`),
+        ),
+        h(
+          'div',
+          { class: 'field' },
+          h('label', { for: 'api-key' }, key ? `Schlüssel hinterlegt (…${key.slice(-4)})` : `API-Schlüssel (${meta.console})`),
+          h('input', {
+            id: 'api-key',
+            name: 'api-key',
+            type: 'password',
+            autocomplete: 'off',
+            spellcheck: 'false',
+            placeholder: key ? 'Neuen Schlüssel eingeben zum Ersetzen' : p === 'openai' ? 'sk-…' : 'sk-ant-…',
+          }),
+        ),
+      ),
+      h(
+        'div',
+        { class: 'btn-row' },
+        h('button', { class: 'btn primary', type: 'submit', id: 'api-key-save' }, 'Speichern'),
+        key
+          ? h(
+              'button',
+              {
+                type: 'button',
+                class: 'btn',
+                id: 'ai-models-load',
+                on: {
+                  click: async () => {
+                    try {
+                      modelOptions[p] = await listModels(p, key);
+                      ctx.toast(`${modelOptions[p].length} Modelle geladen`);
+                    } catch {
+                      ctx.toast('Modelle konnten nicht geladen werden. Schlüssel und Verbindung prüfen.', 'error');
+                    }
+                    ctx.go('profil');
+                  },
+                },
+              },
+              'Verfügbare Modelle laden',
+            )
+          : null,
+        key
+          ? h(
+              'button',
+              {
+                type: 'button',
+                class: 'btn',
+                id: 'api-key-delete',
+                on: {
+                  click: () => {
+                    const next = getAiSettings();
+                    next.keys[p] = '';
+                    saveAiSettings(next);
+                    ctx.toast('Schlüssel entfernt');
+                    ctx.go('profil');
+                  },
+                },
+              },
+              'Schlüssel entfernen',
+            )
+          : null,
+      ),
     ),
   );
 }

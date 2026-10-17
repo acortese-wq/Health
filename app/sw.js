@@ -1,6 +1,6 @@
 // Service Worker: App-Schale offline verfügbar machen. Gesundheitsdaten liegen im
 // localStorage und werden hier nicht berührt.
-const VERSION = 'v1.2.0';
+const VERSION = 'v1.3.0';
 const CACHE = `cockpit-${VERSION}`;
 const ASSETS = [
   './',
@@ -38,6 +38,7 @@ const ASSETS = [
   './js/views/training.js',
   './js/views/weight.js',
   './vendor/anthropic-sdk.js',
+  './vendor/openai-sdk.js',
 ];
 
 self.addEventListener('install', (event) => {

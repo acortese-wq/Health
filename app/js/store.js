@@ -17,13 +17,18 @@ export const SCHEMA_VERSION = 1;
  *   caffeineHalfLifeH: number, caffeineCutoffH: number, caffeineMaxMg: number,
  *   caffeineStartCups: number, caffeineTargetCups: number, caffeineTaperStart: string,
  * }} Profile
- * @typedef {{ id: string, name: string, kcal: number, protein: number, time: string }} FoodEntry
+ * @typedef {'foto' | 'text' | 'etikett' | 'barcode' | 'manuell'} FoodSource
+ * @typedef {{
+ *   id: string, name: string, kcal: number, protein: number, time: string,
+ *   carbs?: number, fat?: number, sugar?: number, satFat?: number, fiber?: number, salt?: number,
+ *   grams?: number, source?: FoodSource,
+ * }} FoodEntry
  * @typedef {{ id: string, label: string, mg: number, time: string }} CaffeineEntry
  * @typedef {{
  *   weightKg?: number, food?: FoodEntry[], caffeine?: CaffeineEntry[],
  *   steps?: number, sleepH?: number, restingHr?: number, complete?: boolean,
  * }} Day
- * @typedef {{ id: string, name: string, kcal: number, protein: number }} FoodPreset
+ * @typedef {{ id: string, name: string, kcal: number, protein: number, carbs?: number, fat?: number, sugar?: number, satFat?: number, fiber?: number, salt?: number }} FoodPreset
  * @typedef {{ id: string, label: string, mg: number }} CaffeinePreset
  * @typedef {{ id: string, date: string, cm: number }} WaistEntry
  * @typedef {{ id: string, date: string, time: string, sys: number, dia: number, pulse?: number, setting: 'home' | 'office' }} BpEntry
@@ -182,7 +187,7 @@ export function sanitize(raw) {
   if (isObj(raw.presets)) {
     const food = arr(raw.presets.food, (x) =>
       typeof x.name === 'string' && isNum(x.kcal) && isNum(x.protein)
-        ? { id: id(x.id), name: x.name, kcal: x.kcal, protein: x.protein }
+        ? { id: id(x.id), name: x.name, kcal: x.kcal, protein: x.protein, ...withoutMeta(extraNutrients(x)) }
         : null,
     );
     const caf = arr(raw.presets.caffeine, (x) =>
@@ -250,7 +255,16 @@ function sanitizeDay(d) {
   if (Array.isArray(d.food)) {
     out.food = d.food.flatMap((f) =>
       isObj(f) && typeof f.name === 'string' && isNum(f.kcal) && isNum(f.protein)
-        ? [{ id: typeof f.id === 'string' ? f.id : uid(), name: f.name, kcal: f.kcal, protein: f.protein, time: time(f.time) }]
+        ? [
+            {
+              id: typeof f.id === 'string' ? f.id : uid(),
+              name: f.name,
+              kcal: f.kcal,
+              protein: f.protein,
+              time: time(f.time),
+              ...extraNutrients(f),
+            },
+          ]
         : [],
     );
   }
@@ -368,4 +382,61 @@ export function exportCSV(state) {
     );
   }
   return rows.map((r) => r.join(';')).join('\n');
+}
+
+const EXTRA_KEYS = /** @type {const} */ (['carbs', 'fat', 'sugar', 'satFat', 'fiber', 'salt', 'grams']);
+const SOURCES = ['foto', 'text', 'etikett', 'barcode', 'manuell'];
+
+/**
+ * Optionale Nährwerte und Herkunft eines Eintrags übernehmen (nur gültige Zahlen).
+ * @param {Record<string, unknown>} f
+ * @returns {Partial<FoodEntry>}
+ */
+export function extraNutrients(f) {
+  /** @type {Partial<FoodEntry>} */
+  const out = {};
+  for (const k of EXTRA_KEYS) {
+    const v = f[k];
+    if (isNum(v) && v >= 0 && v < 10000) out[k] = v;
+  }
+  if (typeof f.source === 'string' && SOURCES.includes(f.source)) out.source = /** @type {FoodSource} */ (f.source);
+  return out;
+}
+
+/**
+ * Zuletzt gegessene Einträge vor `date` (je Name nur der neueste), für die Schnellerfassung.
+ * @param {State} state
+ * @param {string} date
+ * @param {number} [limit]
+ * @returns {FoodEntry[]}
+ */
+export function recentFoods(state, date, limit = 8) {
+  const presetNames = new Set(state.presets.food.map((p) => p.name.toLowerCase()));
+  const seen = new Set();
+  /** @type {FoodEntry[]} */
+  const out = [];
+  const dates = Object.keys(state.days)
+    .filter((d) => d < date)
+    .sort()
+    .reverse()
+    .slice(0, 30);
+  for (const d of dates) {
+    for (const f of [...(state.days[d].food ?? [])].reverse()) {
+      const key = f.name.toLowerCase();
+      if (seen.has(key) || presetNames.has(key)) continue;
+      seen.add(key);
+      out.push(f);
+      if (out.length >= limit) return out;
+    }
+  }
+  return out;
+}
+
+/**
+ * Herkunft und Gramm gehören nicht in eine Vorlage.
+ * @param {Partial<FoodEntry>} e
+ */
+function withoutMeta(e) {
+  const { grams: _g, source: _s, ...rest } = e;
+  return rest;
 }

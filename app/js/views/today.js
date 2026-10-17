@@ -1,6 +1,7 @@
 // @ts-check
 import { h, field, meter, badge, fmt, fmtSigned, num, str, nowTime } from '../ui/dom.js';
-import { uid } from '../store.js';
+import { uid, extraNutrients, recentFoods } from '../store.js';
+import { FIBER_TARGET_G, SALT_LIMIT_G } from '../domain/foodvision.js';
 import { plannedSession } from '../domain/training.js';
 import { photoBlock } from './photo.js';
 import { reviewCard } from './review.js';
@@ -137,8 +138,13 @@ function nutritionCard(ctx, snap) {
   const add = (f) =>
     ctx.commit((s) => {
       const d = (s.days[ctx.date] = s.days[ctx.date] ?? {});
-      d.food = [...(d.food ?? []), { id: uid(), name: f.name, kcal: f.kcal, protein: f.protein, time: nowTime() }];
+      const { grams: _g, source: _s, ...nutrients } = extraNutrients(/** @type {Record<string, unknown>} */ (f));
+      d.food = [...(d.food ?? []), { id: uid(), name: f.name, kcal: f.kcal, protein: f.protein, time: nowTime(), ...nutrients }];
     }, `${f.name} erfasst`);
+  const recent = recentFoods(ctx.state, ctx.date, 6);
+  const fiber = food.reduce((a, f) => a + (f.fiber ?? 0), 0);
+  const salt = food.reduce((a, f) => a + (f.salt ?? 0), 0);
+  const hasMicro = food.some((f) => f.fiber !== undefined || f.salt !== undefined);
 
   const custom = h(
     'form',
@@ -169,7 +175,32 @@ function nutritionCard(ctx, snap) {
     h('h2', { id: 'n-h' }, 'Ernährung'),
     meter({ value: snap.kcal, target: snap.kcalTarget, label: 'Energie', unit: 'kcal' }),
     meter({ value: snap.proteinG, target: snap.protein.grams, label: 'Protein', unit: 'g', over: 'good' }),
+    hasMicro
+      ? h(
+          'p',
+          { class: 'micro small', id: 'micro' },
+          h('span', { class: fiber >= FIBER_TARGET_G ? 'ok' : '' }, `Ballaststoffe ${fmt(fiber, 1)} / ${FIBER_TARGET_G} g`),
+          h('span', { class: salt > SALT_LIMIT_G ? 'over' : '' }, `Salz ${fmt(salt, 1)} / max. ${SALT_LIMIT_G} g`),
+        )
+      : null,
     photoBlock(ctx, snap),
+    recent.length
+      ? [
+          h('p', { class: 'eyebrow' }, 'Zuletzt gegessen'),
+          h(
+            'div',
+            { class: 'chips' },
+            ...recent.map((f, i) =>
+              h(
+                'button',
+                { type: 'button', class: 'chip', id: `recent-${i}`, on: { click: () => add(f) } },
+                f.name,
+                h('small', {}, `${fmt(f.kcal)} kcal · ${fmt(f.protein)} g`),
+              ),
+            ),
+          ),
+        ]
+      : null,
     h('p', { class: 'eyebrow' }, 'Schnell erfassen'),
     h(
       'div',
