@@ -47,8 +47,9 @@ Daten auch auf ein neues Gerät übertragen.
 
 ## Deployment (GitHub Pages)
 
-Der Workflow `.github/workflows/pages.yml` veröffentlicht den Ordner `app/` bei jedem Push auf `main`.
-Einmalig nötig: **Settings → Pages → Source: «GitHub Actions»**.
+**Live:** https://acortese-wq.github.io/Health/app/ (Veröffentlichung über «Deploy from branch» bei jedem Push auf `main`; `_config.yml` schliesst persönliche Dateien aus).
+Alternative: Source «GitHub Actions» und den push-Auslöser in `.github/workflows/pages.yml` aktivieren; dann wird nur `app/` veröffentlicht.
+
 
 Hinweis: GitHub Pages ist für **private** Repositories nur mit einem kostenpflichtigen Plan (z. B. GitHub Pro) verfügbar.
 Die veröffentlichte Seite ist öffentlich erreichbar, enthält aber keine Gesundheitsdaten: Diese liegen ausschliesslich

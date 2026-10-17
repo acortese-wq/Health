@@ -1,9 +1,10 @@
 name: Deploy auf GitHub Pages
 
+# Nur manuell: Die Seite wird derzeit über «Deploy from branch» veröffentlicht
+# (App unter /Health/app/, persönliche Dateien per _config.yml ausgeschlossen).
+# Wer auf Settings → Pages → Source «GitHub Actions» umstellt, aktiviert hier wieder
+# den push-Auslöser; die App liegt dann direkt unter /Health/.
 on:
-  push:
-    branches: [main]
-    paths: ['app/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 
 permissions:
