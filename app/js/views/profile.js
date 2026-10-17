@@ -80,6 +80,7 @@ function profileForm(ctx, p) {
     stepsTarget: 9000,
     sleepTargetH: 7.5,
     waterTargetMl: 2000,
+    trainingMode: 'kombi',
     bedtime: '22:30',
     caffeineHalfLifeH: 5,
     caffeineCutoffH: 8,
@@ -130,6 +131,7 @@ function profileForm(ctx, p) {
       stepsTarget: need('p-steps', 'Schrittziel', 2000, 30000, 9000),
       sleepTargetH: need('p-sleep', 'Schlafziel (h)', 5, 10, 7.5),
       waterTargetMl: need('p-water', 'Trinkziel (ml)', 1000, 5000, 2000),
+      trainingMode: str(fd, 'p-training') === 'laufen' ? 'laufen' : 'kombi',
       bedtime: str(fd, 'p-bed') || '22:30',
       caffeineHalfLifeH: need('p-cafhl', 'Koffein-Halbwertszeit (h)', 2, 10, 5),
       caffeineCutoffH: need('p-cafcut', 'Koffein-Abstand zum Schlaf (h)', 4, 12, 8),
@@ -226,6 +228,15 @@ function profileForm(ctx, p) {
       { class: 'form-grid' },
       field({ id: 'p-steps', label: 'Schrittziel', inputmode: 'numeric', value: v.stepsTarget }),
       field({ id: 'p-sleep', label: 'Schlafziel', inputmode: 'decimal', value: v.sleepTargetH, suffix: 'h' }),
+      select({
+        id: 'p-training',
+        label: 'Training',
+        value: v.trainingMode,
+        options: [
+          { value: 'kombi', label: 'Laufen und Kraft (empfohlen)' },
+          { value: 'laufen', label: 'Nur Laufen' },
+        ],
+      }),
       field({
         id: 'p-water',
         label: 'Trinkziel (Getränke)',

@@ -73,3 +73,20 @@ test('Wochenbilanz nach WHO: intensive Minuten zählen doppelt', () => {
   assert.equal(w.equivalent, 185);
   assert.ok(w.aerobicMet && w.strengthMet && w.intervalDone);
 });
+
+test('Modus «nur Laufen»: Wochenplan ohne Kraft, Läufe gezählt', async () => {
+  const { plannedSession, weekPlan, rangeSummary } = await import('../../app/js/domain/training.js');
+  assert.equal(plannedSession('2026-10-19', 'laufen').kind, 'rest'); // Montag
+  assert.equal(plannedSession('2026-10-22', 'laufen').runType, 'interval'); // Donnerstag
+  assert.equal(plannedSession('2026-10-19').kind, 'strength'); // Standard: Kombi
+  assert.deepEqual(
+    weekPlan('laufen').map(([d]) => d),
+    ['Di', 'Do', 'So'],
+  );
+  assert.ok(weekPlan('laufen').every(([, p]) => p.kind === 'run'));
+  const ws = [
+    { id: '1', date: '2026-10-20', kind: 'run', runType: 'z2', minutes: 45 },
+    { id: '2', date: '2026-10-22', kind: 'run', runType: 'interval', minutes: 35 },
+  ];
+  assert.equal(rangeSummary(/** @type {any} */ (ws), '2026-10-19', '2026-10-25').runs, 2);
+});

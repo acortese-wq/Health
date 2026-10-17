@@ -249,31 +249,63 @@ export function rangeSummary(workouts, from, to) {
     equivalent,
     aerobicMet: equivalent >= 150,
     strengthMet: strengthDays >= 2,
+    runs: inWeek.filter((w) => w.kind === 'run').length,
     intervalDone: inWeek.some((w) => w.kind === 'run' && w.runType === 'interval'),
   };
 }
 
 /**
  * @typedef {{ title: string, detail: string, kind: 'strength' | 'run' | 'rest', template?: string, runType?: 'z2' | 'interval' | 'long' }} PlannedSession
+ * @typedef {'kombi' | 'laufen'} TrainingMode
  */
 
 /**
- * Wochenplan: Mo Kraft A, Di locker, Do Kraft B, Sa Intervalle, So lang; Mi/Fr Pause.
+ * Wochenplan.
+ * Kombi: Mo Kraft A, Di locker, Do Kraft B, Sa Intervalle, So lang.
+ * Nur Laufen: Di locker, Do Intervalle, So lang (wie bisher 3× pro Woche).
  * @param {string} iso
+ * @param {TrainingMode} [mode]
  * @returns {PlannedSession}
  */
-export function plannedSession(iso) {
+export function plannedSession(iso, mode = 'kombi') {
   const [y, m, d] = iso.split('-').map(Number);
   const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  /** @type {PlannedSession} */
+  const rest = { title: 'Pause', detail: 'Schritte sammeln', kind: 'rest' };
   /** @type {Record<number, PlannedSession>} */
-  const plan = {
-    1: { title: 'Kraft A', detail: '45 Min. Geschäfts-Gym', kind: 'strength', template: 'A' },
-    2: { title: 'Lauf locker', detail: `${RUN_TYPES.z2.label}, 40–50 Min.`, kind: 'run', runType: 'z2' },
-    3: { title: 'Pause', detail: 'Schritte sammeln', kind: 'rest' },
-    4: { title: 'Kraft B', detail: '45 Min. Geschäfts-Gym', kind: 'strength', template: 'B' },
-    5: { title: 'Pause', detail: 'Schritte sammeln', kind: 'rest' },
-    6: { title: 'Intervalle', detail: '4 × 4 Min. zügig, 3 Min. locker', kind: 'run', runType: 'interval' },
-    0: { title: 'Langer Lauf', detail: '60–75 Min. locker', kind: 'run', runType: 'long' },
-  };
-  return plan[dow];
+  const plan =
+    mode === 'laufen'
+      ? {
+          2: { title: 'Lauf locker', detail: `${RUN_TYPES.z2.label}, 40–50 Min.`, kind: 'run', runType: 'z2' },
+          4: { title: 'Intervalle', detail: '4 × 4 Min. zügig, 3 Min. locker', kind: 'run', runType: 'interval' },
+          0: { title: 'Langer Lauf', detail: '60–75 Min. locker', kind: 'run', runType: 'long' },
+        }
+      : {
+          1: { title: 'Kraft A', detail: '45 Min. Geschäfts-Gym', kind: 'strength', template: 'A' },
+          2: { title: 'Lauf locker', detail: `${RUN_TYPES.z2.label}, 40–50 Min.`, kind: 'run', runType: 'z2' },
+          4: { title: 'Kraft B', detail: '45 Min. Geschäfts-Gym', kind: 'strength', template: 'B' },
+          6: { title: 'Intervalle', detail: '4 × 4 Min. zügig, 3 Min. locker', kind: 'run', runType: 'interval' },
+          0: { title: 'Langer Lauf', detail: '60–75 Min. locker', kind: 'run', runType: 'long' },
+        };
+  return plan[dow] ?? rest;
+}
+
+/**
+ * Wochenplan als Tabelle (Montag zuerst), ohne Ruhetage.
+ * @param {TrainingMode} mode
+ * @returns {[string, PlannedSession][]}
+ */
+export function weekPlan(mode) {
+  const days = [
+    ['Mo', '2026-10-19'],
+    ['Di', '2026-10-20'],
+    ['Mi', '2026-10-21'],
+    ['Do', '2026-10-22'],
+    ['Fr', '2026-10-23'],
+    ['Sa', '2026-10-24'],
+    ['So', '2026-10-25'],
+  ];
+  return days
+    .map(([label, iso]) => /** @type {[string, PlannedSession]} */ ([label, plannedSession(iso, mode)]))
+    .filter(([, p]) => p.kind !== 'rest');
 }

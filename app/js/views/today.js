@@ -36,7 +36,7 @@ export function viewToday(ctx) {
 function summary(ctx, snap) {
   const perWeek = snap.slope ? snap.slope.slopeKgPerDay * 7 : null;
   const kcalLeft = snap.kcalTarget - snap.kcal;
-  const nextTraining = plannedSession(ctx.date);
+  const nextTraining = plannedSession(ctx.date, snap.profile.trainingMode);
   return h(
     'section',
     { class: 'summary', 'aria-label': 'Tagesübersicht' },

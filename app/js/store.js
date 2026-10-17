@@ -14,6 +14,7 @@ export const SCHEMA_VERSION = 1;
  *   startDate: string, startWeightKg: number, goalWeightKg: number, goalDate: string,
  *   activity: string, proteinPerKg: number, kcalOverride: number | null,
  *   stepsTarget: number, sleepTargetH: number, waterTargetMl: number, bedtime: string,
+ *   trainingMode: import('./domain/training.js').TrainingMode,
  *   caffeineHalfLifeH: number, caffeineCutoffH: number, caffeineMaxMg: number,
  *   caffeineStartCups: number, caffeineTargetCups: number, caffeineTaperStart: string,
  * }} Profile
@@ -230,6 +231,7 @@ function sanitizeProfile(p) {
     stepsTarget: num(p.stepsTarget, 9000),
     sleepTargetH: num(p.sleepTargetH, 7.5),
     waterTargetMl: num(p.waterTargetMl, 2000),
+    trainingMode: p.trainingMode === 'laufen' ? 'laufen' : 'kombi',
     bedtime: str(p.bedtime, '22:30'),
     caffeineHalfLifeH: num(p.caffeineHalfLifeH, 5),
     caffeineCutoffH: num(p.caffeineCutoffH, 8),

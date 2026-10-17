@@ -9,7 +9,7 @@ import { formatDate } from './util.js';
 
 /**
  * @typedef {{
- *   profile: { sex: 'm' | 'f', goalWeightKg: number, sleepTargetH: number, stepsTarget: number, caffeineMaxMg: number },
+ *   profile: { trainingMode?: 'kombi' | 'laufen', sex: 'm' | 'f', goalWeightKg: number, sleepTargetH: number, stepsTarget: number, caffeineMaxMg: number },
  *   weightKg: number,
  *   slope: { slopeKgPerDay: number, n: number } | null,
  *   plan: { goalDatePassed: boolean, feasible: boolean, requiredRateKgPerWeek: number, maxRateKgPerWeek: number, projectedGoalDate: string | null, belowBmr: boolean, maintenance: boolean },
@@ -121,7 +121,7 @@ export function coachHints(s) {
     });
   }
 
-  if (s.week.strengthDays < 2) {
+  if (s.profile.trainingMode !== 'laufen' && s.week.strengthDays < 2) {
     out.push({
       id: 'strength',
       severity: 'info',

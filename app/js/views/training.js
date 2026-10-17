@@ -1,6 +1,6 @@
 // @ts-check
 import { h, field, select, badge, fmt, fmtDate, num, str } from '../ui/dom.js';
-import { TEMPLATES, RUN_TYPES, suggestNext, exerciseHistory, findExercise, weekSummary } from '../domain/training.js';
+import { TEMPLATES, RUN_TYPES, suggestNext, exerciseHistory, findExercise, weekSummary, weekPlan } from '../domain/training.js';
 import { uid } from '../store.js';
 import { addDays } from '../domain/util.js';
 
@@ -12,6 +12,9 @@ let openTemplate = '';
 export function viewTraining(ctx) {
   const w = weekSummary(ctx.state.workouts, ctx.today);
   const prev = weekSummary(ctx.state.workouts, addDays(ctx.today, -7));
+  const runOnly = ctx.state.profile?.trainingMode === 'laufen';
+  const plan = weekPlan(runOnly ? 'laufen' : 'kombi');
+  const runsPlanned = plan.filter(([, p]) => p.kind === 'run').length;
   return h(
     'div',
     { class: 'stack' },
@@ -19,21 +22,25 @@ export function viewTraining(ctx) {
     h(
       'section',
       { class: 'summary', 'aria-label': 'Wochenbilanz' },
-      weekStat('Kraft', `${w.strengthDays} / 2`, 'Tage', w.strengthMet),
+      runOnly
+        ? weekStat('Läufe', `${w.runs} / ${runsPlanned}`, '', w.runs >= runsPlanned)
+        : weekStat('Kraft', `${w.strengthDays} / 2`, 'Tage', w.strengthMet),
       weekStat('Ausdauer', `${fmt(w.equivalent)} / 150`, 'Min.', w.aerobicMet, 'intensiv zählt doppelt'),
       weekStat('Intervalle', w.intervalDone ? 'erledigt' : 'offen', '', w.intervalDone),
-      weekStat(
-        'Vorwoche',
-        `${prev.strengthDays} × Kraft`,
-        '',
-        prev.strengthMet && prev.aerobicMet,
-        `${fmt(prev.equivalent)} Min. Ausdauer`,
-      ),
+      runOnly
+        ? weekStat('Vorwoche', `${prev.runs} Läufe`, '', prev.aerobicMet, `${fmt(prev.equivalent)} Min. Ausdauer`)
+        : weekStat(
+            'Vorwoche',
+            `${prev.strengthDays} × Kraft`,
+            '',
+            prev.strengthMet && prev.aerobicMet,
+            `${fmt(prev.equivalent)} Min. Ausdauer`,
+          ),
     ),
     h(
       'section',
       { class: 'card', 'aria-labelledby': 'plan-h' },
-      h('h2', { id: 'plan-h' }, 'Wochenplan'),
+      h('h2', { id: 'plan-h' }, runOnly ? 'Wochenplan: nur Laufen' : 'Wochenplan'),
       h(
         'div',
         { class: 'table-wrap' },
@@ -43,13 +50,20 @@ export function viewTraining(ctx) {
           h(
             'tbody',
             {},
-            ...[
-              ['Mo', 'Kraft A, 45 Min. über Mittag'],
-              ['Di', 'Lauf locker (Zone 2), 40–50 Min.'],
-              ['Do', 'Kraft B, 45 Min. über Mittag'],
-              ['Sa', 'Intervalle: 10 Min. einlaufen, 4 × 4 Min. zügig / 3 Min. locker, auslaufen'],
-              ['So', 'Langer lockerer Lauf, 60–75 Min.'],
-            ].map(([d, t]) => h('tr', {}, h('th', { scope: 'row' }, d), h('td', {}, t))),
+            ...plan.map(([d, p]) =>
+              h(
+                'tr',
+                {},
+                h('th', { scope: 'row' }, d),
+                h(
+                  'td',
+                  {},
+                  p.runType === 'interval'
+                    ? 'Intervalle: 10 Min. einlaufen, 4 × 4 Min. zügig / 3 Min. locker, auslaufen'
+                    : `${p.title}, ${p.detail}`,
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -58,8 +72,15 @@ export function viewTraining(ctx) {
         { class: 'muted small' },
         'Zone 2 heisst: Du kannst dabei noch ganze Sätze sprechen. Intervalle sind hart, aber kontrolliert, etwa 85–95 % der maximalen Herzfrequenz.',
       ),
+      runOnly
+        ? h(
+            'p',
+            { class: 'note info small', id: 'run-only-note' },
+            'Ehrlicher Hinweis: Ohne Krafttraining verlierst du beim Abnehmen mehr Muskelmasse. Schon 2 × 15 Minuten pro Woche helfen, auch ohne Gym: Kniebeugen, Liegestütze an der Wand oder am Tisch, Ausfallschritte, Unterarmstütz. Umstellen kannst du jederzeit unter Profil → Training.',
+          )
+        : null,
     ),
-    h('div', { class: 'grid-2' }, ...Object.entries(TEMPLATES).map(([id, t]) => strengthCard(ctx, id, t)), runCard(ctx)),
+    h('div', { class: 'grid-2' }, ...(runOnly ? [] : Object.entries(TEMPLATES).map(([id, t]) => strengthCard(ctx, id, t))), runCard(ctx)),
     historyCard(ctx),
   );
 }

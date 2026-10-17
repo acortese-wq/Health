@@ -27,6 +27,7 @@ export function demoState(today) {
     stepsTarget: 9000,
     sleepTargetH: 7.5,
     waterTargetMl: 2000,
+    trainingMode: 'kombi',
     bedtime: '22:30',
     caffeineHalfLifeH: 5,
     caffeineCutoffH: 8,

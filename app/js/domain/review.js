@@ -19,7 +19,7 @@ import { addDays, isNum, mean, timeToMinutes } from './util.js';
  * }} Review
  * @typedef {{
  *   date: string,
- *   profile: { stepsTarget: number, sleepTargetH: number, waterTargetMl?: number },
+ *   profile: { stepsTarget: number, sleepTargetH: number, waterTargetMl?: number, trainingMode?: import('./training.js').TrainingMode },
  *   day: import('../store.js').Day,
  *   kcal: number, kcalTarget: number,
  *   proteinG: number, protein: { grams: number },
@@ -54,8 +54,8 @@ export function eveningShare(day) {
  * @param {Workout[]} workouts
  * @param {string} date
  */
-function sessionStatus(workouts, date) {
-  const plan = plannedSession(date);
+function sessionStatus(workouts, date, mode = /** @type {import('./training.js').TrainingMode} */ ('kombi')) {
+  const plan = plannedSession(date, mode);
   const done = workouts.filter((w) => w.date === date);
   if (plan.kind === 'rest') return { plan, done: done.length > 0, extra: done.length > 0 };
   const hit = done.some((w) => w.kind === plan.kind);
@@ -253,7 +253,7 @@ export function dayReview(s, { workouts, dayOver, streaks: st }) {
   }
 
   // Training
-  const ses = sessionStatus(workouts, s.date);
+  const ses = sessionStatus(workouts, s.date, s.profile.trainingMode);
   if (ses.plan.kind !== 'rest') {
     total++;
     if (ses.done) {
@@ -314,7 +314,7 @@ export function dayReview(s, { workouts, dayOver, streaks: st }) {
  * @param {{
  *   week: { strengthDays: number, aerobicMet: boolean, intervalDone: boolean, equivalent: number },
  *   slopeKgPerDay: number | null, weightKg: number,
- *   stepsTarget: number, sleepTargetH: number, waterTargetMl?: number,
+ *   stepsTarget: number, sleepTargetH: number, waterTargetMl?: number, trainingMode?: import('./training.js').TrainingMode,
  *   streaks: { weighed: number, logged: number, protein: number },
  * }} ctx
  * @returns {Review}
@@ -364,17 +364,19 @@ export function weekReview(days, ctx) {
     }
   }
 
-  total++;
-  if (ctx.week.strengthDays >= 2) {
-    met++;
-    wins.push(`${ctx.week.strengthDays} Krafteinheiten. Deine Muskeln danken es dir.`);
-  } else {
-    improve.push({
-      id: 'w-strength',
-      weight: 85,
-      title: `${ctx.week.strengthDays} von 2 Krafteinheiten`,
-      tip: 'Trag Montag und Donnerstag über Mittag fix im Kalender ein. Krafttraining ist beim Abnehmen dein wichtigster Muskelschutz.',
-    });
+  if (ctx.trainingMode !== 'laufen') {
+    total++;
+    if (ctx.week.strengthDays >= 2) {
+      met++;
+      wins.push(`${ctx.week.strengthDays} Krafteinheiten. Deine Muskeln danken es dir.`);
+    } else {
+      improve.push({
+        id: 'w-strength',
+        weight: 85,
+        title: `${ctx.week.strengthDays} von 2 Krafteinheiten`,
+        tip: 'Trag Montag und Donnerstag über Mittag fix im Kalender ein. Krafttraining ist beim Abnehmen dein wichtigster Muskelschutz.',
+      });
+    }
   }
 
   total++;

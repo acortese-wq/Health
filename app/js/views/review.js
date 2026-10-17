@@ -37,6 +37,7 @@ export function reviewCard(ctx) {
       stepsTarget: snap.profile.stepsTarget,
       sleepTargetH: snap.profile.sleepTargetH,
       waterTargetMl: snap.profile.waterTargetMl,
+      trainingMode: snap.profile.trainingMode,
       streaks: st,
     });
   } else {

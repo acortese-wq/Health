@@ -161,3 +161,25 @@ test('Trinken: Ziel erreicht wird gelobt, zu wenig mit konkretem Tipp', () => {
   const running = dayReview(input({ date: WEDNESDAY, day: { waterMl: 750 } }), { workouts: [], dayOver: false, streaks: noStreaks });
   assert.equal(running.improve.length, 0);
 });
+
+test('Modus «nur Laufen»: kein Krafttraining verlangt', () => {
+  const day = dayReview(
+    input({ profile: { stepsTarget: 9000, sleepTargetH: 7.5, trainingMode: 'laufen' }, day: { food: [meal(2000, 150)], complete: true } }),
+    {
+      workouts: [],
+      dayOver: true,
+      streaks: noStreaks,
+    },
+  );
+  assert.ok(!day.improve.some((i) => i.id === 'training'), 'Montag ist im Laufmodus Ruhetag');
+  const week = weekReview([input()], {
+    week: { strengthDays: 0, aerobicMet: true, intervalDone: true, equivalent: 180 },
+    slopeKgPerDay: null,
+    weightKg: 93,
+    stepsTarget: 9000,
+    sleepTargetH: 7.5,
+    trainingMode: 'laufen',
+    streaks: noStreaks,
+  });
+  assert.ok(!week.improve.some((i) => i.id === 'w-strength'));
+});

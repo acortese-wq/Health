@@ -87,3 +87,9 @@ test('Abgelaufenes Zieldatum erzeugt einen eigenen Hinweis', () => {
   assert.ok(snap.plan.goalDatePassed);
   assert.equal(snap.hints.find((h) => h.id === 'goal-date')?.title, 'Zieldatum ist vorbei');
 });
+
+test('Modus «nur Laufen»: kein Kraft-Hinweis', () => {
+  const s = emptyState();
+  s.profile = { ...profile(), trainingMode: 'laufen' };
+  assert.ok(!snapshot(s, '2026-10-17').hints.some((h) => h.id === 'strength'));
+});
