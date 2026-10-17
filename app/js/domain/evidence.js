@@ -54,6 +54,33 @@ export const EVIDENCE = [
     refs: [],
   },
   {
+    id: 'water',
+    topic: 'Ernährung',
+    level: 'gut belegt',
+    claim: 'Männer brauchen etwa 2.5 Liter Wasser pro Tag, rund 2 Liter davon aus Getränken.',
+    detail:
+      'Der Rest stammt aus dem Essen. Bei Hitze, Sport und Schwitzen auf der Baustelle steigt der Bedarf deutlich. Die Farbe des Urins ist ein einfacher Alltagstest: hellgelb ist gut.',
+    refs: ['EFSA NDA Panel, EFSA Journal 2010;8(3):1459'],
+  },
+  {
+    id: 'water-preload',
+    topic: 'Ernährung',
+    level: 'wahrscheinlich sinnvoll',
+    claim: 'Ein halber Liter Wasser vor den Hauptmahlzeiten kann das Abnehmen leicht unterstützen.',
+    detail:
+      'In randomisierten Studien nahmen Personen mit diesem Vorgehen etwas mehr ab als die Vergleichsgruppen. Der Effekt ist moderat und kein Ersatz für das Kaloriendefizit.',
+    refs: ['Dennis EA et al., Obesity 2010;18:300–307', 'Parretti HM et al., Obesity 2015;23:1785–1791'],
+  },
+  {
+    id: 'coffee-fluid',
+    topic: 'Ernährung',
+    level: 'unbelegt',
+    claim: '«Kaffee entwässert und zählt nicht zur Trinkmenge.»',
+    detail:
+      'Bei moderatem Konsum hydriert Kaffee in einer kontrollierten Studie gleich gut wie Wasser. Er zählt also zur Trinkmenge. Für die Koffeingrenze gilt trotzdem das Koffeinziel.',
+    refs: ['Killer SC et al., PLoS One 2014;9:e84154'],
+  },
+  {
     id: 'selfmonitoring',
     topic: 'Verhalten',
     level: 'gut belegt',

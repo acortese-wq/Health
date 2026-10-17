@@ -26,6 +26,7 @@ export function demoState(today) {
     kcalOverride: null,
     stepsTarget: 9000,
     sleepTargetH: 7.5,
+    waterTargetMl: 2000,
     bedtime: '22:30',
     caffeineHalfLifeH: 5,
     caffeineCutoffH: 8,
@@ -47,6 +48,7 @@ export function demoState(today) {
       steps: Math.round(7500 + i * 40 + rnd() * 1800),
       sleepH: Math.round((6.9 + rnd() * 0.6 + i * 0.005) * 4) / 4,
       restingHr: Math.round(49 + rnd() * 2),
+      waterMl: 1250 + Math.round((rnd() + 1) * 2) * 250,
       ...(i % 5 !== 3 ? { complete: true } : {}),
       food: [
         { id: uid(), name: 'Mittagsteller Protein + Gemüse', kcal: 700 + Math.round(rnd() * 80), protein: 50, time: '12:15' },

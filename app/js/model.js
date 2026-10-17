@@ -81,6 +81,7 @@ export function snapshot(state, date) {
     return xs.length ? { value: mean(xs), n: xs.length } : null;
   };
   const sleep7 = avg((d) => d.sleepH, 0, 7);
+  const water7 = avg((d) => d.waterMl, 0, 7);
   const steps7 = avg((d) => d.steps, 0, 7);
   const rhr7 = avg((d) => d.restingHr, 0, 7);
   const rhrBase = avg((d) => d.restingHr, 7, 35);
@@ -122,6 +123,7 @@ export function snapshot(state, date) {
     planKgToday,
     projected,
     sleep7,
+    water7,
     steps7,
     rhr7,
     rhrBase,

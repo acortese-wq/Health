@@ -19,7 +19,7 @@ import { addDays, isNum, mean, timeToMinutes } from './util.js';
  * }} Review
  * @typedef {{
  *   date: string,
- *   profile: { stepsTarget: number, sleepTargetH: number },
+ *   profile: { stepsTarget: number, sleepTargetH: number, waterTargetMl?: number },
  *   day: import('../store.js').Day,
  *   kcal: number, kcalTarget: number,
  *   proteinG: number, protein: { grams: number },
@@ -219,6 +219,23 @@ export function dayReview(s, { workouts, dayOver, streaks: st }) {
     }
   }
 
+  // Trinken
+  const waterTarget = s.profile.waterTargetMl ?? 2000;
+  if (isNum(s.day.waterMl)) {
+    total++;
+    if (s.day.waterMl >= waterTarget) {
+      met++;
+      wins.push(`${fmt(s.day.waterMl)} ml getrunken.`);
+    } else if (dayOver && s.day.waterMl < waterTarget * 0.6) {
+      improve.push({
+        id: 'water',
+        weight: 25,
+        title: `Nur ${fmt(s.day.waterMl)} ml getrunken`,
+        tip: 'Stell dir morgens eine volle Literflasche auf den Schreibtisch. Und trink vor jeder Mahlzeit ein grosses Glas Wasser.',
+      });
+    }
+  }
+
   // Schlaf (Wert gilt für die Nacht davor)
   if (isNum(s.day.sleepH)) {
     total++;
@@ -297,7 +314,7 @@ export function dayReview(s, { workouts, dayOver, streaks: st }) {
  * @param {{
  *   week: { strengthDays: number, aerobicMet: boolean, intervalDone: boolean, equivalent: number },
  *   slopeKgPerDay: number | null, weightKg: number,
- *   stepsTarget: number, sleepTargetH: number,
+ *   stepsTarget: number, sleepTargetH: number, waterTargetMl?: number,
  *   streaks: { weighed: number, logged: number, protein: number },
  * }} ctx
  * @returns {Review}
@@ -386,6 +403,23 @@ export function weekReview(days, ctx) {
         weight: 30,
         title: `Im Schnitt ${fmt(avg)} Schritte`,
         tip: 'Mach Telefonate im Gehen und geh Baustellenwege zu Fuss. Das kostet keine Extrazeit.',
+      });
+  }
+
+  const water = days.map((d) => d.day.waterMl).filter(isNum);
+  const waterTarget = ctx.waterTargetMl ?? 2000;
+  if (water.length >= 4) {
+    total++;
+    const avg = mean(water);
+    if (avg >= waterTarget * 0.9) {
+      met++;
+      wins.push(`Im Schnitt ${fmt(avg)} ml pro Tag getrunken.`);
+    } else
+      improve.push({
+        id: 'w-water',
+        weight: 20,
+        title: `Im Schnitt ${fmt(avg)} ml getrunken`,
+        tip: 'Häng das Trinken an feste Momente: ein Glas nach dem Aufstehen, eines zu jeder Mahlzeit, eines nach dem Training.',
       });
   }
 

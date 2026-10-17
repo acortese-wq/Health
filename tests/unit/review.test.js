@@ -149,3 +149,15 @@ test('Wochenrückblick: fehlendes Krafttraining hat Vorrang, gutes Tempo wird ge
   assert.ok(r.wins.some((w) => w.includes('Proteinziel an 7 von 7')));
   assert.equal(r.focus, r.improve[0].tip);
 });
+
+test('Trinken: Ziel erreicht wird gelobt, zu wenig mit konkretem Tipp', () => {
+  const ok = dayReview(input({ date: WEDNESDAY, day: { waterMl: 2250 } }), { workouts: [], dayOver: true, streaks: noStreaks });
+  assert.ok(ok.wins.some((w) => w.includes('2’250 ml')));
+  const low = dayReview(input({ date: WEDNESDAY, day: { waterMl: 750 } }), { workouts: [], dayOver: true, streaks: noStreaks });
+  // Ohne erfasste Mahlzeiten hat «nichts erfasst» Vorrang, Trinken folgt als zweiter Punkt
+  const water = low.improve.find((i) => i.id === 'water');
+  assert.ok(water);
+  assert.match(water.tip, /Literflasche/);
+  const running = dayReview(input({ date: WEDNESDAY, day: { waterMl: 750 } }), { workouts: [], dayOver: false, streaks: noStreaks });
+  assert.equal(running.improve.length, 0);
+});

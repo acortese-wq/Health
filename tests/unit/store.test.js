@@ -70,7 +70,7 @@ test('Gewichtsreihe sortiert, CSV mit Summen', () => {
   );
   const csv = exportCSV(s).split('\n');
   assert.equal(csv.length, 3);
-  assert.equal(csv[1], '2026-10-17;95;500;30;;;;;ja');
+  assert.equal(csv[1], '2026-10-17;95;500;30;;;;;;ja');
 });
 
 test('Zusatz-Nährwerte und Herkunft werden gespeichert, ungültige verworfen', async () => {
@@ -122,4 +122,16 @@ test('Zuletzt gegessen: neueste zuerst, ohne Doppel und ohne Schnellknöpfe', as
     ['Rösti', 'Apfel'],
   );
   assert.equal(recentFoods(s, '2026-10-17')[0].time, '19:00');
+});
+
+test('Trinkmenge: gültige Werte übernehmen, unplausible verwerfen, im CSV', () => {
+  const s = sanitize({
+    schema: 1,
+    days: { '2026-10-17': { waterMl: 1750 }, '2026-10-18': { waterMl: 99999 }, '2026-10-19': { waterMl: -5 } },
+  });
+  assert.equal(s.days['2026-10-17'].waterMl, 1750);
+  assert.equal(s.days['2026-10-18'].waterMl, undefined);
+  assert.equal(s.days['2026-10-19'].waterMl, undefined);
+  assert.match(exportCSV(s).split('\n')[0], /Wasser ml/);
+  assert.match(exportCSV(s).split('\n')[1], /;1750;/);
 });

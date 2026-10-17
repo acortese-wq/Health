@@ -13,7 +13,7 @@ export const SCHEMA_VERSION = 1;
  *   name: string, sex: Sex, birthDate: string, heightCm: number,
  *   startDate: string, startWeightKg: number, goalWeightKg: number, goalDate: string,
  *   activity: string, proteinPerKg: number, kcalOverride: number | null,
- *   stepsTarget: number, sleepTargetH: number, bedtime: string,
+ *   stepsTarget: number, sleepTargetH: number, waterTargetMl: number, bedtime: string,
  *   caffeineHalfLifeH: number, caffeineCutoffH: number, caffeineMaxMg: number,
  *   caffeineStartCups: number, caffeineTargetCups: number, caffeineTaperStart: string,
  * }} Profile
@@ -26,7 +26,7 @@ export const SCHEMA_VERSION = 1;
  * @typedef {{ id: string, label: string, mg: number, time: string }} CaffeineEntry
  * @typedef {{
  *   weightKg?: number, food?: FoodEntry[], caffeine?: CaffeineEntry[],
- *   steps?: number, sleepH?: number, restingHr?: number, complete?: boolean,
+ *   steps?: number, sleepH?: number, restingHr?: number, waterMl?: number, complete?: boolean,
  * }} Day
  * @typedef {{ id: string, name: string, kcal: number, protein: number, carbs?: number, fat?: number, sugar?: number, satFat?: number, fiber?: number, salt?: number }} FoodPreset
  * @typedef {{ id: string, label: string, mg: number }} CaffeinePreset
@@ -229,6 +229,7 @@ function sanitizeProfile(p) {
     kcalOverride: isNum(p.kcalOverride) ? p.kcalOverride : null,
     stepsTarget: num(p.stepsTarget, 9000),
     sleepTargetH: num(p.sleepTargetH, 7.5),
+    waterTargetMl: num(p.waterTargetMl, 2000),
     bedtime: str(p.bedtime, '22:30'),
     caffeineHalfLifeH: num(p.caffeineHalfLifeH, 5),
     caffeineCutoffH: num(p.caffeineCutoffH, 8),
@@ -250,6 +251,7 @@ function sanitizeDay(d) {
   if (isNum(d.steps) && d.steps >= 0) out.steps = d.steps;
   if (isNum(d.sleepH) && d.sleepH >= 0 && d.sleepH <= 24) out.sleepH = d.sleepH;
   if (isNum(d.restingHr) && d.restingHr > 20 && d.restingHr < 200) out.restingHr = d.restingHr;
+  if (isNum(d.waterMl) && d.waterMl > 0 && d.waterMl <= 10000) out.waterMl = d.waterMl;
   if (d.complete === true) out.complete = true;
   const time = (/** @type {unknown} */ v) => (typeof v === 'string' && /^\d{2}:\d{2}$/.test(v) ? v : '12:00');
   if (Array.isArray(d.food)) {
@@ -361,7 +363,7 @@ export function weightSeries(state) {
  * @returns {string}
  */
 export function exportCSV(state) {
-  const rows = [['Datum', 'Gewicht kg', 'kcal', 'Protein g', 'Koffein mg', 'Schritte', 'Schlaf h', 'Ruhepuls', 'Vollständig']];
+  const rows = [['Datum', 'Gewicht kg', 'kcal', 'Protein g', 'Koffein mg', 'Schritte', 'Schlaf h', 'Ruhepuls', 'Wasser ml', 'Vollständig']];
   for (const date of Object.keys(state.days).sort()) {
     const d = state.days[date];
     const kcal = (d.food ?? []).reduce((a, f) => a + f.kcal, 0);
@@ -377,6 +379,7 @@ export function exportCSV(state) {
         d.steps ?? '',
         d.sleepH ?? '',
         d.restingHr ?? '',
+        d.waterMl ?? '',
         d.complete ? 'ja' : '',
       ].map(String),
     );

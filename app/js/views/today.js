@@ -17,7 +17,15 @@ export function viewToday(ctx) {
     summary(ctx, snap),
     hints(snap),
     reviewCard(ctx),
-    h('div', { class: 'grid-2' }, weightCard(ctx, snap), nutritionCard(ctx, snap), caffeineCard(ctx, snap), recoveryCard(ctx, snap)),
+    h(
+      'div',
+      { class: 'grid-2' },
+      weightCard(ctx, snap),
+      nutritionCard(ctx, snap),
+      caffeineCard(ctx, snap),
+      waterCard(ctx, snap),
+      recoveryCard(ctx, snap),
+    ),
   );
 }
 
@@ -420,6 +428,69 @@ function recoveryCard(ctx, snap) {
         snap.rhr7 ? `${fmt(snap.rhr7.value)} /min` : '–',
         snap.rhrBase ? h('small', { class: 'muted' }, ` (Basis ${fmt(snap.rhrBase.value)})`) : null,
       ),
+    ),
+  );
+}
+
+/**
+ * Trinken: Schnellknöpfe für Glas und Flasche, Korrektur nach unten.
+ * @param {Ctx} ctx
+ * @param {NonNullable<Ctx['snap']>} snap
+ */
+function waterCard(ctx, snap) {
+  const ml = snap.day.waterMl ?? 0;
+  const target = snap.profile.waterTargetMl;
+  /** @param {number} delta */
+  const change = (delta) =>
+    ctx.commit(
+      (s) => {
+        const d = { ...s.days[ctx.date] };
+        const next = Math.min(10000, Math.max(0, (d.waterMl ?? 0) + delta));
+        if (next) d.waterMl = next;
+        else delete d.waterMl;
+        s.days[ctx.date] = d;
+      },
+      delta > 0 ? `+${fmt(delta)} ml` : 'Korrigiert',
+    );
+  return h(
+    'section',
+    { class: 'card', 'aria-labelledby': 'water-h' },
+    h('h2', { id: 'water-h' }, 'Trinken'),
+    meter({
+      value: ml,
+      target,
+      label: `${fmt(ml / 250, (ml / 250) % 1 ? 1 : 0)} ${ml === 250 ? 'Glas' : 'Gläser'} à 250 ml`,
+      unit: 'ml',
+      over: 'good',
+    }),
+    h(
+      'div',
+      { class: 'chips' },
+      h('button', { type: 'button', class: 'chip', id: 'water-250', on: { click: () => change(250) } }, 'Glas', h('small', {}, '+250 ml')),
+      h(
+        'button',
+        { type: 'button', class: 'chip', id: 'water-500', on: { click: () => change(500) } },
+        'Flasche',
+        h('small', {}, '+500 ml'),
+      ),
+      h(
+        'button',
+        { type: 'button', class: 'chip', id: 'water-750', on: { click: () => change(750) } },
+        'Grosse Flasche',
+        h('small', {}, '+750 ml'),
+      ),
+      h(
+        'button',
+        { type: 'button', class: 'chip', id: 'water-minus', disabled: !ml, on: { click: () => change(-250) } },
+        'Korrektur',
+        h('small', {}, '−250 ml'),
+      ),
+    ),
+    snap.water7 ? h('p', { class: 'small muted' }, `7-Tage-Schnitt: ${fmt(snap.water7.value)} ml`) : null,
+    h(
+      'p',
+      { class: 'hint' },
+      'Kaffee und Tee zählen mit. Ein grosses Glas Wasser vor dem Essen hilft manchen beim Sattwerden. Bei Herz- oder Nierenerkrankungen gilt die ärztliche Trinkmenge.',
     ),
   );
 }
