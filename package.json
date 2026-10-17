@@ -1,0 +1,24 @@
+{
+  "name": "gesundheitscockpit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Evidenzbasiertes Gesundheits- und Abnehm-Cockpit als Offline-Web-App",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test \"tests/unit/*.test.js\"",
+    "test:e2e": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run format:check && npm run typecheck && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "prettier": "3.6.2",
+    "typescript": "5.9.3"
+  }
+}

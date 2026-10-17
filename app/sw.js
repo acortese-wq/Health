@@ -1,0 +1,72 @@
+// Service Worker: App-Schale offline verfügbar machen. Gesundheitsdaten liegen im
+// localStorage und werden hier nicht berührt.
+const VERSION = 'v1.0.0';
+const CACHE = `cockpit-${VERSION}`;
+const ASSETS = [
+  './',
+  './index.html',
+  './manifest.webmanifest',
+  './css/app.css',
+  './icons/icon.svg',
+  './icons/apple-touch-icon.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
+  './js/app.js',
+  './js/demo.js',
+  './js/model.js',
+  './js/store.js',
+  './js/domain/caffeine.js',
+  './js/domain/clinical.js',
+  './js/domain/coach.js',
+  './js/domain/energy.js',
+  './js/domain/evidence.js',
+  './js/domain/training.js',
+  './js/domain/trend.js',
+  './js/domain/util.js',
+  './js/ui/chart.js',
+  './js/ui/dom.js',
+  './js/views/health.js',
+  './js/views/knowledge.js',
+  './js/views/profile.js',
+  './js/views/today.js',
+  './js/views/training.js',
+  './js/views/weight.js',
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches
+      .open(CACHE)
+      .then((c) => c.addAll(ASSETS))
+      .then(() => self.skipWaiting()),
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('cockpit-') && k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
+  );
+});
+
+// Netzwerk zuerst für eigene Dateien (Updates kommen sofort an), Cache als Rückfall offline.
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+  event.respondWith(
+    fetch(req)
+      .then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
+        return res;
+      })
+      .catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit ?? caches.match('./index.html'))),
+  );
+});
