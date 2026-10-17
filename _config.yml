@@ -1,0 +1,15 @@
+# Schutz für den Pages-Modus «Deploy from branch»: persönliche Gesundheitsdaten und
+# Entwicklungsdateien nie veröffentlichen. Empfohlen ist Settings → Pages → Source:
+# «GitHub Actions»; dann wird ausschliesslich der Ordner app/ veröffentlicht.
+exclude:
+  - profil.md
+  - verlauf.md
+  - docs/
+  - tests/
+  - scripts/
+  - node_modules/
+  - package.json
+  - package-lock.json
+  - playwright.config.js
+  - tsconfig.json
+  - README.md
