@@ -6,7 +6,7 @@ Stand: 17.10.2026
 | Merkmal | Wert | Stand |
 |---|---|---|
 | Geburtsdatum | 09.05.1977 (49 J.) | |
-| Geschlecht | offen (Berechnungen vorläufig: männlich) | |
+| Geschlecht | männlich | |
 | Grösse | 172 cm | |
 | Gewicht | 95 kg (BMI 32.1) | 17.10.2026 |
 | Taille | offen | |
@@ -16,28 +16,33 @@ Stand: 17.10.2026
 | Blutdruck | offen | |
 
 ## Ziel
-- 80 kg bis 2027 (genauer Termin offen)
+- Wunsch: 80 kg Anfang 2027 (unrealistisch, ~1.4 kg/Woche nötig)
+- Vereinbarter Vorschlag: 80 kg bis Ende März 2027 (~0.65 kg/Woche)
 - Zwischenziele: siehe verlauf.md
+
+## Medizinisches
+- Medikamente: keine
+- Diagnosen / familiäre Risiken: keine bekannt
+- Blutwerte: keine vorhanden → Check-up empfohlen
+- Alkohol: keiner · Nikotin: keines
 
 ## Alltag
 - Beruf: BHV Tiefbau / Access PM Swisscom, Chur (Büro + Aussendienst)
-- Training: 3× Joggen/Woche, kein Krafttraining bekannt
+- Training: 3× Joggen/Woche, bisher kein Krafttraining
+- Gym: im Geschäft vorhanden
 - Schritte: ~7'500/Tag
-- Schlaf: ~7 h (Qualität offen, Schnarchen offen)
-- Koffein: «viel» (Menge offen)
-- Ernährung: Pasta zentral, v. a. abends
-- Bereitschaft: Dinner Cancelling
+- Schlaf: ~7 h (Qualität, Schnarchen offen)
+- Koffein: ~7 Tassen/Tag (≈ 550–700 mg)
+- Essmuster: kein Frühstück, abends Heisshunger, Pasta zentral
 - Gerät: Garmin
 
 ## Offen
-Geschlecht, Taille, Blutdruck, Medikamente/Diagnosen, Familienanamnese, Blutwerte,
-Alkohol/Nikotin, Koffeinmenge, Schlafqualität/Schnarchen, typischer Essalltag,
-Garmin-VO₂max, Zieldatum.
+Taille, Blutdruck, Garmin-VO₂max, Schlafqualität/Schnarchen, typisches Mittagessen.
 
 ## Aktueller Plan (ab 17.10.2026)
-- Energiezufuhr ~2'100–2'200 kcal/Tag (geschätzter Bedarf ~2'650–2'750)
-- Protein ≥ 150 g/Tag
-- 2× Krafttraining/Woche (Ganzkörper) + 3× Laufen (2× locker, 1× Intervall)
+- Energiezufuhr ~2'000 kcal/Tag (geschätzter Bedarf ~2'650–2'750)
+- Protein ≥ 150 g/Tag, Schwerpunkt Mittag + 16-Uhr-Snack
+- Kein Dinner Cancelling (Heisshunger-Muster am Abend)
+- 2× Krafttraining/Woche im Geschäfts-Gym + 3× Laufen (2× locker, 1× Intervall)
 - Schritte ≥ 9'000/Tag
-- Koffein: letzter Kaffee spätestens 8 h vor dem Schlafen, max. ~400 mg/Tag
-- Dinner Cancelling optional, max. 2–3 Abende/Woche, nicht nach Lauftagen
+- Koffein: −1 Tasse pro Woche bis max. 4 Tassen, letzte Tasse bis 14:00
