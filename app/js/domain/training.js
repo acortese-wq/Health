@@ -220,7 +220,16 @@ export function exerciseHistory(workouts, exId, limit = 3) {
  */
 export function weekSummary(workouts, anyDateInWeek) {
   const from = weekStart(anyDateInWeek);
-  const to = addDays(from, 6);
+  return rangeSummary(workouts, from, addDays(from, 6));
+}
+
+/**
+ * Bilanz für einen beliebigen Zeitraum, z. B. die letzten 7 Tage.
+ * @param {Workout[]} workouts
+ * @param {string} from
+ * @param {string} to
+ */
+export function rangeSummary(workouts, from, to) {
   const inWeek = workouts.filter((w) => w.date >= from && w.date <= to);
   const strengthDays = new Set(inWeek.filter((w) => w.kind === 'strength').map((w) => w.date)).size;
   let moderate = 0;
@@ -242,4 +251,29 @@ export function weekSummary(workouts, anyDateInWeek) {
     strengthMet: strengthDays >= 2,
     intervalDone: inWeek.some((w) => w.kind === 'run' && w.runType === 'interval'),
   };
+}
+
+/**
+ * @typedef {{ title: string, detail: string, kind: 'strength' | 'run' | 'rest', template?: string, runType?: 'z2' | 'interval' | 'long' }} PlannedSession
+ */
+
+/**
+ * Wochenplan: Mo Kraft A, Di locker, Do Kraft B, Sa Intervalle, So lang; Mi/Fr Pause.
+ * @param {string} iso
+ * @returns {PlannedSession}
+ */
+export function plannedSession(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  /** @type {Record<number, PlannedSession>} */
+  const plan = {
+    1: { title: 'Kraft A', detail: '45 Min. Geschäfts-Gym', kind: 'strength', template: 'A' },
+    2: { title: 'Lauf locker', detail: `${RUN_TYPES.z2.label}, 40–50 Min.`, kind: 'run', runType: 'z2' },
+    3: { title: 'Pause', detail: 'Schritte sammeln', kind: 'rest' },
+    4: { title: 'Kraft B', detail: '45 Min. Geschäfts-Gym', kind: 'strength', template: 'B' },
+    5: { title: 'Pause', detail: 'Schritte sammeln', kind: 'rest' },
+    6: { title: 'Intervalle', detail: '4 × 4 Min. zügig, 3 Min. locker', kind: 'run', runType: 'interval' },
+    0: { title: 'Langer Lauf', detail: '60–75 Min. locker', kind: 'run', runType: 'long' },
+  };
+  return plan[dow];
 }

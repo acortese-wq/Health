@@ -54,6 +54,15 @@ export const EVIDENCE = [
     refs: [],
   },
   {
+    id: 'selfmonitoring',
+    topic: 'Verhalten',
+    level: 'gut belegt',
+    claim: 'Regelmässiges Erfassen von Gewicht und Essen ist einer der stärksten Erfolgsfaktoren beim Abnehmen.',
+    detail:
+      'In der Forschung zeigt sich ein klarer Zusammenhang zwischen regelmässiger Selbstbeobachtung und Gewichtsverlust. Wichtig ist Beständigkeit, nicht Perfektion. Grobe Einträge sind besser als keine. Darauf baut der Rückblick-Coach.',
+    refs: ['Burke LE et al., J Am Diet Assoc 2011;111:92–102'],
+  },
+  {
     id: 'strength',
     topic: 'Training',
     level: 'gut belegt',

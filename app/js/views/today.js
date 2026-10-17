@@ -1,8 +1,9 @@
 // @ts-check
 import { h, field, meter, badge, fmt, fmtSigned, num, str, nowTime } from '../ui/dom.js';
 import { uid } from '../store.js';
-import { RUN_TYPES } from '../domain/training.js';
+import { plannedSession } from '../domain/training.js';
 import { photoBlock } from './photo.js';
+import { reviewCard } from './review.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 
@@ -14,6 +15,7 @@ export function viewToday(ctx) {
     { class: 'stack' },
     summary(ctx, snap),
     hints(snap),
+    reviewCard(ctx),
     h('div', { class: 'grid-2' }, weightCard(ctx, snap), nutritionCard(ctx, snap), caffeineCard(ctx, snap), recoveryCard(ctx, snap)),
   );
 }
@@ -39,26 +41,6 @@ function summary(ctx, snap) {
     stat('Protein', fmt(snap.proteinG), 'g', `Ziel ${fmt(snap.protein.grams)} g`, snap.proteinG >= snap.protein.grams ? 'pos' : ''),
     stat('Heute geplant', nextTraining.title, '', nextTraining.detail),
   );
-}
-
-/**
- * Wochenplan: Mo Kraft A, Di locker, Do Kraft B, Sa Intervalle, So lang.
- * @param {string} iso
- */
-export function plannedSession(iso) {
-  const [y, m, d] = iso.split('-').map(Number);
-  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-  /** @type {Record<number, { title: string, detail: string }>} */
-  const plan = {
-    1: { title: 'Kraft A', detail: '45 Min. Geschäfts-Gym' },
-    2: { title: 'Lauf locker', detail: `${RUN_TYPES.z2.label}, 40–50 Min.` },
-    3: { title: 'Pause', detail: 'Schritte sammeln' },
-    4: { title: 'Kraft B', detail: '45 Min. Geschäfts-Gym' },
-    5: { title: 'Pause', detail: 'Schritte sammeln' },
-    6: { title: 'Intervalle', detail: '4 × 4 Min. zügig, 3 Min. locker' },
-    0: { title: 'Langer Lauf', detail: '60–75 Min. locker' },
-  };
-  return plan[dow];
 }
 
 /**
