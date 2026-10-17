@@ -11,7 +11,7 @@ Sie läuft im Browser, ist auf dem Handy installierbar (PWA) und funktioniert of
 
 | Bereich        | Was die App macht                                                                                                                                                                                       |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Heute**      | Gewicht, Mahlzeiten (Schnellerfassung), Protein, Koffein mit Restmenge beim Schlafengehen, Schritte, Schlaf, Ruhepuls, Coach-Hinweise nach Dringlichkeit                                                 |
+| **Heute**      | Gewicht, **Mahlzeit fotografieren → Gericht und Kalorien per Claude erkennen**, Mahlzeiten (Schnellerfassung), Protein, Koffein mit Restmenge beim Schlafengehen, Schritte, Schlaf, Ruhepuls, Coach-Hinweise nach Dringlichkeit                                                 |
 | **Gewicht**    | Robuster Trend (Theil-Sen und exponentielle Glättung), Planlinie, Zwischenziele, Prognose, **adaptiver Energiebedarf** aus den eigenen Daten statt aus der Formel                                         |
 | **Training**   | Ganzkörper-Kraftplan A/B mit **doppelter Progression** (Vorschlag für Gewicht und Wiederholungen), Laufprotokoll mit Pace, Wochenbilanz nach WHO                                                        |
 | **Gesundheit** | Blutdruck (ESC 2024, 7-Tage-Serie), Taille und Taille-zu-Grösse, VO₂max, Laborwerte mit Einordnung, **eGFR (CKD-EPI 2021)**, **FIB-4**, STOP-BANG-Schlafapnoe-Check, Schweizer Vorsorge-Checkliste |
@@ -27,6 +27,17 @@ Die Methodik und alle Grenzwerte mit Quellen stehen in [docs/MEDIZIN.md](docs/ME
 1. App-URL in Safari (iPhone) oder Chrome (Android) öffnen.
 2. iPhone: Teilen → «Zum Home-Bildschirm». Android: Menü → «App installieren».
 3. Profil anlegen. Danach läuft die App auch ohne Internet.
+
+### Foto-Erkennung
+
+Unter «Heute» → «Mahlzeit fotografieren». Claude (Modell `claude-opus-5-5`) erkennt Gericht und Bestandteile und schätzt
+Portion, Kalorien mit Spanne sowie Protein, Kohlenhydrate und Fett. Du kannst Bestandteile abwählen, die Portion anpassen
+(½ bis 1½) und die Werte korrigieren, bevor du sie übernimmst.
+
+- Benötigt einen eigenen Anthropic-API-Schlüssel (console.anthropic.com), einzutragen unter Profil → Foto-Erkennung. Ein Foto kostet etwa 3–5 Rappen.
+- Das Foto geht verkleinert direkt vom Gerät an Anthropic, ohne Zwischenserver. Der Schlüssel bleibt auf dem Gerät und ist nie im Backup.
+- Bei einer Ablehnung durch Sicherheitsfilter übernimmt serverseitig automatisch ein Ersatzmodell (`fallbacks: "default"`).
+- Das SDK `@anthropic-ai/sdk` ist in `app/vendor/` gebündelt (`npm run vendor`) und wird erst beim ersten Foto geladen.
 
 ### Datensicherung
 
@@ -72,7 +83,7 @@ Neue Datei in `app/`? Dann auch in `app/sw.js` eintragen und `VERSION` erhöhen.
 - Strikte Content-Security-Policy: nur eigene Skripte, keine Inline-Skripte, kein `eval`.
 - Nutzereingaben werden ausschliesslich als Textknoten in die Seite eingefügt (ein Test prüft das auf XSS).
 - Importierte Backups werden Feld für Feld validiert. Unbekannte Felder werden verworfen.
-- Keine Netzwerkanfragen mit Gesundheitsdaten; einzige externe Ressource sind die Schriften von Google Fonts (mit Ersatzschriften).
+- Netzwerkanfragen nur für Schriften (Google Fonts) und, wenn du sie nutzt, für die Foto-Erkennung an `api.anthropic.com` (Foto plus Resttagesziel, keine weiteren Gesundheitsdaten).
 
 ## Urheber
 

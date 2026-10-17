@@ -4,6 +4,7 @@ import { ACTIVITY_LEVELS } from '../domain/energy.js';
 import { emptyState, exportCSV, exportJSON, importJSON } from '../store.js';
 import { demoState } from '../demo.js';
 import { isISODate } from '../domain/util.js';
+import { getApiKey, setApiKey } from '../vision.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 /** @typedef {import('../store.js').Profile} Profile */
@@ -44,6 +45,7 @@ export function viewProfile(ctx) {
           ),
         ),
     profileForm(ctx, p),
+    p ? visionCard(ctx) : null,
     dataCard(ctx),
     h(
       'section',
@@ -431,5 +433,73 @@ function dataCard(ctx) {
           },
           ctx.state.demo ? 'Beispieldaten löschen' : 'Alle Daten löschen',
         ),
+  );
+}
+
+/** @param {Ctx} ctx */
+function visionCard(ctx) {
+  const key = getApiKey();
+  return h(
+    'section',
+    { class: 'card', 'aria-labelledby': 'vision-h' },
+    h('h2', { id: 'vision-h' }, 'Foto-Erkennung'),
+    h(
+      'p',
+      { class: 'small' },
+      'Fotografiere eine Mahlzeit unter «Heute». Claude erkennt das Gericht und schätzt Kalorien und Protein. Dafür braucht es einen eigenen API-Schlüssel von Anthropic (console.anthropic.com → API Keys, mit Prepaid-Guthaben). Ein Foto kostet etwa 3–5 Rappen.',
+    ),
+    h(
+      'ul',
+      { class: 'small muted assumptions' },
+      h(
+        'li',
+        {},
+        'Das Foto wird verkleinert und direkt von diesem Gerät an Anthropic gesendet, ohne Zwischenserver. Gesundheitsdaten werden nicht mitgeschickt, nur dein restliches Tagesziel für den Tipp.',
+      ),
+      h('li', {}, 'Der Schlüssel bleibt nur auf diesem Gerät gespeichert und ist nie Teil eines Backups.'),
+      h('li', {}, 'Setze in der Anthropic-Konsole ein Ausgabenlimit für den Schlüssel, zum Beispiel 5 USD pro Monat.'),
+    ),
+    h(
+      'form',
+      {
+        class: 'inline-form',
+        on: {
+          submit: (e) => {
+            e.preventDefault();
+            const v = str(new FormData(/** @type {HTMLFormElement} */ (e.target)), 'api-key');
+            if (!/^sk-ant-[A-Za-z0-9_-]{20,}$/.test(v))
+              return ctx.toast('Das sieht nicht wie ein Anthropic-Schlüssel aus (beginnt mit «sk-ant-»).', 'error');
+            if (!setApiKey(v)) return ctx.toast('Speichern nicht möglich (Browser-Speicher gesperrt).', 'error');
+            ctx.toast('Schlüssel gespeichert');
+            ctx.go('profil');
+          },
+        },
+      },
+      h(
+        'div',
+        { class: 'field' },
+        h('label', { for: 'api-key' }, key ? `Schlüssel hinterlegt (…${key.slice(-4)})` : 'Anthropic-API-Schlüssel'),
+        h('input', { id: 'api-key', name: 'api-key', type: 'password', autocomplete: 'off', spellcheck: 'false', placeholder: 'sk-ant-…' }),
+      ),
+      h('button', { class: 'btn primary', type: 'submit', id: 'api-key-save' }, key ? 'Ersetzen' : 'Speichern'),
+      key
+        ? h(
+            'button',
+            {
+              type: 'button',
+              class: 'btn',
+              id: 'api-key-delete',
+              on: {
+                click: () => {
+                  setApiKey('');
+                  ctx.toast('Schlüssel entfernt');
+                  ctx.go('profil');
+                },
+              },
+            },
+            'Entfernen',
+          )
+        : null,
+    ),
   );
 }

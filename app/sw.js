@@ -1,6 +1,6 @@
 // Service Worker: App-Schale offline verfügbar machen. Gesundheitsdaten liegen im
 // localStorage und werden hier nicht berührt.
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.1.0';
 const CACHE = `cockpit-${VERSION}`;
 const ASSETS = [
   './',
@@ -15,23 +15,27 @@ const ASSETS = [
   './js/app.js',
   './js/demo.js',
   './js/model.js',
+  './js/vision.js',
   './js/store.js',
   './js/domain/caffeine.js',
   './js/domain/clinical.js',
   './js/domain/coach.js',
   './js/domain/energy.js',
   './js/domain/evidence.js',
+  './js/domain/foodvision.js',
   './js/domain/training.js',
   './js/domain/trend.js',
   './js/domain/util.js',
   './js/ui/chart.js',
   './js/ui/dom.js',
   './js/views/health.js',
+  './js/views/photo.js',
   './js/views/knowledge.js',
   './js/views/profile.js',
   './js/views/today.js',
   './js/views/training.js',
   './js/views/weight.js',
+  './vendor/anthropic-sdk.js',
 ];
 
 self.addEventListener('install', (event) => {

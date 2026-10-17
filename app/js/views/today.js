@@ -2,6 +2,7 @@
 import { h, field, meter, badge, fmt, fmtSigned, num, str, nowTime } from '../ui/dom.js';
 import { uid } from '../store.js';
 import { RUN_TYPES } from '../domain/training.js';
+import { photoBlock } from './photo.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 
@@ -186,6 +187,7 @@ function nutritionCard(ctx, snap) {
     h('h2', { id: 'n-h' }, 'Ernährung'),
     meter({ value: snap.kcal, target: snap.kcalTarget, label: 'Energie', unit: 'kcal' }),
     meter({ value: snap.proteinG, target: snap.protein.grams, label: 'Protein', unit: 'g', over: 'good' }),
+    photoBlock(ctx, snap),
     h('p', { class: 'eyebrow' }, 'Schnell erfassen'),
     h(
       'div',

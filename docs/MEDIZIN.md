@@ -58,6 +58,13 @@ Blutdruck ab 40 jährlich (ESC 2024) · Lipide/AGLA-Risiko ab 40 alle 5 Jahre ·
 HbA1c ab 35 alle 3 Jahre (ADA) · Darmkrebs 50–69: FIT alle 2 Jahre oder Koloskopie alle 10 Jahre (OKP) ·
 PSA 50–69 nur nach Aufklärung · dT mit 25/45/65 · Gürtelrose und Grippe ab 65 (Schweizerischer Impfplan, BAG).
 
+## Foto-Erkennung
+
+- Modell zerlegt das Gericht in Bestandteile, schätzt Gramm (verzehrfertig), kcal mit Spanne und Makronährstoffe; unsichtbare Fette werden ausdrücklich als Annahme genannt.
+- Plausibilitätsprüfung nach Atwater (4 kcal/g Protein und Kohlenhydrate, 9 kcal/g Fett): Abweichung > 25 % → Hinweis.
+- Kalorienschätzungen anhand von Fotos weichen typischerweise 20–40 % ab (Portion, Öl, Saucen). Die App zeigt deshalb immer eine Spanne und empfiehlt im Zweifel den oberen Wert, weil Unterschätzung der häufigere Fehler ist.
+- Der adaptive Energiebedarf gleicht systematische Schätzfehler über die Zeit aus: Wer konsequent zu tief schätzt, erhält einen entsprechend tieferen gemessenen Bedarf.
+
 ## Bewusste Grenzen
 
 - Die 7700 kcal/kg sind eine Näherung. Der adaptive Bedarf gleicht diesen Fehler aus, weil er auf der tatsächlichen Gewichtsentwicklung beruht.

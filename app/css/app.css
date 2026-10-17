@@ -1292,3 +1292,95 @@ details summary {
     display: none;
   }
 }
+
+/* Foto-Erkennung */
+.photo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-md);
+}
+.photo-active {
+  border-style: solid;
+  background: var(--surface-2);
+}
+.photo-btn {
+  align-self: flex-start;
+  background: var(--petrol-soft);
+  border-color: var(--petrol);
+  color: var(--ink);
+}
+.btn-icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linejoin: round;
+}
+.photo-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.photo-thumb {
+  width: 88px;
+  height: 88px;
+  object-fit: cover;
+  border-radius: var(--r-sm);
+  flex-shrink: 0;
+}
+.photo-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+.photo-dish {
+  font-family: var(--f-display);
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+.photo-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.photo-items li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.92rem;
+}
+.photo-items .check {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.photo-items .entry-num {
+  text-align: left;
+}
+.portion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.photo-total {
+  font-variant-numeric: tabular-nums;
+}
+.photo-total strong {
+  font-family: var(--f-display);
+  font-size: 1.5rem;
+}
+.assumptions {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
