@@ -3,6 +3,7 @@
 // (localStorage). Export/Import als JSON dient als Backup und für Gerätewechsel.
 
 import { isISODate, isNum } from './domain/util.js';
+import { MICRO_KEYS } from './domain/micros.js';
 
 export const STORAGE_KEY = 'gesundheitscockpit';
 export const SCHEMA_VERSION = 1;
@@ -16,14 +17,16 @@ export const SCHEMA_VERSION = 1;
  *   stepsTarget: number, sleepTargetH: number, waterTargetMl: number, bedtime: string,
  *   trainingMode: import('./domain/training.js').TrainingMode,
  *   fastingWindowH: number, eatStart: string,
+ *   foodPrefs: import('./domain/micros.js').FoodPrefs,
  *   caffeineHalfLifeH: number, caffeineCutoffH: number, caffeineMaxMg: number,
  *   caffeineStartCups: number, caffeineTargetCups: number, caffeineTaperStart: string,
  * }} Profile
- * @typedef {'foto' | 'text' | 'etikett' | 'barcode' | 'manuell'} FoodSource
+ * @typedef {'foto' | 'text' | 'etikett' | 'barcode' | 'manuell' | 'datenbank'} FoodSource
  * @typedef {{
  *   id: string, name: string, kcal: number, protein: number, time: string,
  *   carbs?: number, fat?: number, sugar?: number, satFat?: number, fiber?: number, salt?: number,
  *   grams?: number, source?: FoodSource,
+ *   micros?: import('./domain/micros.js').Amounts, microSrc?: 'db' | 'ki' | 'mix',
  * }} FoodEntry
  * @typedef {{ id: string, label: string, mg: number, time: string }} CaffeineEntry
  * @typedef {{
@@ -233,6 +236,12 @@ function sanitizeProfile(p) {
     sleepTargetH: num(p.sleepTargetH, 7.5),
     waterTargetMl: num(p.waterTargetMl, 2000),
     trainingMode: p.trainingMode === 'laufen' ? 'laufen' : 'kombi',
+    foodPrefs: {
+      fisch: !isObj(p.foodPrefs) || p.foodPrefs.fisch !== false,
+      milch: !isObj(p.foodPrefs) || p.foodPrefs.milch !== false,
+      fleisch: !isObj(p.foodPrefs) || p.foodPrefs.fleisch !== false,
+      kantine: !isObj(p.foodPrefs) || p.foodPrefs.kantine !== false,
+    },
     fastingWindowH: [8, 10, 12].includes(/** @type {number} */ (p.fastingWindowH)) ? /** @type {number} */ (p.fastingWindowH) : 0,
     eatStart: typeof p.eatStart === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(p.eatStart) ? p.eatStart : '11:00',
     bedtime: str(p.bedtime, '22:30'),
@@ -393,7 +402,7 @@ export function exportCSV(state) {
 }
 
 const EXTRA_KEYS = /** @type {const} */ (['carbs', 'fat', 'sugar', 'satFat', 'fiber', 'salt', 'grams']);
-const SOURCES = ['foto', 'text', 'etikett', 'barcode', 'manuell'];
+const SOURCES = ['foto', 'text', 'etikett', 'barcode', 'manuell', 'datenbank'];
 
 /**
  * Optionale Nährwerte und Herkunft eines Eintrags übernehmen (nur gültige Zahlen).
@@ -408,6 +417,18 @@ export function extraNutrients(f) {
     if (isNum(v) && v >= 0 && v < 10000) out[k] = v;
   }
   if (typeof f.source === 'string' && SOURCES.includes(f.source)) out.source = /** @type {FoodSource} */ (f.source);
+  if (isObj(f.micros)) {
+    /** @type {import('./domain/micros.js').Amounts} */
+    const m = {};
+    for (const k of MICRO_KEYS) {
+      const v = /** @type {Record<string, unknown>} */ (f.micros)[k];
+      if (isNum(v) && v >= 0 && v < 100000) m[k] = v;
+    }
+    if (Object.keys(m).length) {
+      out.micros = m;
+      out.microSrc = f.microSrc === 'ki' || f.microSrc === 'mix' ? f.microSrc : 'db';
+    }
+  }
   return out;
 }
 

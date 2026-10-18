@@ -1838,3 +1838,208 @@ textarea {
   color: var(--warn);
   font-weight: 600;
 }
+
+/* Vorlieben im Profil */
+.prefs {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+/* Nährstoffe (nach MyFitnessPal): Makro-Ring und Balken */
+.macro-ring {
+  display: grid;
+  grid-template-columns: minmax(110px, 140px) 1fr;
+  gap: 16px;
+  align-items: center;
+}
+.ring {
+  width: 100%;
+  height: auto;
+  transform: rotate(-90deg);
+}
+.ring circle {
+  fill: none;
+  stroke-width: 12;
+}
+.ring-track {
+  stroke: var(--surface-2);
+}
+.ring text {
+  transform: rotate(90deg);
+  transform-origin: 50px 50px;
+  fill: var(--ink);
+}
+.ring-num {
+  font: 700 17px var(--f-display);
+}
+.ring-unit {
+  font: 500 9px var(--f-body);
+  fill: var(--muted);
+}
+.ring-carbs {
+  stroke: var(--info);
+}
+.ring-fat {
+  stroke: var(--amber);
+}
+.ring-protein {
+  stroke: var(--petrol);
+}
+.macro-legend {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+.macro-legend th,
+.macro-legend td {
+  text-align: left;
+  padding: 4px 6px 4px 0;
+  font-weight: 400;
+}
+.macro-legend thead th {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.macro-legend td {
+  font-family: var(--f-data);
+  white-space: nowrap;
+}
+.macro-legend small {
+  color: var(--muted);
+}
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.dot.ring-carbs {
+  background: var(--info);
+}
+.dot.ring-fat {
+  background: var(--amber);
+}
+.dot.ring-protein {
+  background: var(--petrol);
+}
+.nlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.nrow {
+  display: grid;
+  grid-template-columns: 1fr auto 3.2em;
+  grid-template-areas:
+    'label val pct'
+    'bar bar bar';
+  gap: 2px 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  align-items: baseline;
+}
+.nrow-label {
+  grid-area: label;
+  min-width: 0;
+}
+.nrow-label small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.nrow-val {
+  grid-area: val;
+  font-family: var(--f-data);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.nrow-pct {
+  grid-area: pct;
+  text-align: right;
+  font-family: var(--f-data);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.nbar {
+  grid-area: bar;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+  margin-top: 4px;
+}
+.nbar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--petrol);
+}
+.n-done .nbar-fill {
+  background: var(--ok);
+}
+.n-done .nrow-pct {
+  color: var(--ok);
+}
+.n-low .nbar-fill {
+  background: var(--amber);
+}
+.n-over .nbar-fill {
+  background: var(--alert);
+}
+.n-over .nrow-pct {
+  color: var(--alert);
+}
+.ngroup summary {
+  font-weight: 600;
+  padding: 8px 0;
+  cursor: pointer;
+}
+.food-search {
+  display: grid;
+  gap: 8px;
+}
+.search-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.search-pick {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+.suggestions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.suggestion {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: var(--r-md);
+  background: var(--petrol-soft);
+}
+.suggestion .btn {
+  justify-self: start;
+  margin-top: 4px;
+}
+@media (max-width: 420px) {
+  .macro-ring {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+  .macro-ring .ring {
+    max-width: 150px;
+  }
+}

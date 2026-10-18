@@ -69,6 +69,19 @@ PSA 50–69 nur nach Aufklärung · dT mit 25/45/65 · Gürtelrose und Grippe ab
 - Herstellerangaben zur Genauigkeit von Foto-Apps (z. B. «± 2 %») sind nicht unabhängig geprüft und wurden nicht als Massstab übernommen.
 - Der adaptive Energiebedarf gleicht systematische Schätzfehler über die Zeit aus.
 
+## Makro- und Mikronährstoffe
+
+| Thema | Umsetzung | Quelle |
+| --- | --- | --- |
+| Nährwertdatenbank | 119 Alltagslebensmittel mit deutschen Namen, Werte pro 100 g. Nur **unangereicherte** Varianten (US-Brot, -Pasta, -Reis und -Milch sind mit Folsäure, Eisen, B-Vitaminen bzw. Vitamin D angereichert, Schweizer Produkte nicht). Das Build-Skript lehnt Einträge mit zugesetzter Folsäure und magere Milchprodukte mit Vitamin D automatisch ab. Jod und Omega-3 sind in der Quelle nicht enthalten und werden nicht angezeigt. | USDA National Nutrient Database for Standard Reference, Release 28 (2015), gemeinfrei |
+| Referenzwerte | D-A-CH, Erwachsene 25 bis < 51 Jahre, getrennt nach Geschlecht (z. B. Männer: Vitamin C 110 mg, B12 4 µg, Folat 300 µg, Calcium 1000 mg, Magnesium 350 mg, Eisen 11 mg, Zink 14 mg bei mittlerer Phytatzufuhr, Vitamin D 20 µg). | DGE, ÖGE, SGE: D-A-CH-Referenzwerte für die Nährstoffzufuhr (Revisionen 2015–2023) |
+| Obergrenzen | Natrium max. 2000 mg (= 5 g Salz), gesättigte Fette < 10 % der Energie. | WHO |
+| Makro-Richtwerte | Protein aus dem Profil, Fett 30 % der Energie, Kohlenhydrate der Rest. Die Makroverteilung im Ring stammt nur aus Einträgen mit vollständigen Makros. | D-A-CH (Fett 30–35 %) |
+| Foto und Beschreibung | Die KI ordnet jedem Bestandteil wenn möglich einen Datenbank-Eintrag zu; dann kommen die Mikronährstoffe aus der Datenbank. Sonst schätzt die KI sie (markiert, Unsicherheit bei Vitaminen oft ±30–50 %). | – |
+| Abdeckung | Einträge ohne Mikronährstoffe (Schnellerfassung, Packung) zählen nicht mit; die App zeigt, für wie viel Prozent der Kalorien die Werte bekannt sind. Werte sind dann Mindestwerte. | – |
+| Vorschläge | Für die grössten offenen Lücken je das Lebensmittel, das sie mit wenig Energie am besten schliesst (Nährstoffdichte), innerhalb des Restbudgets, mit Vorlieben (Fisch, Milch, Fleisch, unterwegs). Vitamin D ist ausgenommen, weil es über die Nahrung kaum erreichbar ist. | – |
+| Einschränkungen | Niacin nur vorgeformt (ohne Tryptophan-Anteil, daher unterschätzt). Bei Vitaminen zählt der Wochenschnitt mehr als ein Tag. Die App ersetzt keine Ernährungsberatung und keine Laborwerte (z. B. Vitamin D, B12, Ferritin). | – |
+
 ## Bewusste Grenzen
 
 - Die 7700 kcal/kg sind eine Näherung. Der adaptive Bedarf gleicht diesen Fehler aus, weil er auf der tatsächlichen Gewichtsentwicklung beruht.

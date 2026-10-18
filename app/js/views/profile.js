@@ -112,6 +112,7 @@ function profileForm(ctx, p) {
     waterTargetMl: 2000,
     trainingMode: 'kombi',
     fastingWindowH: 0,
+    foodPrefs: { fisch: true, milch: true, fleisch: true, kantine: true },
     eatStart: '11:00',
     bedtime: '22:30',
     caffeineHalfLifeH: 5,
@@ -165,6 +166,12 @@ function profileForm(ctx, p) {
       waterTargetMl: need('p-water', 'Trinkziel (ml)', 1000, 5000, 2000),
       trainingMode: str(fd, 'p-training') === 'laufen' ? 'laufen' : 'kombi',
       bedtime: str(fd, 'p-bed') || '22:30',
+      foodPrefs: {
+        fisch: fd.get('p-pref-fisch') === 'on',
+        milch: fd.get('p-pref-milch') === 'on',
+        fleisch: fd.get('p-pref-fleisch') === 'on',
+        kantine: fd.get('p-pref-kantine') === 'on',
+      },
       fastingWindowH: [8, 10, 12].includes(Number(str(fd, 'p-fasting'))) ? Number(str(fd, 'p-fasting')) : 0,
       eatStart: /^\d{2}:\d{2}$/.test(str(fd, 'p-eatstart')) ? str(fd, 'p-eatstart') : '11:00',
       caffeineHalfLifeH: need('p-cafhl', 'Koffein-Halbwertszeit (h)', 2, 10, 5),
@@ -280,6 +287,30 @@ function profileForm(ctx, p) {
         hint: 'Richtwert Männer ca. 2000 ml, Frauen ca. 1600 ml (EFSA)',
       }),
       field({ id: 'p-bed', label: 'Übliche Schlafenszeit', type: 'time', value: v.bedtime }),
+    ),
+    h('h3', {}, 'Essensvorschläge'),
+    h(
+      'fieldset',
+      { class: 'prefs' },
+      h('legend', { class: 'small' }, 'Was darf die App für die nächste Mahlzeit vorschlagen?'),
+      ...[
+        ['fisch', 'Fisch und Meeresfrüchte'],
+        ['milch', 'Milchprodukte'],
+        ['fleisch', 'Fleisch'],
+        ['kantine', 'Bevorzugt, was es im Geschäft oder unterwegs gibt'],
+      ].map(([k, label]) =>
+        h(
+          'label',
+          { class: 'check' },
+          h('input', {
+            type: 'checkbox',
+            id: `p-pref-${k}`,
+            name: `p-pref-${k}`,
+            checked: v.foodPrefs?.[/** @type {'fisch' | 'milch' | 'fleisch' | 'kantine'} */ (k)] !== false,
+          }),
+          h('span', {}, label),
+        ),
+      ),
     ),
     h('h3', {}, 'Intervallfasten (optional)'),
     h(

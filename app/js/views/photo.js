@@ -5,6 +5,7 @@
 import { h, badge, fmt, num, str, nowTime } from '../ui/dom.js';
 import { uid } from '../store.js';
 import { totals, macrosConsistent, isHighProtein, scaleItem, productPortion, isValidGtin } from '../domain/foodvision.js';
+import { scaleMicros } from '../domain/micros.js';
 import { activeProvider, analyzeMeal, detectBarcode, lookupBarcode, prepareImage, readLabel, PROVIDERS } from '../vision.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -184,6 +185,7 @@ function save(ctx, e) {
   const date = ctx.date;
   const v = e.values;
   const nutrients = { carbs: v.carbs, fat: v.fat, sugar: v.sugar, satFat: v.satFat, fiber: v.fiber, salt: v.salt };
+  const micros = v.micros && Object.keys(v.micros).length ? { micros: v.micros, microSrc: v.microSrc ?? 'ki' } : {};
   reset();
   ctx.commit((s) => {
     const d = (s.days[date] = s.days[date] ?? {});
@@ -196,6 +198,7 @@ function save(ctx, e) {
         protein: Math.round(v.protein),
         time: nowTime(),
         ...nutrients,
+        ...micros,
         ...(e.grams ? { grams: e.grams } : {}),
         source: e.source,
       },
@@ -701,6 +704,7 @@ function saveForm(ctx, name, t, source, grams) {
               satFat: sc(t.satFat),
               fiber: sc(t.fiber),
               salt: sc(t.salt),
+              ...(t.micros ? { micros: scaleMicros(t.micros, f), microSrc: t.microSrc } : {}),
             },
             grams,
             source,

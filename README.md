@@ -15,7 +15,7 @@ Navigation: fünf Hauptbereiche unten (mobil) bzw. links (Desktop), dazu **Wisse
 | --------------- | ----------------- |
 | **Heute**       | Antippbare Kennzahlen (Trendgewicht, Kalorien übrig, Protein, Plan), Schnellaktionen, Coach-Hinweise nach Dringlichkeit, Gewicht, **Trinkmenge** mit Erinnerungen, Koffein mit Restmenge beim Schlafengehen, Erholung (Schritte, Schlaf, Ruhepuls), Tagesrückblick |
 | **Intervallfasten** | Optional im Profil (12:12, 14:10, 16:8): Karte auf Heute mit Fastenzeit, Countdown, Proteinplan im Fenster, Markierung von Mahlzeiten ausserhalb, Einordnung im Tagesrückblick. Einträge bis 50 kcal (Milch im Kaffee) zählen nicht als Mahlzeit |
-| **Ernährung**   | **Mahlzeit fotografieren, beschreiben oder Packung scannen** (Claude oder GPT, Open Food Facts), Zuletzt gegessen, Schnellerfassung, Einträge direkt bearbeiten |
+| **Ernährung**   | **Mahlzeit fotografieren, beschreiben oder Packung scannen** (Claude oder GPT, Open Food Facts), **Lebensmittelsuche** (119 Lebensmittel mit Vitaminen und Mineralstoffen), Zuletzt gegessen, Schnellerfassung, Einträge direkt bearbeiten. **Nährstoffe** wie bei MyFitnessPal: Makro-Ring und Balken für 26 Nährstoffe mit % vom Tagesbedarf (D-A-CH), Tag oder 7-Tage-Schnitt. **Vorschlag fürs nächste Essen** (z. B. Vitamin C → Kiwi, B12 → Fisch) |
 | **Fortschritt** | Robuster Trend (Theil-Sen und exponentielle Glättung), Planlinie, Zwischenziele, Prognose, **adaptiver Energiebedarf** aus den eigenen Daten |
 | **Training**    | Laufplan (oder Lauf plus Kraft mit **doppelter Progression**), Wochenbilanz nach WHO, Garmin-CSV-Import, Lebenserwartung durch Bewegung |
 | **Gesundheit**  | Blutdruck (ESC 2024), Taille, VO₂max, Laborwerte, **eGFR (CKD-EPI 2021)**, **FIB-4**, STOP-BANG, Schweizer Vorsorge |
@@ -78,6 +78,9 @@ Die veröffentlichte Seite ist öffentlich erreichbar, enthält aber keine Gesun
 auf dem Gerät. Die Seite ist mit `noindex` markiert.
 
 ## Entwicklung
+
+Nährwertdatenbank neu erzeugen (nach Änderungen an `scripts/foods-de.mjs`): `npm run foods`. Quelle: USDA SR28 (gemeinfrei), Paket `fda-nutrient-database`.
+
 
 Ohne Build-Schritt: reines HTML, CSS und JavaScript (ES-Module) mit JSDoc-Typen. Zur Laufzeit gibt es keine Abhängigkeiten.
 

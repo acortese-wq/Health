@@ -3,6 +3,42 @@
 
 import { emptyState, uid } from './store.js';
 import { addDays } from './domain/util.js';
+import { FOODS } from './data/foods.js';
+import { foodAmounts, pickMicros } from './domain/micros.js';
+
+/**
+ * Mikronährstoffe für einen Beispiel-Eintrag aus einer Zusammensetzung der Datenbank,
+ * skaliert auf die Kalorien des Eintrags.
+ * @param {number} kcal
+ * @param {[string, number][]} parts Schlüssel und Gramm
+ */
+function microsFor(kcal, parts) {
+  /** @type {import('./domain/micros.js').Amounts} */
+  const sum = {};
+  for (const [k, g] of parts) {
+    const food = FOODS.find((f) => f.k === k);
+    if (!food) continue;
+    for (const [n, v] of Object.entries(foodAmounts(food, g))) {
+      const key = /** @type {import('./domain/micros.js').NutrientKey} */ (n);
+      sum[key] = (sum[key] ?? 0) + v;
+    }
+  }
+  const f = sum.kcal ? kcal / sum.kcal : 1;
+  for (const key of Object.keys(sum))
+    sum[/** @type {import('./domain/micros.js').NutrientKey} */ (key)] =
+      (sum[/** @type {import('./domain/micros.js').NutrientKey} */ (key)] ?? 0) * f;
+  const r1 = (/** @type {number | undefined} */ v) => Math.round((v ?? 0) * 10) / 10;
+  return {
+    carbs: r1(sum.carbs),
+    fat: r1(sum.fat),
+    satFat: r1(sum.satFat),
+    fiber: r1(sum.fiber),
+    sugar: r1(sum.sugar),
+    salt: Math.round(((sum.sodium ?? 0) * 2.5) / 10) / 100,
+    micros: pickMicros(sum),
+    microSrc: /** @type {const} */ ('db'),
+  };
+}
 
 /**
  * @param {string} today
@@ -29,6 +65,7 @@ export function demoState(today) {
     waterTargetMl: 2000,
     trainingMode: 'kombi',
     fastingWindowH: 0,
+    foodPrefs: { fisch: true, milch: true, fleisch: true, kantine: true },
     eatStart: '11:00',
     bedtime: '22:30',
     caffeineHalfLifeH: 5,
@@ -54,17 +91,62 @@ export function demoState(today) {
       waterMl: 1250 + Math.round((rnd() + 1) * 2) * 250,
       ...(i % 5 !== 3 ? { complete: true } : {}),
       food: [
-        { id: uid(), name: 'Mittagsteller Protein + Gemüse', kcal: 700 + Math.round(rnd() * 80), protein: 50, time: '12:15' },
-        { id: uid(), name: 'Skyr 250 g mit Beeren', kcal: 210, protein: 28, time: '16:00' },
+        (() => {
+          const kcal = 700 + Math.round(rnd() * 80);
+          return {
+            id: uid(),
+            name: 'Mittagsteller Protein + Gemüse',
+            kcal,
+            protein: 50,
+            time: '12:15',
+            ...microsFor(kcal, [
+              ['pouletbrust', 150],
+              ['reis', 180],
+              ['broccoli', 150],
+              ['rapsoel', 10],
+            ]),
+          };
+        })(),
         {
           id: uid(),
-          name: 'Pasta-Teller (90 g Pasta, 150 g Poulet, Gemüse)',
-          kcal: 720 + Math.round(rnd() * 120),
-          protein: 55,
-          time: '19:15',
+          name: 'Skyr 250 g mit Beeren',
+          kcal: 210,
+          protein: 28,
+          time: '16:00',
+          ...microsFor(210, [
+            ['skyr', 250],
+            ['heidelbeeren', 80],
+          ]),
         },
-        { id: uid(), name: 'Milch im Kaffee (Tagesmenge)', kcal: 60, protein: 4, time: '07:00' },
-        { id: uid(), name: 'Apfel und Nüsse 30 g', kcal: 260, protein: 6, time: '10:00' },
+        (() => {
+          const kcal = 720 + Math.round(rnd() * 120);
+          return {
+            id: uid(),
+            name: 'Pasta-Teller (90 g Pasta, 150 g Poulet, Gemüse)',
+            kcal,
+            protein: 55,
+            time: '19:15',
+            ...microsFor(kcal, [
+              ['pasta', 225],
+              ['pouletbrust', 150],
+              ['tomatensauce', 100],
+              ['zucchetti', 100],
+              ['olivenoel', 10],
+            ]),
+          };
+        })(),
+        { id: uid(), name: 'Milch im Kaffee (Tagesmenge)', kcal: 60, protein: 4, time: '07:00', ...microsFor(60, [['milch', 100]]) },
+        {
+          id: uid(),
+          name: 'Apfel und Nüsse 30 g',
+          kcal: 260,
+          protein: 6,
+          time: '10:00',
+          ...microsFor(260, [
+            ['apfel', 180],
+            ['baumnuesse', 30],
+          ]),
+        },
       ],
       caffeine: Array.from({ length: cups }, (_, k) => ({
         id: uid(),

@@ -8,10 +8,15 @@
 // Für verpackte Produkte sind Nährwerttabelle und Barcode deutlich genauer als ein Foto.
 
 import { clamp, isNum } from './util.js';
+import { FOODS } from '../data/foods.js';
+import { foodAmounts, pickMicros, scaleMicros } from './micros.js';
 
 /**
- * @typedef {{ kcal: number, protein: number, carbs: number, fat: number, fiber: number, sugar: number, satFat: number, salt: number }} Nutrients
- * @typedef {Nutrients & { kcalLow: number, kcalHigh: number }} ItemValues
+ * @typedef {{
+ *   kcal: number, protein: number, carbs: number, fat: number, fiber: number, sugar: number, satFat: number, salt: number,
+ *   micros?: import('./micros.js').Amounts, microSrc?: 'db' | 'ki' | 'mix',
+ * }} Nutrients
+ * @typedef {Nutrients & { kcalLow: number, kcalHigh: number, dbKey?: string }} ItemValues
  * @typedef {ItemValues & { name: string, portion: string, grams: number, baseGrams: number, base: ItemValues }} MealItem
  * @typedef {{
  *   isFood: boolean, dish: string, items: MealItem[], assumptions: string[],
@@ -35,10 +40,42 @@ const NUTRIENT_PROPS = {
 };
 const NUTRIENT_KEYS = Object.keys(NUTRIENT_PROPS);
 
+/** Mikronährstoffe im Antwortschema → Schlüssel in der App. */
+const MICRO_FIELDS = /** @type {const} */ ({
+  sodium: 'sodium_mg',
+  cholesterol: 'cholesterol_mg',
+  potassium: 'potassium_mg',
+  calcium: 'calcium_mg',
+  iron: 'iron_mg',
+  magnesium: 'magnesium_mg',
+  phosphorus: 'phosphorus_mg',
+  zinc: 'zinc_mg',
+  selenium: 'selenium_ug',
+  vitA: 'vit_a_ug_rae',
+  vitC: 'vit_c_mg',
+  vitD: 'vit_d_ug',
+  vitE: 'vit_e_mg',
+  vitK: 'vit_k_ug',
+  b1: 'vit_b1_mg',
+  b2: 'vit_b2_mg',
+  niacin: 'niacin_mg',
+  b6: 'vit_b6_mg',
+  folate: 'folate_ug_dfe',
+  b12: 'vit_b12_ug',
+});
+const MICRO_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: Object.values(MICRO_FIELDS),
+  properties: Object.fromEntries(Object.values(MICRO_FIELDS).map((f) => [f, { type: 'number' }])),
+  description: 'Geschätzte Mikronährstoffe für die angegebene Grammzahl',
+};
+const FOOD_BY_KEY = new Map(FOODS.map((f) => [f.k, f]));
+
 const ITEM_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['name', 'portion', 'grams', 'kcal', 'kcal_low', 'kcal_high', ...NUTRIENT_KEYS],
+  required: ['name', 'portion', 'grams', 'kcal', 'kcal_low', 'kcal_high', ...NUTRIENT_KEYS, 'db_key', 'micros'],
   properties: {
     name: { type: 'string', description: 'Bestandteil auf Deutsch, z. B. «Spaghetti, gekocht»' },
     portion: { type: 'string', description: 'Menge in Alltagssprache, z. B. «1 Teller, ca. 2 Schöpfkellen»' },
@@ -47,6 +84,8 @@ const ITEM_SCHEMA = {
     kcal_low: { type: 'number', description: 'Untere plausible Grenze in kcal' },
     kcal_high: { type: 'number', description: 'Obere plausible Grenze in kcal' },
     ...NUTRIENT_PROPS,
+    db_key: { type: 'string', description: 'Schlüssel aus der Lebensmittelliste, wenn er passt, sonst leer' },
+    micros: MICRO_SCHEMA,
   },
 };
 
@@ -100,7 +139,14 @@ Vorgehen:
 - Gib pro Bestandteil eine beste Schätzung und eine ehrliche Spanne an (bei Saucen und Frittiertem breiter). Fülle auch Zucker, gesättigte Fette, Ballaststoffe und Salz als Schätzung.
 - Angaben der Person (z. B. «halbe Portion», «ohne Sauce») haben Vorrang vor deiner Vermutung.
 - Erfinde nichts. Ist kein Essen erkennbar, setze is_food auf false; bei Unsicherheit confidence «niedrig».
-- Schreibe auf Deutsch (Schweizer Rechtschreibung, «ss» statt «ß»).`;
+- Schreibe auf Deutsch (Schweizer Rechtschreibung, «ss» statt «ß»).
+
+Mikronährstoffe:
+- Setze db_key auf den passenden Schlüssel aus der Lebensmittelliste unten, wenn der Bestandteil im Wesentlichen diesem Lebensmittel in gleicher Zubereitung entspricht (z. B. «Spaghetti, gekocht» → pasta). Für zusammengesetzte Saucen, Fertiggerichte oder Unpassendes leer lassen.
+- Schätze micros für jeden Bestandteil trotzdem (Menge für die angegebenen Gramm). Rechne mit Schweizer, nicht angereicherten Lebensmitteln.
+
+Lebensmittelliste (Schlüssel=Name):
+${FOODS.map((f) => `${f.k}=${f.n}`).join('; ')}`;
 
 export const LABEL_SYSTEM_PROMPT = `Du liest Nährwerttabellen und Barcodes von Lebensmittelverpackungen ab.
 
@@ -155,6 +201,25 @@ function readNutrients(x) {
 }
 
 /**
+ * Mikronährstoffe eines Bestandteils: aus der Datenbank, wenn der Schlüssel passt und eine
+ * Grammzahl vorliegt, sonst die Schätzung des Modells (begrenzt auf plausible Werte).
+ * @param {Record<string, unknown>} x
+ * @param {number} grams
+ * @returns {{ micros?: import('./micros.js').Amounts, microSrc?: 'db' | 'ki', dbKey?: string }}
+ */
+function readMicros(x, grams) {
+  const food = typeof x.db_key === 'string' ? FOOD_BY_KEY.get(x.db_key.trim()) : undefined;
+  if (food && grams > 0) return { micros: pickMicros(foodAmounts(food, grams)), microSrc: 'db', dbKey: food.k };
+  if (typeof x.micros !== 'object' || x.micros === null) return {};
+  const m = /** @type {Record<string, unknown>} */ (x.micros);
+  /** @type {import('./micros.js').Amounts} */
+  const raw = {};
+  for (const [key, field] of Object.entries(MICRO_FIELDS)) raw[/** @type {keyof typeof MICRO_FIELDS} */ (key)] = num(m[field], 50000);
+  const micros = pickMicros(raw);
+  return Object.values(micros).some((v) => v > 0) ? { micros, microSrc: 'ki' } : {};
+}
+
+/**
  * Prüft und normalisiert die Modellantwort. Wirft bei unbrauchbarer Struktur.
  * @param {unknown} raw
  * @returns {MealEstimate}
@@ -174,7 +239,13 @@ export function parseEstimate(raw) {
     const hi = Math.max(num(x.kcal_high, 5000) || kcal, kcal);
     const grams = Math.round(num(x.grams, 3000));
     /** @type {ItemValues} */
-    const values = { kcal: Math.round(kcal), kcalLow: Math.round(lo), kcalHigh: Math.round(hi), ...readNutrients(x) };
+    const values = {
+      kcal: Math.round(kcal),
+      kcalLow: Math.round(lo),
+      kcalHigh: Math.round(hi),
+      ...readNutrients(x),
+      ...readMicros(x, grams),
+    };
     parsed.push({
       name: typeof x.name === 'string' && x.name.trim() ? x.name.trim().slice(0, 80) : 'Bestandteil',
       portion: typeof x.portion === 'string' ? x.portion.trim().slice(0, 120) : '',
@@ -225,6 +296,7 @@ export function scaleItem(item, grams) {
     satFat: r1(b.satFat * f),
     fiber: r1(b.fiber * f),
     salt: r1(b.salt * f),
+    ...(b.micros ? { micros: scaleMicros(b.micros, f) } : {}),
   };
 }
 
@@ -250,7 +322,31 @@ export function totals(items, factor = 1) {
     satFat: sum((i) => i.satFat, 1),
     fiber: sum((i) => i.fiber, 1),
     salt: sum((i) => i.salt, 1),
+    ...sumMicros(items, f),
   };
+}
+
+/**
+ * Mikronährstoffe summieren. Herkunft: «db», «ki» oder «mix»; fehlen sie bei einem
+ * Bestandteil, gilt die Summe als Mindestwert (Herkunft «mix»).
+ * @param {MealItem[]} items
+ * @param {number} f
+ * @returns {{ micros?: import('./micros.js').Amounts, microSrc?: 'db' | 'ki' | 'mix' }}
+ */
+function sumMicros(items, f) {
+  const withMicros = items.filter((i) => i.micros);
+  if (!withMicros.length) return {};
+  /** @type {import('./micros.js').Amounts} */
+  const sum = {};
+  for (const i of withMicros) {
+    for (const [k, v] of Object.entries(i.micros ?? {})) {
+      const key = /** @type {import('./micros.js').NutrientKey} */ (k);
+      sum[key] = (sum[key] ?? 0) + v * f;
+    }
+  }
+  const srcs = new Set(withMicros.map((i) => i.microSrc));
+  const microSrc = withMicros.length < items.length || srcs.size > 1 ? 'mix' : srcs.has('db') ? 'db' : 'ki';
+  return { micros: pickMicros(sum), microSrc };
 }
 
 /**

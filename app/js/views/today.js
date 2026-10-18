@@ -7,6 +7,8 @@ import { photoBlock } from './photo.js';
 import { healthPasteBlock } from './garmin.js';
 import { waterPace, waterFact, reminderTimes, buildReminderIcs } from '../domain/hydration.js';
 import { reviewCard } from './review.js';
+import { foodSearchBlock, nutrientsCard, suggestCard } from './nutrients.js';
+import { scaleMicros } from '../domain/micros.js';
 import {
   eatingWindow,
   windowLabel,
@@ -52,7 +54,7 @@ export function viewToday(ctx) {
  */
 export function viewNutrition(ctx) {
   const snap = /** @type {NonNullable<Ctx['snap']>} */ (ctx.snap);
-  return h('div', { class: 'stack' }, h('h1', {}, 'Ernährung'), nutritionCard(ctx, snap));
+  return h('div', { class: 'stack' }, h('h1', {}, 'Ernährung'), nutritionCard(ctx, snap), suggestCard(ctx, snap), nutrientsCard(ctx, snap));
 }
 
 /**
@@ -261,6 +263,7 @@ function nutritionCard(ctx, snap) {
         )
       : null,
     photoBlock(ctx, snap),
+    foodSearchBlock(ctx),
     recent.length
       ? [
           h('p', { class: 'eyebrow' }, 'Zuletzt gegessen'),
@@ -819,6 +822,7 @@ function foodRow(ctx, f) {
                 const v = list[i][k];
                 if (v !== undefined) next[k] = Math.round(v * factor * 10) / 10;
               }
+              if (list[i].micros) next.micros = scaleMicros(list[i].micros, factor);
               list[i] = next;
             }, 'Eintrag geändert');
           },
