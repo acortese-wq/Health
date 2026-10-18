@@ -7,6 +7,8 @@ import { allowedCups, dayAssessment, taperPlan } from './domain/caffeine.js';
 import { weekSummary } from './domain/training.js';
 import { bmi, bmiClass, bpSeriesMean, bpCategory, whtr, waistRisk } from './domain/clinical.js';
 import { coachHints } from './domain/coach.js';
+import { nutritionAdvice } from './domain/advice.js';
+import { plannedSession } from './domain/training.js';
 import { addDays, isNum, mean } from './domain/util.js';
 import { weightSeries } from './store.js';
 
@@ -41,7 +43,9 @@ export function snapshot(state, date) {
   const tdee = adaptive?.tdee ?? tdeeFormula;
 
   const plan = planTarget({ sex: p.sex, tdee, bmr, weightKg, goalWeightKg: p.goalWeightKg, today: date, goalDate: p.goalDate });
-  const kcalTarget = p.kcalOverride ?? plan.kcal;
+  // Diätpause: Erhaltung (Gesamtumsatz) statt Defizit
+  const dietBreak = Boolean(p.dietBreakUntil && p.dietBreakUntil >= date);
+  const kcalTarget = p.kcalOverride ?? (dietBreak ? Math.round(tdee / 10) * 10 : plan.kcal);
   const protein = proteinTarget({ weightKg, goalWeightKg: p.goalWeightKg, heightCm: p.heightCm, gPerKg: p.proteinPerKg });
 
   const day = state.days[date] ?? {};
@@ -132,5 +136,24 @@ export function snapshot(state, date) {
     waist: waistLast ? { ...waistLast, risk: waistRisk(p.sex, waistLast.cm), whtr: whtr(waistLast.cm, p.heightCm) } : null,
     bpMean: bpMean ? { ...bpMean, category: bpCategory(bpMean.sys, bpMean.dia, 'home') } : null,
   };
-  return { ...snap, hints: coachHints(snap) };
+  const runsToday = state.workouts
+    .filter((w) => w.date === date && w.kind === 'run')
+    .map((w) => ({ minutes: /** @type {any} */ (w).minutes ?? 0, runType: /** @type {any} */ (w).runType ?? 'z2' }));
+  const advice = nutritionAdvice({
+    date,
+    session: plannedSession(date, p.trainingMode),
+    runsToday,
+    ratePctPerWeek: slope && slope.n >= 7 ? ((-slope.slopeKgPerDay * 7) / weightKg) * 100 : null,
+    rhrDelta: rhr7 && rhrBase && rhr7.n >= 3 && rhrBase.n >= 10 ? rhr7.value - rhrBase.value : null,
+    sleep7: sleep7 && sleep7.n >= 4 ? sleep7.value : null,
+    deficit7: kcal7 && kcal7.n >= 4 ? tdee - kcal7.value : null,
+    days: state.days,
+    vitDSupplementUg: p.vitDSupplementUg ?? 0,
+    dietBreakUntil: p.dietBreakUntil ?? '',
+    startDate: p.startDate,
+    maintenance: plan.maintenance,
+  });
+  const order = { alert: 0, warn: 1, info: 2, ok: 3 };
+  const hints = [...coachHints(snap), ...advice].sort((a, b) => order[a.severity] - order[b.severity]);
+  return { ...snap, dietBreak, hints };
 }

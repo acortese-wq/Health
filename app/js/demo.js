@@ -71,6 +71,8 @@ export function demoState(today) {
     trainingMode: 'kombi',
     fastingWindowH: 0,
     foodPrefs: { fisch: true, milch: true, fleisch: true, kantine: true },
+    vitDSupplementUg: 0,
+    dietBreakUntil: '',
     eatStart: '11:00',
     bedtime: '22:30',
     caffeineHalfLifeH: 5,

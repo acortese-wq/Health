@@ -33,7 +33,7 @@ test('Onboarding: Profil anlegen führt zur Tagesansicht mit Zielen', async ({ p
   await expect(page).toHaveURL(/#heute$/);
   await expect(page.locator('.stat').nth(0)).toContainText('95');
   await expect(page.locator('.stat').nth(2)).toContainText('Ziel 150 g');
-  await expect(page.getByText('Kalibrierung läuft')).toBeVisible();
+  await expect(page.locator('main')).toContainText('Kalibrierung läuft');
   expect(errors).toEqual([]);
 });
 

@@ -22,6 +22,7 @@ export const SCHEMA_VERSION = 1;
  *   trainingMode: import('./domain/training.js').TrainingMode,
  *   fastingWindowH: number, eatStart: string,
  *   foodPrefs: import('./domain/micros.js').FoodPrefs,
+ *   vitDSupplementUg: number, dietBreakUntil: string,
  *   caffeineHalfLifeH: number, caffeineCutoffH: number, caffeineMaxMg: number,
  *   caffeineStartCups: number, caffeineTargetCups: number, caffeineTaperStart: string,
  * }} Profile
@@ -242,6 +243,8 @@ function sanitizeProfile(p) {
     sleepTargetH: num(p.sleepTargetH, 7.5),
     waterTargetMl: num(p.waterTargetMl, 2000),
     trainingMode: p.trainingMode === 'laufen' ? 'laufen' : 'kombi',
+    vitDSupplementUg: isNum(p.vitDSupplementUg) && p.vitDSupplementUg >= 0 && p.vitDSupplementUg <= 100 ? p.vitDSupplementUg : 0,
+    dietBreakUntil: typeof p.dietBreakUntil === 'string' && isISODate(p.dietBreakUntil) ? p.dietBreakUntil : '',
     foodPrefs: {
       fisch: !isObj(p.foodPrefs) || p.foodPrefs.fisch !== false,
       milch: !isObj(p.foodPrefs) || p.foodPrefs.milch !== false,

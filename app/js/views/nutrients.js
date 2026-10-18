@@ -395,7 +395,9 @@ export function nutrientsCard(ctx, snap) {
   const week = view.period === 'woche';
   const days = Array.from({ length: 7 }, (_, i) => ctx.state.days[addDays(ctx.date, -i)]?.food ?? []);
   const r = week ? averageAmounts(days) : { ...dayAmounts(snap.day.food ?? []), days: 1 };
-  const a = r.amounts;
+  const supp = snap.profile.vitDSupplementUg ?? 0;
+  // Vitamin-D-Präparat aus dem Profil mitzählen
+  const a = supp > 0 ? { ...r.amounts, vitD: (r.amounts.vitD ?? 0) + supp } : r.amounts;
   const anyKi = (week ? days.flat() : (snap.day.food ?? [])).some((f) => f.microSrc === 'ki' || f.microSrc === 'mix');
   /** @param {NutrientDef['group']} g */
   const rows = (g) => NUTRIENTS.filter((n) => n.group === g).map((n) => nutrientRow(n, a[n.key] ?? 0, targets[n.key]));
@@ -465,6 +467,9 @@ export function nutrientsCard(ctx, snap) {
           { class: 'note info small', id: 'nut-coverage' },
           `Vitamine und Mineralstoffe sind für ${coverage} % der Kalorien bekannt. Einträge ohne diese Angaben (z. B. Schnellerfassung, Packung) fehlen, die Werte sind also Mindestwerte. Mit «Lebensmittel suchen» oder Foto werden sie vollständig.`,
         )
+      : null,
+    supp > 0
+      ? h('p', { class: 'hint', id: 'nut-vitd' }, `Vitamin D inklusive Präparat (${fmt(supp, 1)} µg pro Tag, aus dem Profil).`)
       : null,
     anyKi
       ? h(
