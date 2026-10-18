@@ -12,7 +12,11 @@ test('Trinken: Glas und Flasche erfassen, korrigieren, bleibt nach Neuladen', as
   const card = page.locator('section[aria-labelledby="water-h"]');
   await expect(card).toContainText(/0 \/ 2[’']000 ml/);
   await expect(page.locator('#water-minus')).toBeDisabled();
+  const fact = page.locator('#water-fact');
+  const before = await fact.textContent();
   await page.click('#water-250');
+  await expect(fact).not.toHaveText(before ?? '');
+  await expect(fact).toContainText('Gut gemacht.');
   await page.click('#water-500');
   await page.click('#water-750');
   await expect(card).toContainText(/1[’']500 \/ 2[’']000 ml/);

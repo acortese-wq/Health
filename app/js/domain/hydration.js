@@ -34,22 +34,36 @@ export function waterPace({ ml, target, minutes, isToday }) {
   };
 }
 
-const FACTS = [
-  'Schon rund 2 % Flüssigkeitsverlust können Konzentration und Leistung messbar senken, auf der Baustelle schnell erreicht.',
-  'Ein grosses Glas Wasser vor dem Essen hilft beim Sattwerden. In Studien nahmen Personen damit etwas mehr ab.',
-  'Wasser hat 0 kcal. Ein halber Liter Süssgetränk hat rund 200 kcal, so viel wie dein 16-Uhr-Snack.',
-  'Bei Hitze, Sport und körperlicher Arbeit steigt der Bedarf deutlich, oft um einen Liter oder mehr.',
-  'Ein einfacher Test: Hellgelber Urin heisst gut getrunken. Dunkelgelb heisst: Jetzt ein Glas.',
-  'Müdigkeit am Nachmittag ist oft auch Durst. Ein Glas Wasser vor dem nächsten Kaffee lohnt sich.',
+// Vorteile des Trinkens, nur gut belegte oder vorsichtig formulierte Aussagen.
+// Quellen: Adan 2012 (J Am Coll Nutr), Dennis 2010 (Obesity), Pan 2013 (Am J Clin Nutr),
+// Borghi 1996 (J Urol), Killer 2014 (PLoS One), Armstrong 2012 (J Nutr), Roussel 2011
+// (Diabetes Care), ACSM 2007 (Exercise and Fluid Replacement).
+export const FACTS = [
+  'Konzentration: Schon rund 2 % Flüssigkeitsverlust können Aufmerksamkeit und Leistung messbar senken, auf der Baustelle schnell erreicht.',
+  'Sattwerden: Ein grosses Glas Wasser vor dem Essen hilft beim Sattwerden. In einer Studie nahmen Personen damit in 12 Wochen etwas mehr ab.',
+  'Null Kalorien: Ein halber Liter Süssgetränk hat rund 200 kcal, so viel wie dein 16-Uhr-Snack. Wasser hat 0 kcal.',
+  'Gewicht langfristig: Wer Süssgetränke durch Wasser ersetzt, nimmt laut grossen Langzeitstudien über die Jahre weniger zu.',
+  'Laufen: Verlierst du beim Joggen mehr als 2 % deines Gewichts an Schweiss, sinkt die Ausdauer. 1 kg weniger nach dem Lauf entspricht etwa 1 Liter.',
+  'Kühlung: Schwitzen kühlt dich nur, wenn genug Flüssigkeit nachkommt. Bei Hitze und Sport steigt der Bedarf oft um einen Liter oder mehr.',
+  'Stimmung: Schon leichter Flüssigkeitsmangel ging in Studien mit mehr Müdigkeit, schlechterer Laune und Kopfweh einher.',
+  'Nieren: Genug trinken senkt das Risiko für Nierensteine deutlich. Wer schon einmal einen hatte, profitiert besonders.',
+  'Verdauung: Ballaststoffe aus Gemüse und Vollkorn wirken nur mit genug Flüssigkeit gegen Verstopfung.',
+  'Kaffee zählt mit: Kaffee in normalen Mengen trocknet nicht aus. Ein Glas Wasser zu jeder Tasse hilft trotzdem, weniger Kaffee zu trinken.',
+  'Nachmittagstief: Müdigkeit am Nachmittag ist oft auch Durst. Ein Glas Wasser vor dem nächsten Kaffee lohnt sich.',
+  'Selbsttest: Hellgelber Urin heisst gut getrunken. Dunkelgelb heisst: Jetzt ein Glas.',
+  'Blutzucker: Wer wenig trank, hatte in einer grossen Beobachtungsstudie häufiger erhöhten Blutzucker. Ursache und Wirkung sind nicht bewiesen.',
+  'Gewohnheit: Wasser sichtbar auf dem Pult oder im Auto ist der einfachste Trick. Was griffbereit ist, wird getrunken.',
 ];
 
 /**
- * Ein Fakt pro Tag (stabil, wechselt täglich).
+ * Vorteil des Trinkens. Wechselt täglich und mit jeder Erfassung (step = Gläser à 250 ml),
+ * damit nach jedem Glas ein neuer Vorteil erscheint.
  * @param {string} date
+ * @param {number} [step]
  */
-export function waterFact(date) {
+export function waterFact(date, step = 0) {
   const n = date.split('-').reduce((a, x) => a + Number(x), 0);
-  return FACTS[n % FACTS.length];
+  return FACTS[(n + Math.max(0, Math.round(step))) % FACTS.length];
 }
 
 /**

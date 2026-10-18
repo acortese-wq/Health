@@ -62,6 +62,19 @@ test('Trinkplan über den Tag', () => {
   assert.notEqual(waterFact('2026-10-18'), waterFact('2026-10-19'));
 });
 
+test('Trink-Vorteile: nach jedem Glas, jeder Flasche ein neuer', async () => {
+  const { FACTS } = await import('../../app/js/domain/hydration.js');
+  assert.equal(new Set(FACTS).size, FACTS.length);
+  assert.ok(FACTS.length >= 12);
+  // Glas (+1), Flasche (+2), grosse Flasche (+3): nie derselbe Text wie vorher
+  for (let ml = 0; ml <= 4000; ml += 250) {
+    for (const add of [250, 500, 750]) {
+      assert.notEqual(waterFact('2026-10-18', ml / 250), waterFact('2026-10-18', (ml + add) / 250));
+    }
+  }
+  assert.equal(waterFact('2026-10-18', 0), waterFact('2026-10-18'));
+});
+
 test('Erinnerungszeiten und Kalenderdatei', async () => {
   const { reminderTimes, buildReminderIcs, shouldNudge } = await import('../../app/js/domain/hydration.js');
   assert.deepEqual(reminderTimes('09:00', '19:00', 120), ['09:00', '11:00', '13:00', '15:00', '17:00', '19:00']);

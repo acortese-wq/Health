@@ -521,7 +521,12 @@ function waterCard(ctx, snap) {
       ),
     ),
     pace ? h('p', { class: `water-pace pace-${pace.status}`, id: 'water-pace' }, pace.message) : null,
-    h('p', { class: 'water-fact small' }, waterFact(ctx.date)),
+    h(
+      'p',
+      { class: 'water-fact small', id: 'water-fact' },
+      h('strong', {}, ml ? 'Gut gemacht. ' : 'Wusstest du? '),
+      waterFact(ctx.date, ml / 250),
+    ),
     snap.water7 ? h('p', { class: 'small muted' }, `7-Tage-Schnitt: ${fmt(snap.water7.value)} ml`) : null,
     reminderBlock(ctx, target),
     h('p', { class: 'hint' }, 'Kaffee und Tee zählen mit. Bei Herz- oder Nierenerkrankungen gilt die ärztlich empfohlene Trinkmenge.'),
