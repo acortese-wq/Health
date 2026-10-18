@@ -226,6 +226,71 @@ function tagsFor(cat) {
   return [...t];
 }
 
+/**
+ * Gruppe der Schweizer Lebensmittelpyramide (SGE) und Grösse einer Portion in g.
+ * «suess» wird nicht über Gramm, sondern über 150 kcal pro Portion gezählt (Portion 0).
+ * Gemischte Gerichte, Saucen, Fette und Getränke ohne Gruppe.
+ * @param {string} name
+ * @param {string} cat
+ * @returns {[string, number, number] | null} Gruppe, Portion in g, Vollkorn (0/1)
+ */
+function groupOf(name, cat) {
+  const subs = cat.split(';');
+  const has = (/** @type {string} */ x) => subs.some((c) => c === x || c.startsWith(`${x}/`));
+  const sub = (/** @type {string} */ x) => subs.includes(x);
+  const n = name.toLowerCase();
+  const cooked = /gekocht|gedämpft|gedünstet|aufgewärmt/.test(n);
+  const vk = /vollkorn|unpoliert|haferflocken|ruchbrot|roggen|dinkel|hirse|quinoa|buchweizen/.test(n) ? 1 : 0;
+  if (sub('Früchte/Fruchtsäfte') || sub('Alkoholfreie Getränke/Frucht- und Gemüsesäfte')) return ['frucht', 200, 0];
+  if (sub('Früchte/Früchte getrocknet')) return ['frucht', 30, 0];
+  if (has('Früchte')) return ['frucht', 120, 0];
+  if (sub('Gemüse/Kräuter') || sub('Gemüse/Gemüse getrocknet')) return null;
+  if (has('Gemüse')) return ['gemuese', 120, 0];
+  if (
+    sub('Brote, Flocken und Frühstückscerealien/Flocken, Kleie und Keime') ||
+    sub('Brote, Flocken und Frühstückscerealien/Müeslimischungen und Frühstückscerealien')
+  )
+    return ['staerke', 45, vk];
+  if (sub('Brote, Flocken und Frühstückscerealien/Knäckebrote, Zwieback, Crackers und Waffeln')) return ['staerke', 50, vk];
+  if (has('Brote, Flocken und Frühstückscerealien')) return ['staerke', 100, vk];
+  if (sub('Getreideprodukte, Hülsenfrüchte und Kartoffeln/Kartoffeln und andere stärkereiche Knollen')) return ['staerke', 240, 0];
+  if (sub('Getreideprodukte, Hülsenfrüchte und Kartoffeln/Hülsenfrüchte')) return ['huelsen', cooked ? 150 : 60, 0];
+  if (
+    sub('Getreideprodukte, Hülsenfrüchte und Kartoffeln/Teigwaren') ||
+    sub('Getreideprodukte, Hülsenfrüchte und Kartoffeln/Reis') ||
+    sub('Getreideprodukte, Hülsenfrüchte und Kartoffeln/Sonstige Getreideprodukte')
+  )
+    return ['staerke', cooked ? 200 : 60, vk];
+  if (sub('Milch und Milchprodukte/Hartkäse') || sub('Milch und Milchprodukte/Käseerzeugnisse')) return ['milch', 30, 0];
+  if (sub('Milch und Milchprodukte/Weichkäse')) return ['milch', 60, 0];
+  if (sub('Milch und Milchprodukte/Joghurt und Sauermilch') || sub('Milch und Milchprodukte/Frischkäse und Quark'))
+    return ['milch', 170, 0];
+  if (sub('Milch und Milchprodukte/Milch') || sub('Milch und Milchprodukte/Milch- und Joghurtgetränke')) return ['milch', 200, 0];
+  if (has('Fleisch- und Wurstwaren')) return ['wurst', 50, 0];
+  if (has('Fleisch und Innereien')) return ['fleisch', 110, 0];
+  if (has('Fisch')) return ['fisch', 110, 0];
+  if (has('Eier')) return ['ei', 120, 0];
+  if (
+    sub('Pflanzliche Proteinlieferanten und Alternativen zu tierischen Produkten/Pflanzliche Proteinlieferanten') ||
+    sub('Pflanzliche Proteinlieferanten und Alternativen zu tierischen Produkten/Alternativen zu Fleisch, Fleischwaren, Fisch oder Ei')
+  )
+    return ['pflanzlProtein', 100, 0];
+  if (has('Nüsse, Samen und Ölfrüchte') || sub('Salzige Snacks/Gesalzene Nüsse, Samen, Kerne')) return ['nuss', 25, 0];
+  if (has('Süssigkeiten') || has('Salzige Snacks') || sub('Alkoholfreie Getränke/Süssgetränke') || has('Alkoholhaltige Getränke'))
+    return ['suess', 0, 0];
+  return null;
+}
+
+/** Gruppen der Alltagslebensmittel ohne Schweizer Eintrag. */
+const USDA_GROUPS = {
+  egli: ['fisch', 110, 0],
+  makrele: ['fisch', 110, 0],
+  hering: ['fisch', 110, 0],
+  pouletschenkel: ['fleisch', 110, 0],
+  'schokolade-dunkel': ['suess', 0, 0],
+  skyr: ['milch', 170, 0],
+};
+
 /** @param {Record<string, number>} v */
 const pack = (v) => COLS.map((k) => (v[k] === undefined ? null : Math.round(v[k] * 1000) / 1000));
 
@@ -241,6 +306,8 @@ for (const f of FOODS_DE) {
   /** @type {Record<string, number>} */
   let v;
   let src;
+  /** @type {[string, number, number] | null} */
+  let gr = /** @type {any} */ (USDA_GROUPS)[f.k] ?? null;
   if (f.blv) {
     const b = generic.get(f.blv);
     if (!b) {
@@ -249,6 +316,7 @@ for (const f of FOODS_DE) {
     }
     usedBlv.add(f.blv);
     v = { ...b.v };
+    gr = groupOf(b.name, b.cat);
     src = `BLV ${f.blv} ${b.name}`;
     if (f.ndb) {
       const u = usda(f.ndb);
@@ -267,7 +335,7 @@ for (const f of FOODS_DE) {
     continue;
   }
   if (v.kcal === undefined) errors.push(`${f.k}: keine Energie`);
-  rows.push([f.k, f.n, f.g, f.p, f.t, f.a ?? [], 1, src, pack(v)]);
+  rows.push([f.k, f.n, f.g, f.p, f.t, f.a ?? [], 1, src, pack(v), gr]);
 }
 
 for (const [label, map, prefix, extra] of /** @type {const} */ ([
@@ -287,6 +355,7 @@ for (const [label, map, prefix, extra] of /** @type {const} */ ([
       0,
       `BLV ${b.id} (${label})`,
       pack(b.v),
+      groupOf(b.name, b.cat),
     ]);
   }
 }
@@ -306,7 +375,7 @@ const file = `// @ts-check
 /** @typedef {import('../domain/micros.js').NutrientKey} NutrientKey */
 /**
  * @typedef {{ k: string, n: string, g: number, p: string, t: string[], a?: string[], c: boolean, sr: string,
- *   v: Partial<Record<NutrientKey, number>> }} Food
+ *   v: Partial<Record<NutrientKey, number>>, gr: [string, number, number] | null }} Food
  */
 
 export const FOOD_SOURCE = 'Schweizer Nährwertdatenbank V ${version} (BLV), ergänzend USDA SR28';
@@ -314,20 +383,20 @@ export const FOOD_SOURCE = 'Schweizer Nährwertdatenbank V ${version} (BLV), erg
 /** @type {NutrientKey[]} */
 const COLS = ${JSON.stringify(COLS)};
 
-/** k, Name, Portion g, Portion, Tags, Synonyme, kuratiert, Quelle, Werte (Reihenfolge COLS) */
-/** @type {[string, string, number, string, string[], string[], number, string, (number | null)[]][]} */
+/** k, Name, Portion g, Portion, Tags, Synonyme, kuratiert, Quelle, Werte (Reihenfolge COLS), Pyramiden-Gruppe */
+/** @type {[string, string, number, string, string[], string[], number, string, (number | null)[], [string, number, number] | null][]} */
 const RAW = [
 ${rows.map((r) => `  ${JSON.stringify(r)},`).join('\n')}
 ];
 
 /** @type {Food[]} */
-export const FOODS = RAW.map(([k, n, g, p, t, a, c, sr, vals]) => {
+export const FOODS = RAW.map(([k, n, g, p, t, a, c, sr, vals, gr]) => {
   /** @type {Partial<Record<NutrientKey, number>>} */
   const v = {};
   vals.forEach((x, i) => {
     if (x !== null) v[COLS[i]] = x;
   });
-  return { k, n, g, p, t, ...(a.length ? { a } : {}), c: c === 1, sr, v };
+  return { k, n, g, p, t, ...(a.length ? { a } : {}), c: c === 1, sr, v, gr };
 });
 `;
 writeFileSync(join(ROOT, 'app/js/data/foods.js'), file);

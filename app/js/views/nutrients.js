@@ -17,6 +17,7 @@ import {
 } from '../domain/micros.js';
 import { addDays } from '../domain/util.js';
 import { productPortion } from '../domain/foodvision.js';
+import { pyramid } from '../domain/foodgroups.js';
 import { searchProducts } from '../vision.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -519,5 +520,66 @@ export function suggestCard(ctx, snap) {
       { class: 'hint' },
       'Berechnet aus deinen heutigen Einträgen, dem restlichen Kalorienbudget und deinen Vorlieben (Profil). Vitamin D ist ausgenommen: Es kommt vor allem aus der Sonne, im Winter ist ein Präparat oft sinnvoll (ärztlich besprechen).',
     ),
+  );
+}
+
+/** Zahl für den Balken einer Pyramidenzeile (Ziel bzw. Obergrenze). */
+const PYRAMID_SCALE = /** @type {Record<string, number>} */ ({
+  fv: 5,
+  staerke: 3,
+  milch: 3,
+  protein: 1,
+  nuss: 25,
+  suess: 1,
+  fisch: 2,
+  fleisch: 3,
+  huelsen: 1,
+});
+
+/**
+ * Schweizer Lebensmittelpyramide: Portionen heute und in den letzten 7 Tagen.
+ * @param {Ctx} ctx
+ * @param {NonNullable<Ctx['snap']>} snap
+ */
+export function pyramidCard(ctx, snap) {
+  const week = Array.from({ length: 7 }, (_, i) => ctx.state.days[addDays(ctx.date, -i)]?.food ?? []);
+  const p = pyramid({ today: snap.day.food ?? [], week });
+  /** @param {import('../domain/foodgroups.js').PyramidRow} r */
+  const row = (r) => {
+    const scale = PYRAMID_SCALE[r.id] ?? 1;
+    const pct = Math.min(r.value / scale, 1);
+    const fill = h('span', { class: 'nbar-fill' });
+    fill.style.width = `${pct * 100}%`;
+    const state = r.status === 'over' ? 'over' : r.status === 'ok' ? 'done' : pct >= 0.5 ? 'mid' : 'low';
+    return h(
+      'li',
+      { class: `nrow n-${state}`, id: `pyr-${r.id}` },
+      h('span', { class: 'nrow-label' }, r.label, h('small', {}, r.detail ? `${r.target} · ${r.detail}` : r.target)),
+      h('span', { class: 'nrow-val' }, h('strong', {}, fmt(r.value, r.unit === 'g' ? 0 : 1)), ` ${r.unit}`),
+      h('span', { class: 'nbar', 'aria-hidden': 'true' }, fill),
+      h('span', { class: 'nrow-pct' }, r.status === 'ok' ? '✓' : r.status === 'over' ? '!' : ''),
+    );
+  };
+  const coverage = Math.round(p.coverage * 100);
+  return h(
+    'section',
+    { class: 'card', 'aria-labelledby': 'pyr-h', id: 'pyramid-card' },
+    h('h2', { id: 'pyr-h' }, 'Lebensmittelpyramide'),
+    h(
+      'p',
+      { class: 'small muted' },
+      'Portionen nach der Schweizer Lebensmittelpyramide (SGE). Wichtiger als einzelne Vitamine ist die Mischung über die Woche.',
+    ),
+    h('h3', { class: 'eyebrow' }, 'Heute'),
+    h('ul', { class: 'nlist' }, ...p.daily.map(row)),
+    h('h3', { class: 'eyebrow' }, 'Letzte 7 Tage'),
+    h('ul', { class: 'nlist' }, ...p.weekly.map(row)),
+    coverage < 90
+      ? h(
+          'p',
+          { class: 'note info small', id: 'pyr-coverage' },
+          `Gruppen bekannt für ${coverage} % der heutigen Kalorien. Schnellerfassungen und Packungen ohne Zuordnung fehlen; Foto, Beschreibung und Lebensmittelsuche ordnen automatisch zu.`,
+        )
+      : null,
   );
 }

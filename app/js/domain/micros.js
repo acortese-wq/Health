@@ -9,6 +9,8 @@
 // Jod: Referenzwert Schweiz 150 µg. Vitamin K fehlt in der Schweizer Datenbank und ist nur
 // teilweise erfasst (USDA-Ergänzung bei der Alltagsliste).
 
+import { portionsFor } from './foodgroups.js';
+
 /**
  * @typedef {'kcal' | 'protein' | 'carbs' | 'fat' | 'satFat' | 'fiber' | 'sugar' | 'sodium' | 'cholesterol'
  *   | 'potassium' | 'calcium' | 'iron' | 'magnesium' | 'phosphorus' | 'zinc' | 'selenium' | 'iodine'
@@ -456,6 +458,7 @@ export function entryFromFood(food, grams) {
     salt: Math.round((((a.sodium ?? 0) * 2.5) / 1000) * 100) / 100,
     micros: pickMicros(a),
     microSrc: /** @type {const} */ ('db'),
+    groups: portionsFor(food.gr, grams, a.kcal ?? 0),
     grams: Math.round(grams),
     source: /** @type {const} */ ('datenbank'),
   };

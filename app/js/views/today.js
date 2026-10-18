@@ -7,8 +7,9 @@ import { photoBlock } from './photo.js';
 import { healthPasteBlock } from './garmin.js';
 import { waterPace, waterFact, reminderTimes, buildReminderIcs } from '../domain/hydration.js';
 import { reviewCard } from './review.js';
-import { foodSearchBlock, nutrientsCard, suggestCard } from './nutrients.js';
+import { foodSearchBlock, nutrientsCard, suggestCard, pyramidCard } from './nutrients.js';
 import { scaleMicros } from '../domain/micros.js';
+import { scaleGroups } from '../domain/foodgroups.js';
 import {
   eatingWindow,
   windowLabel,
@@ -54,7 +55,15 @@ export function viewToday(ctx) {
  */
 export function viewNutrition(ctx) {
   const snap = /** @type {NonNullable<Ctx['snap']>} */ (ctx.snap);
-  return h('div', { class: 'stack' }, h('h1', {}, 'Ernährung'), nutritionCard(ctx, snap), suggestCard(ctx, snap), nutrientsCard(ctx, snap));
+  return h(
+    'div',
+    { class: 'stack' },
+    h('h1', {}, 'Ernährung'),
+    nutritionCard(ctx, snap),
+    suggestCard(ctx, snap),
+    pyramidCard(ctx, snap),
+    nutrientsCard(ctx, snap),
+  );
 }
 
 /**
@@ -823,6 +832,7 @@ function foodRow(ctx, f) {
                 if (v !== undefined) next[k] = Math.round(v * factor * 10) / 10;
               }
               if (list[i].micros) next.micros = scaleMicros(list[i].micros, factor);
+              if (list[i].groups) next.groups = scaleGroups(list[i].groups, factor);
               list[i] = next;
             }, 'Eintrag geändert');
           },

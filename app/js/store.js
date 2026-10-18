@@ -4,6 +4,7 @@
 
 import { isISODate, isNum } from './domain/util.js';
 import { MICRO_KEYS } from './domain/micros.js';
+import { GROUP_KEYS } from './domain/foodgroups.js';
 
 export const STORAGE_KEY = 'gesundheitscockpit';
 export const SCHEMA_VERSION = 1;
@@ -27,6 +28,7 @@ export const SCHEMA_VERSION = 1;
  *   carbs?: number, fat?: number, sugar?: number, satFat?: number, fiber?: number, salt?: number,
  *   grams?: number, source?: FoodSource,
  *   micros?: import('./domain/micros.js').Amounts, microSrc?: 'db' | 'ki' | 'mix' | 'etikett',
+ *   groups?: import('./domain/foodgroups.js').Groups,
  * }} FoodEntry
  * @typedef {{ id: string, label: string, mg: number, time: string }} CaffeineEntry
  * @typedef {{
@@ -417,6 +419,15 @@ export function extraNutrients(f) {
     if (isNum(v) && v >= 0 && v < 10000) out[k] = v;
   }
   if (typeof f.source === 'string' && SOURCES.includes(f.source)) out.source = /** @type {FoodSource} */ (f.source);
+  if (isObj(f.groups)) {
+    /** @type {import('./domain/foodgroups.js').Groups} */
+    const g = {};
+    for (const k of GROUP_KEYS) {
+      const v = /** @type {Record<string, unknown>} */ (f.groups)[k];
+      if (isNum(v) && v > 0 && v <= 50) g[k] = v;
+    }
+    if (Object.keys(g).length) out.groups = g;
+  }
   if (isObj(f.micros)) {
     /** @type {import('./domain/micros.js').Amounts} */
     const m = {};

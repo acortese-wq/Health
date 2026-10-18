@@ -10,11 +10,13 @@
 import { clamp, isNum } from './util.js';
 import { FOODS } from '../data/foods.js';
 import { foodAmounts, pickMicros, scaleMicros } from './micros.js';
+import { KI_GROUPS, portionsFor, scaleGroups, addGroups } from './foodgroups.js';
 
 /**
  * @typedef {{
  *   kcal: number, protein: number, carbs: number, fat: number, fiber: number, sugar: number, satFat: number, salt: number,
  *   micros?: import('./micros.js').Amounts, microSrc?: 'db' | 'ki' | 'mix' | 'etikett',
+ *   groups?: import('./foodgroups.js').Groups,
  * }} Nutrients
  * @typedef {Nutrients & { kcalLow: number, kcalHigh: number, dbKey?: string }} ItemValues
  * @typedef {ItemValues & { name: string, portion: string, grams: number, baseGrams: number, base: ItemValues }} MealItem
@@ -82,7 +84,7 @@ const FOOD_BY_KEY = new Map(FOODS.filter((f) => f.c).map((f) => [f.k, f]));
 const ITEM_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['name', 'portion', 'grams', 'kcal', 'kcal_low', 'kcal_high', ...NUTRIENT_KEYS, 'db_key', 'micros'],
+  required: ['name', 'portion', 'grams', 'kcal', 'kcal_low', 'kcal_high', ...NUTRIENT_KEYS, 'db_key', 'food_group', 'micros'],
   properties: {
     name: { type: 'string', description: 'Bestandteil auf Deutsch, z. B. «Spaghetti, gekocht»' },
     portion: { type: 'string', description: 'Menge in Alltagssprache, z. B. «1 Teller, ca. 2 Schöpfkellen»' },
@@ -92,6 +94,11 @@ const ITEM_SCHEMA = {
     kcal_high: { type: 'number', description: 'Obere plausible Grenze in kcal' },
     ...NUTRIENT_PROPS,
     db_key: { type: 'string', description: 'Schlüssel aus der Lebensmittelliste, wenn er passt, sonst leer' },
+    food_group: {
+      type: 'string',
+      enum: [...Object.keys(KI_GROUPS), 'keine'],
+      description: 'Gruppe der Schweizer Lebensmittelpyramide; «keine» für Fette, Öle, Saucen, Getränke ohne Zucker',
+    },
     micros: MICRO_SCHEMA,
   },
 };
@@ -151,6 +158,7 @@ Vorgehen:
 Mikronährstoffe:
 - Setze db_key auf den passenden Schlüssel aus der Lebensmittelliste unten, wenn der Bestandteil im Wesentlichen diesem Lebensmittel in gleicher Zubereitung entspricht (z. B. «Spaghetti, gekocht» → pasta). Für zusammengesetzte Saucen, Fertiggerichte oder Unpassendes leer lassen.
 - Schätze micros für jeden Bestandteil trotzdem (Menge für die angegebenen Gramm). Rechne mit Schweizer, nicht angereicherten Lebensmitteln.
+- food_group: Gruppe der Schweizer Lebensmittelpyramide pro Bestandteil (Zerlege gemischte Gerichte so, dass jeder Bestandteil eine Gruppe hat; Wurstwaren als «wurst», Käse als «kaese», Süsses, Snacks und Alkohol als «suess»).
 
 Lebensmittelliste (Schlüssel=Name):
 ${FOODS.filter((f) => f.c)
@@ -214,18 +222,23 @@ function readNutrients(x) {
  * Grammzahl vorliegt, sonst die Schätzung des Modells (begrenzt auf plausible Werte).
  * @param {Record<string, unknown>} x
  * @param {number} grams
- * @returns {{ micros?: import('./micros.js').Amounts, microSrc?: 'db' | 'ki', dbKey?: string }}
+ * @returns {{ micros?: import('./micros.js').Amounts, microSrc?: 'db' | 'ki', dbKey?: string, groups?: import('./foodgroups.js').Groups }}
  */
 function readMicros(x, grams) {
   const food = typeof x.db_key === 'string' ? FOOD_BY_KEY.get(x.db_key.trim()) : undefined;
-  if (food && grams > 0) return { micros: pickMicros(foodAmounts(food, grams)), microSrc: 'db', dbKey: food.k };
+  const kcal = num(x.kcal, 5000);
+  const kiGroup =
+    typeof x.food_group === 'string' && x.food_group in KI_GROUPS ? KI_GROUPS[/** @type {keyof typeof KI_GROUPS} */ (x.food_group)] : null;
+  const groups = portionsFor(food?.gr ?? kiGroup, grams, kcal);
+  const withGroups = Object.keys(groups).length ? { groups } : {};
+  if (food && grams > 0) return { micros: pickMicros(foodAmounts(food, grams)), microSrc: 'db', dbKey: food.k, ...withGroups };
   if (typeof x.micros !== 'object' || x.micros === null) return {};
   const m = /** @type {Record<string, unknown>} */ (x.micros);
   /** @type {import('./micros.js').Amounts} */
   const raw = {};
   for (const [key, field] of Object.entries(MICRO_FIELDS)) raw[/** @type {keyof typeof MICRO_FIELDS} */ (key)] = num(m[field], 50000);
   const micros = pickMicros(raw);
-  return Object.values(micros).some((v) => v > 0) ? { micros, microSrc: 'ki' } : {};
+  return Object.values(micros).some((v) => v > 0) ? { micros, microSrc: 'ki', ...withGroups } : withGroups;
 }
 
 /**
@@ -306,6 +319,7 @@ export function scaleItem(item, grams) {
     fiber: r1(b.fiber * f),
     salt: r1(b.salt * f),
     ...(b.micros ? { micros: scaleMicros(b.micros, f) } : {}),
+    ...(b.groups ? { groups: scaleGroups(b.groups, f) } : {}),
   };
 }
 
@@ -332,6 +346,7 @@ export function totals(items, factor = 1) {
     fiber: sum((i) => i.fiber, 1),
     salt: sum((i) => i.salt, 1),
     ...sumMicros(items, f),
+    ...(items.some((i) => i.groups) ? { groups: scaleGroups(addGroups(...items.map((i) => i.groups)), f) } : {}),
   };
 }
 

@@ -5,6 +5,7 @@ import { emptyState, uid } from './store.js';
 import { addDays } from './domain/util.js';
 import { FOODS } from './data/foods.js';
 import { foodAmounts, pickMicros } from './domain/micros.js';
+import { addGroups, portionsFor, scaleGroups } from './domain/foodgroups.js';
 
 /**
  * Mikronährstoffe für einen Beispiel-Eintrag aus einer Zusammensetzung der Datenbank,
@@ -15,9 +16,12 @@ import { foodAmounts, pickMicros } from './domain/micros.js';
 function microsFor(kcal, parts) {
   /** @type {import('./domain/micros.js').Amounts} */
   const sum = {};
+  /** @type {import('./domain/foodgroups.js').Groups} */
+  let groups = {};
   for (const [k, g] of parts) {
     const food = FOODS.find((f) => f.k === k);
     if (!food) continue;
+    groups = addGroups(groups, portionsFor(food.gr, g, ((food.v.kcal ?? 0) * g) / 100));
     for (const [n, v] of Object.entries(foodAmounts(food, g))) {
       const key = /** @type {import('./domain/micros.js').NutrientKey} */ (n);
       sum[key] = (sum[key] ?? 0) + v;
@@ -37,6 +41,7 @@ function microsFor(kcal, parts) {
     salt: Math.round(((sum.sodium ?? 0) * 2.5) / 10) / 100,
     micros: pickMicros(sum),
     microSrc: /** @type {const} */ ('db'),
+    groups: /** @type {import('./domain/foodgroups.js').Groups} */ (scaleGroups(groups, 1)),
   };
 }
 
