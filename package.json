@@ -28,6 +28,7 @@
     "fda-nutrient-database": "1.0.2",
     "openai": "7.36.0",
     "prettier": "3.6.2",
+    "read-excel-file": "9.3.10",
     "typescript": "5.9.3"
   }
 }

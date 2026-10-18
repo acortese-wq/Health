@@ -54,6 +54,7 @@ const MICRO_FIELDS = /** @type {const} */ ({
   phosphorus: 'phosphorus_mg',
   zinc: 'zinc_mg',
   selenium: 'selenium_ug',
+  iodine: 'iodine_ug',
   vitA: 'vit_a_ug_rae',
   vitC: 'vit_c_mg',
   vitD: 'vit_d_ug',
@@ -62,9 +63,12 @@ const MICRO_FIELDS = /** @type {const} */ ({
   b1: 'vit_b1_mg',
   b2: 'vit_b2_mg',
   niacin: 'niacin_mg',
+  b5: 'pantothenic_acid_mg',
   b6: 'vit_b6_mg',
   folate: 'folate_ug_dfe',
   b12: 'vit_b12_ug',
+  ala: 'alpha_linolenic_acid_g',
+  epaDha: 'epa_plus_dha_mg',
 });
 const MICRO_SCHEMA = {
   type: 'object',
@@ -73,7 +77,7 @@ const MICRO_SCHEMA = {
   properties: Object.fromEntries(Object.values(MICRO_FIELDS).map((f) => [f, { type: 'number' }])),
   description: 'Geschätzte Mikronährstoffe für die angegebene Grammzahl',
 };
-const FOOD_BY_KEY = new Map(FOODS.map((f) => [f.k, f]));
+const FOOD_BY_KEY = new Map(FOODS.filter((f) => f.c).map((f) => [f.k, f]));
 
 const ITEM_SCHEMA = {
   type: 'object',
@@ -137,7 +141,7 @@ export const MEAL_SYSTEM_PROMPT = `Du bist Ernährungswissenschaftler und schät
 Vorgehen:
 - Erkenne das Gericht und zerlege es in die wichtigsten Bestandteile (höchstens 8), inklusive Saucen, Toppings und Getränke.
 - Schätze die Portion bei Fotos anhand von Bezugsgrössen (Teller ca. 26–28 cm, Besteck, Glas, Hand); bei Beschreibungen nach üblichen Schweizer Portionen. Gramm = verzehrfertiges Gewicht.
-- Verwende Nährwerte, wie sie in der Schweizer Nährwertdatenbank bzw. auf Schweizer Produkten üblich sind. Typische Schweizer Gerichte (z. B. Älplermagronen, Rösti, Capuns, Zürcher Geschnetzeltes, Birchermüesli) erkennst du als solche.
+- Verwende Nährwerte, wie sie in der Schweizer Nährwertdatenbank (BLV) bzw. auf Schweizer Produkten üblich sind. Typische Schweizer Gerichte (z. B. Älplermagronen, Rösti, Capuns, Zürcher Geschnetzeltes, Birchermüesli) erkennst du als solche.
 - Rechne unsichtbare Energie ein: Bratöl, Butter, Rahm, Dressing, Käse. Das ist die häufigste Fehlerquelle; nenne deine Annahme dazu ausdrücklich.
 - Gib pro Bestandteil eine beste Schätzung und eine ehrliche Spanne an (bei Saucen und Frittiertem breiter). Fülle auch Zucker, gesättigte Fette, Ballaststoffe und Salz als Schätzung.
 - Angaben der Person (z. B. «halbe Portion», «ohne Sauce») haben Vorrang vor deiner Vermutung.
@@ -149,7 +153,9 @@ Mikronährstoffe:
 - Schätze micros für jeden Bestandteil trotzdem (Menge für die angegebenen Gramm). Rechne mit Schweizer, nicht angereicherten Lebensmitteln.
 
 Lebensmittelliste (Schlüssel=Name):
-${FOODS.map((f) => `${f.k}=${f.n}`).join('; ')}`;
+${FOODS.filter((f) => f.c)
+  .map((f) => `${f.k}=${f.n}`)
+  .join('; ')}`;
 
 export const LABEL_SYSTEM_PROMPT = `Du liest Nährwerttabellen und Barcodes von Lebensmittelverpackungen ab.
 
@@ -435,6 +441,7 @@ const OFF_MICROS = /** @type {const} */ ([
   ['phosphorus', 'phosphorus', 1e3, 5000],
   ['zinc', 'zinc', 1e3, 100],
   ['selenium', 'selenium', 1e6, 1000],
+  ['iodine', 'iodine', 1e6, 2000],
   ['vitA', 'vitamin-a', 1e6, 10000],
   ['vitC', 'vitamin-c', 1e3, 2000],
   ['vitD', 'vitamin-d', 1e6, 200],
@@ -443,9 +450,11 @@ const OFF_MICROS = /** @type {const} */ ([
   ['b1', 'vitamin-b1', 1e3, 20],
   ['b2', 'vitamin-b2', 1e3, 20],
   ['niacin', 'vitamin-pp', 1e3, 200],
+  ['b5', 'pantothenic-acid', 1e3, 100],
   ['b6', 'vitamin-b6', 1e3, 20],
   ['folate', 'vitamin-b9', 1e6, 3000],
   ['b12', 'vitamin-b12', 1e6, 100],
+  ['ala', 'alpha-linolenic-acid', 1, 70],
 ]);
 
 /**
@@ -461,6 +470,13 @@ function offMicros(n) {
     const v = raw * factor;
     if (v > max) continue;
     out[key] = Math.round(v * 100) / 100;
+  }
+  // Omega-3: EPA und DHA getrennt angegeben (g) → Summe in mg
+  const epa = Number(n['eicosapentaenoic-acid_100g']);
+  const dha = Number(n['docosahexaenoic-acid_100g']);
+  if ([epa, dha].some((x) => Number.isFinite(x) && x >= 0)) {
+    const sum = ((Number.isFinite(epa) ? epa : 0) + (Number.isFinite(dha) ? dha : 0)) * 1000;
+    if (sum <= 40000) out.epaDha = Math.round(sum);
   }
   return out;
 }

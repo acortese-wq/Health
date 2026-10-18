@@ -25,16 +25,25 @@ const food = (/** @type {string} */ k) => /** @type {import('../../app/js/data/f
 
 test('Datenbank: erzeugt aus der kuratierten Liste, Werte plausibel, nicht angereichert', () => {
   assert.deepEqual(
-    FOODS.map((f) => f.k),
+    FOODS.filter((f) => f.c).map((f) => f.k),
     FOODS_DE.map((f) => f.k),
     'app/js/data/foods.js ist veraltet: npm run foods',
+  );
+  // Schweizer Nährwertdatenbank: über 1000 generische Lebensmittel plus Markenprodukte
+  assert.ok(FOODS.length > 1200, String(FOODS.length));
+  assert.ok(FOODS.filter((f) => f.c).every((f) => f.sr.startsWith('BLV') || f.sr.startsWith('USDA')));
+  assert.ok(
+    FOODS.filter((f) => !f.c).every((f) => f.t.includes('nosuggest')),
+    'nur die Alltagsliste wird vorgeschlagen',
   );
   assert.equal(new Set(FOODS.map((f) => f.k)).size, FOODS.length);
   for (const f of FOODS) {
     const v = f.v;
     assert.ok((v.kcal ?? -1) >= 0, f.k);
-    // Atwater-Kontrolle (4/4/9, Ballaststoffe 2) mit grosszügiger Toleranz
-    const atwater = (v.protein ?? 0) * 4 + ((v.carbs ?? 0) - (v.fiber ?? 0)) * 4 + (v.fiber ?? 0) * 2 + (v.fat ?? 0) * 9;
+    assert.ok(f.n && f.g > 0, f.k);
+    if (!f.c) continue;
+    // Atwater-Kontrolle (4/4/9, Ballaststoffe 2, verfügbare Kohlenhydrate) mit Toleranz
+    const atwater = (v.protein ?? 0) * 4 + (v.carbs ?? 0) * 4 + (v.fiber ?? 0) * 2 + (v.fat ?? 0) * 9;
     if ((v.kcal ?? 0) > 40) assert.ok(Math.abs(atwater - (v.kcal ?? 0)) / (v.kcal ?? 1) < 0.2, `${f.k}: ${atwater} vs ${v.kcal}`);
     assert.ok(f.g > 0 && f.p, f.k);
   }
@@ -42,11 +51,20 @@ test('Datenbank: erzeugt aus der kuratierten Liste, Werte plausibel, nicht anger
   assert.ok((food('lachs').v.b12 ?? 0) > 2, 'Lachs liefert B12');
   assert.ok((food('milch').v.vitD ?? 0) < 0.5, 'Milch ohne US-Vitamin-D-Anreicherung');
   assert.ok((food('pasta').v.iron ?? 0) < 1, 'Teigwaren ohne US-Eisenanreicherung');
+  assert.ok(food('kiwi').sr.startsWith('BLV 395'), 'Schweizer Werte haben Vorrang');
+  assert.ok((food('lachs').v.epaDha ?? 0) > 1000, 'Lachs liefert EPA + DHA');
+  assert.ok((food('ruchbrot').v.iodine ?? 0) > 10, 'Brot mit Jodsalz liefert Jod');
+  assert.ok((food('leinsamen').v.ala ?? 0) > 10, 'Leinsamen liefern Alpha-Linolensäure');
+  assert.ok(food('kiwi').v.vitK !== undefined, 'Vitamin K aus USDA ergänzt');
 });
 
 test('Referenzwerte D-A-CH für Männer und Makroziele aus dem Kalorienziel', () => {
   const t = dailyTargets({ kcalTarget: 1900, proteinG: 150, sex: 'm' });
   assert.equal(t.vitC, 110);
+  assert.equal(t.iodine, 150);
+  assert.equal(t.b5, 5);
+  assert.equal(t.epaDha, 250);
+  assert.ok(Math.abs((t.ala ?? 0) - 1.06) < 0.01); // 0.5 % von 1900 kcal
   assert.equal(t.b12, 4);
   assert.equal(t.calcium, 1000);
   assert.equal(t.iron, 11);
@@ -64,7 +82,7 @@ test('Referenzwerte D-A-CH für Männer und Makroziele aus dem Kalorienziel', ()
 test('Tagessummen: Abdeckung, Natrium aus Salz, Makroverteilung nur aus vollständigen Einträgen', () => {
   const kiwi = entryFromFood(food('kiwi'), 150);
   assert.equal(kiwi.name, 'Kiwi (150 g)');
-  assert.ok((kiwi.micros.vitC ?? 0) > 130);
+  assert.ok((kiwi.micros.vitC ?? 0) > 100); // BLV: 75 mg pro 100 g
   const quick = { kcal: 500, protein: 30 }; // Schnellerfassung ohne Details
   const r = dayAmounts([kiwi, quick]);
   assert.ok(Math.abs(r.coverage - kiwi.kcal / (kiwi.kcal + 500)) < 1e-9);
@@ -130,6 +148,14 @@ test('Suche: Umlaute, Gross/klein, Synonyme', () => {
     [],
   );
   assert.equal(searchFoods(FOODS, 'Rüeb')[0].k, 'rueebli');
+  // Alltagsliste zuerst, dann die übrigen Einträge der Schweizer Datenbank
+  const apfel = searchFoods(FOODS, 'apfel');
+  assert.equal(apfel[0].k, 'apfel');
+  assert.ok(apfel.some((f) => f.k.startsWith('blv-')));
+  assert.ok(
+    searchFoods(FOODS, 'Süssmost').some((f) => f.n === 'Apfelsaft'),
+    'Synonyme der BLV-Datenbank',
+  );
   assert.equal(searchFoods(FOODS, 'karotte')[0].k, 'rueebli');
   assert.ok(searchFoods(FOODS, 'kase').some((f) => f.k === 'gruyere'));
   assert.equal(searchFoods(FOODS, '').length, 0);

@@ -5,13 +5,15 @@
 // Referenzwerte: D-A-CH (DGE, ÖGE, SGE), Erwachsene 25 bis unter 51 Jahre, Stand der
 // Revisionen 2015–2023 (Empfehlungen, Schätzwerte). Natrium und gesättigte Fettsäuren
 // als Obergrenze nach WHO. Ausserhalb dieser Altersgruppe weichen einzelne Werte leicht ab.
-// Niacin: Die Datenbank enthält nur vorgeformtes Niacin; Niacin-Äquivalente aus Tryptophan
-// kommen hinzu, der Balken unterschätzt also die tatsächliche Versorgung.
+// Omega-3: Alpha-Linolensäure 0.5 % der Energie (D-A-CH), EPA + DHA 250 mg (EFSA).
+// Jod: Referenzwert Schweiz 150 µg. Vitamin K fehlt in der Schweizer Datenbank und ist nur
+// teilweise erfasst (USDA-Ergänzung bei der Alltagsliste).
 
 /**
  * @typedef {'kcal' | 'protein' | 'carbs' | 'fat' | 'satFat' | 'fiber' | 'sugar' | 'sodium' | 'cholesterol'
- *   | 'potassium' | 'calcium' | 'iron' | 'magnesium' | 'phosphorus' | 'zinc' | 'selenium'
- *   | 'vitA' | 'vitC' | 'vitD' | 'vitE' | 'vitK' | 'b1' | 'b2' | 'niacin' | 'b6' | 'folate' | 'b12'} NutrientKey
+ *   | 'potassium' | 'calcium' | 'iron' | 'magnesium' | 'phosphorus' | 'zinc' | 'selenium' | 'iodine'
+ *   | 'vitA' | 'vitC' | 'vitD' | 'vitE' | 'vitK' | 'b1' | 'b2' | 'niacin' | 'b5' | 'b6' | 'folate' | 'b12'
+ *   | 'ala' | 'epaDha'} NutrientKey
  * @typedef {'micro' | 'macro'} Group
  * @typedef {{
  *   key: NutrientKey, label: string, unit: string, group: 'makro' | 'vitamin' | 'mineral',
@@ -31,6 +33,7 @@ export const MICRO_KEYS = /** @type {const} */ ([
   'phosphorus',
   'zinc',
   'selenium',
+  'iodine',
   'vitA',
   'vitC',
   'vitD',
@@ -39,9 +42,12 @@ export const MICRO_KEYS = /** @type {const} */ ([
   'b1',
   'b2',
   'niacin',
+  'b5',
   'b6',
   'folate',
   'b12',
+  'ala',
+  'epaDha',
 ]);
 
 /** @type {NutrientDef[]} */
@@ -52,6 +58,25 @@ export const NUTRIENTS = [
   { key: 'fat', label: 'Fett', unit: 'g', group: 'makro', kind: 'target', digits: 0 },
   { key: 'satFat', label: 'Gesättigte Fettsäuren', unit: 'g', group: 'makro', kind: 'limit', digits: 0, note: '< 10 % der Energie' },
   { key: 'protein', label: 'Protein', unit: 'g', group: 'makro', kind: 'target', digits: 0 },
+  {
+    key: 'ala',
+    label: 'Omega-3: Alpha-Linolensäure',
+    unit: 'g',
+    group: 'makro',
+    kind: 'target',
+    digits: 1,
+    note: '0.5 % der Energie (Lein-, Raps-, Baumnussöl)',
+  },
+  {
+    key: 'epaDha',
+    label: 'Omega-3: EPA + DHA',
+    unit: 'mg',
+    group: 'makro',
+    kind: 'target',
+    ref: { m: 250, f: 250 },
+    digits: 0,
+    note: 'EFSA; entspricht 1–2 Portionen fetten Fisch pro Woche, Wochenschnitt beachten',
+  },
   {
     key: 'sodium',
     label: 'Natrium',
@@ -76,7 +101,16 @@ export const NUTRIENTS = [
     note: 'über die Nahrung kaum erreichbar; im Sommer bildet die Haut den Grossteil',
   },
   { key: 'vitE', label: 'Vitamin E', unit: 'mg', group: 'vitamin', kind: 'target', ref: { m: 14, f: 12 }, digits: 1 },
-  { key: 'vitK', label: 'Vitamin K', unit: 'µg', group: 'vitamin', kind: 'target', ref: { m: 70, f: 60 }, digits: 0 },
+  {
+    key: 'vitK',
+    label: 'Vitamin K',
+    unit: 'µg',
+    group: 'vitamin',
+    kind: 'target',
+    ref: { m: 70, f: 60 },
+    digits: 0,
+    note: 'nur teilweise erfasst (fehlt in der Schweizer Datenbank)',
+  },
   { key: 'b1', label: 'Vitamin B1 (Thiamin)', unit: 'mg', group: 'vitamin', kind: 'target', ref: { m: 1.2, f: 1.0 }, digits: 2 },
   { key: 'b2', label: 'Vitamin B2 (Riboflavin)', unit: 'mg', group: 'vitamin', kind: 'target', ref: { m: 1.4, f: 1.1 }, digits: 2 },
   {
@@ -87,8 +121,9 @@ export const NUTRIENTS = [
     kind: 'target',
     ref: { m: 15, f: 12 },
     digits: 1,
-    note: 'ohne Anteil aus Tryptophan',
+    note: 'Niacin-Äquivalente',
   },
+  { key: 'b5', label: 'Pantothensäure (B5)', unit: 'mg', group: 'vitamin', kind: 'target', ref: { m: 5, f: 5 }, digits: 1 },
   { key: 'b6', label: 'Vitamin B6', unit: 'mg', group: 'vitamin', kind: 'target', ref: { m: 1.6, f: 1.4 }, digits: 2 },
   { key: 'folate', label: 'Folat', unit: 'µg', group: 'vitamin', kind: 'target', ref: { m: 300, f: 300 }, digits: 0 },
   { key: 'b12', label: 'Vitamin B12', unit: 'µg', group: 'vitamin', kind: 'target', ref: { m: 4, f: 4 }, digits: 1 },
@@ -108,6 +143,16 @@ export const NUTRIENTS = [
     note: 'bei mittlerer Phytatzufuhr',
   },
   { key: 'selenium', label: 'Selen', unit: 'µg', group: 'mineral', kind: 'target', ref: { m: 70, f: 60 }, digits: 0 },
+  {
+    key: 'iodine',
+    label: 'Jod',
+    unit: 'µg',
+    group: 'mineral',
+    kind: 'target',
+    ref: { m: 150, f: 150 },
+    digits: 0,
+    note: 'Referenz Schweiz; Jodsalz beim Kochen zählt nicht mit',
+  },
 ];
 
 /** Einträge bis zu dieser Energiemenge ohne Mikronährstoffe zählen nicht gegen die Abdeckung. */
@@ -123,7 +168,7 @@ export function dailyTargets({ kcalTarget, proteinG, sex }) {
   const fat = (kcalTarget * 0.3) / 9;
   const carbs = Math.max(0, (kcalTarget - proteinG * 4 - fat * 9) / 4);
   /** @type {Partial<Record<NutrientKey, number>>} */
-  const t = { kcal: kcalTarget, protein: proteinG, fat, carbs, satFat: (kcalTarget * 0.1) / 9 };
+  const t = { kcal: kcalTarget, protein: proteinG, fat, carbs, satFat: (kcalTarget * 0.1) / 9, ala: (kcalTarget * 0.005) / 9 };
   for (const n of NUTRIENTS) if (n.ref) t[n.key] = n.ref[sex];
   return t;
 }
@@ -274,9 +319,10 @@ export function gaps(amounts, targets) {
   /** @type {{ key: NutrientKey, left: number, target: number, share: number }[]} */
   const out = [];
   for (const n of NUTRIENTS) {
-    if (n.kind !== 'target' || !n.ref) continue;
-    // Vitamin D ist über die Nahrung praktisch nicht zu decken; kein Vorschlagsziel.
-    if (n.key === 'vitD') continue;
+    if (n.kind !== 'target') continue;
+    // Vitamin D ist über die Nahrung praktisch nicht zu decken, Vitamin K nur teilweise
+    // erfasst; beide sind kein Vorschlagsziel.
+    if (n.key === 'vitD' || n.key === 'vitK') continue;
     const target = targets[n.key] ?? 0;
     const left = Math.max(0, target - (amounts[n.key] ?? 0));
     if (target > 0 && left / target >= 0.25) out.push({ key: n.key, left, target, share: left / target });
@@ -386,7 +432,7 @@ export function searchFoods(foods, q) {
       return { f, rank };
     })
     .filter((x) => x.rank < 2)
-    .sort((a, b) => a.rank - b.rank || a.f.n.localeCompare(b.f.n, 'de'))
+    .sort((a, b) => a.rank - b.rank || Number(b.f.c) - Number(a.f.c) || a.f.n.length - b.f.n.length || a.f.n.localeCompare(b.f.n, 'de'))
     .map((x) => x.f);
 }
 

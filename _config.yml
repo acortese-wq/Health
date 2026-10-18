@@ -7,6 +7,7 @@ exclude:
   - docs/
   - tests/
   - scripts/
+  - daten/
   - node_modules/
   - package.json
   - package-lock.json
