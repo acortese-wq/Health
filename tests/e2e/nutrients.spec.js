@@ -124,3 +124,36 @@ test('Bericht für die Ernährungsberatung, SCOFF ohne Speicherung, Hand-Methode
   await expect(page.locator('#hand-method')).toContainText('Handfläche');
   await expect(page.locator('#forgotten')).toContainText('Öl, Butter');
 });
+
+test('Ernährung: Gegessenes zuoberst ohne Scrollen; Nährstoffe und Pyramide antippen zeigt die Herkunft', async ({ page }) => {
+  await page.goto('/');
+  await page.click('#load-demo');
+  await page.goto('/#ernaehrung');
+  const eaten = page.locator('#eaten-card');
+  const capture = page.locator('#capture-card');
+  const eatenBox = await eaten.boundingBox();
+  const captureBox = await capture.boundingBox();
+  expect(eatenBox && captureBox && eatenBox.y < captureBox.y).toBeTruthy();
+  // Erster Eintrag ist ohne Scrollen sichtbar
+  const firstEntry = page.locator('#food-entries li').first();
+  const box = await firstEntry.boundingBox();
+  const vh = page.viewportSize()?.height ?? 0;
+  expect(box && box.y + box.height <= vh).toBeTruthy();
+  // «+ Erfassen» springt zur Erfassung
+  await page.click('#jump-capture');
+  await expect(capture).toBeInViewport();
+
+  // Vitamin C antippen → Herkunft
+  await page.locator('#n-vitC summary').click();
+  const vc = page.locator('#n-vitC .contrib');
+  await expect(vc).toBeVisible();
+  await expect(vc).toContainText('Mittagsteller');
+  await expect(vc).toContainText('%');
+  // bleibt nach Neuzeichnen offen (z. B. Wechsel auf 7 Tage)
+  await page.click('#nut-woche');
+  await expect(page.locator('#n-vitC .contrib')).toBeVisible();
+  await expect(page.locator('#n-vitC .contrib')).toContainText('Summe über 7 Tage');
+  // Pyramide: Milchprodukte antippen
+  await page.locator('#pyr-milch summary').click();
+  await expect(page.locator('#pyr-milch .contrib')).toContainText('Skyr');
+});

@@ -285,3 +285,27 @@ test('Open Food Facts: Vitamine in g → mg/µg, Unplausibles verworfen, Suche a
   assert.equal(r.amounts.calcium, 120);
   assert.equal(r.coverage, 0);
 });
+
+test('Aufschlüsselung: welche Einträge einen Nährstoff liefern', async () => {
+  const { contributions, entryValue } = await import('../../app/js/domain/micros.js');
+  const food = [
+    { name: 'Kiwi', kcal: 90, protein: 1, micros: { vitC: 110 } },
+    { name: 'Peperoni', kcal: 40, protein: 1, micros: { vitC: 190 } },
+    { name: 'Brot', kcal: 250, protein: 9, micros: { vitC: 0 } },
+    { name: 'Kantine', kcal: 700, protein: 35, salt: 2.5 },
+  ];
+  const c = contributions(food, 'vitC');
+  assert.deepEqual(
+    c.items.map((x) => [x.f.name, x.value, Math.round(x.share * 100)]),
+    [
+      ['Peperoni', 190, 63],
+      ['Kiwi', 110, 37],
+    ],
+  );
+  assert.deepEqual(
+    c.unknown.map((f) => f.name),
+    ['Kantine'],
+  );
+  assert.equal(Math.round(entryValue(food[3], 'sodium') ?? 0), 1000, 'Natrium aus Salz');
+  assert.equal(contributions(food, 'protein').items[0].f.name, 'Kantine');
+});

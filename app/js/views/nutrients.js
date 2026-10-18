@@ -2,7 +2,7 @@
 // Nährstoffe nach dem Vorbild von MyFitnessPal: Makro-Ring, Balken mit «% vom Tagesbedarf»
 // (Tag oder 7-Tage-Schnitt), Vorschläge für die nächste Mahlzeit und Lebensmittelsuche.
 
-import { h, s, fmt, nowTime } from '../ui/dom.js';
+import { h, s, fmt, fmtDate, nowTime } from '../ui/dom.js';
 import { uid } from '../store.js';
 import { FOODS, FOOD_SOURCE } from '../data/foods.js';
 import {
@@ -14,6 +14,7 @@ import {
   suggestions,
   searchFoods,
   entryFromFood,
+  contributions,
 } from '../domain/micros.js';
 import { addDays } from '../domain/util.js';
 import { productPortion } from '../domain/foodvision.js';
@@ -344,13 +345,77 @@ function macroRing(a, known, targets) {
   );
 }
 
+/** Aufgeklappte Zeilen merken, damit sie nach dem Neuzeichnen offen bleiben. */
+const openRows = new Set();
+
+/**
+ * Antippbare Zeile: Zusammenfassung (Name, Wert, Balken) und darunter die Einträge,
+ * die dazu beitragen.
+ * @param {string} id
+ * @param {string} cls
+ * @param {import('../ui/dom.js').Child[]} summary
+ * @param {() => import('../ui/dom.js').Child} body wird erst beim Aufklappen gebraucht, aber immer erzeugt (klein)
+ */
+function drillRow(id, cls, summary, body) {
+  const d = h(
+    'details',
+    {
+      class: 'ndetails',
+      open: openRows.has(id),
+      on: {
+        toggle: (e) => {
+          if (/** @type {HTMLDetailsElement} */ (e.currentTarget).open) openRows.add(id);
+          else openRows.delete(id);
+        },
+      },
+    },
+    h('summary', { class: `nrow ${cls}` }, ...summary),
+    body(),
+  );
+  return h('li', { id }, d);
+}
+
+/**
+ * Liste der Einträge, die zu einem Wert beitragen.
+ * @param {{ label: string, value: string, share?: number }[]} items
+ * @param {string} [empty]
+ * @param {string} [note]
+ */
+function contribList(items, empty = 'Kein Eintrag trägt dazu bei.', note = '') {
+  return h(
+    'div',
+    { class: 'contrib' },
+    items.length
+      ? h(
+          'ul',
+          {},
+          ...items.map((it) =>
+            h(
+              'li',
+              {},
+              h('span', { class: 'contrib-name' }, it.label),
+              h(
+                'span',
+                { class: 'contrib-val' },
+                it.value,
+                it.share !== undefined ? h('small', {}, ` ${Math.round(it.share * 100)} %`) : null,
+              ),
+            ),
+          ),
+        )
+      : h('p', { class: 'small muted' }, empty),
+    note ? h('p', { class: 'small muted' }, note) : null,
+  );
+}
+
 /**
  * Eine Zeile: Name, Wert / Ziel, Balken, Prozent.
  * @param {NutrientDef} n
  * @param {number} value
  * @param {number | undefined} target
+ * @param {{ food: (import('../store.js').FoodEntry & { day?: string })[], week: boolean, extra?: string }} src
  */
-function nutrientRow(n, value, target) {
+function nutrientRow(n, value, target, src) {
   const pct = target ? value / target : null;
   // Kohlenhydrate und Fett sind Verteilungs-Richtwerte: neutral darstellen, nicht «erreicht»
   const neutral = n.key === 'carbs' || n.key === 'fat';
@@ -370,18 +435,43 @@ function nutrientRow(n, value, target) {
               : 'low';
   const fill = h('span', { class: 'nbar-fill' });
   if (pct !== null) fill.style.width = `${Math.min(pct, 1) * 100}%`;
-  return h(
-    'li',
-    { class: `nrow n-${state}`, id: `n-${n.key}` },
-    h('span', { class: 'nrow-label' }, n.label, n.note ? h('small', {}, n.note) : null),
-    h(
-      'span',
-      { class: 'nrow-val' },
-      h('strong', {}, fmt(value, n.digits)),
-      target ? ` / ${n.kind === 'limit' ? 'max. ' : ''}${fmt(target, n.digits)} ${n.unit}` : ` ${n.unit}`,
-    ),
-    pct !== null ? h('span', { class: 'nbar', 'aria-hidden': 'true' }, fill) : null,
-    h('span', { class: 'nrow-pct' }, pct !== null ? `${Math.round(pct * 100)} %` : ''),
+  const c = contributions(src.food, n.key);
+  const fmtV = (/** @type {number} */ v) => `${fmt(v, n.digits)} ${n.unit}`;
+  return drillRow(
+    `n-${n.key}`,
+    `n-${state}`,
+    [
+      h('span', { class: 'nrow-label' }, n.label, n.note ? h('small', {}, n.note) : null),
+      h(
+        'span',
+        { class: 'nrow-val' },
+        h('strong', {}, fmt(value, n.digits)),
+        target ? ` / ${n.kind === 'limit' ? 'max. ' : ''}${fmt(target, n.digits)} ${n.unit}` : ` ${n.unit}`,
+      ),
+      pct !== null ? h('span', { class: 'nbar', 'aria-hidden': 'true' }, fill) : null,
+      h('span', { class: 'nrow-pct' }, pct !== null ? `${Math.round(pct * 100)} %` : ''),
+    ],
+    () =>
+      contribList(
+        c.items.slice(0, 12).map((x) => ({
+          label: `${src.week && x.f.day ? `${fmtDate(x.f.day, 'dm')} ` : ''}${x.f.time} ${x.f.name}`,
+          value: fmtV(x.value),
+          share: x.share,
+        })),
+        'Kein erfasster Eintrag liefert diesen Nährstoff.',
+        [
+          src.week ? 'Summe über 7 Tage, der Balken zeigt den Tagesschnitt.' : '',
+          c.unknown.length
+            ? `Ohne Angabe: ${c.unknown.length} ${c.unknown.length === 1 ? 'Eintrag' : 'Einträge'} (${c.unknown
+                .map((f) => f.name)
+                .slice(0, 3)
+                .join(', ')}${c.unknown.length > 3 ? ' …' : ''}).`
+            : '',
+          src.extra ?? '',
+        ]
+          .filter(Boolean)
+          .join(' '),
+      ),
   );
 }
 
@@ -400,7 +490,23 @@ export function nutrientsCard(ctx, snap) {
   const a = supp > 0 ? { ...r.amounts, vitD: (r.amounts.vitD ?? 0) + supp } : r.amounts;
   const anyKi = (week ? days.flat() : (snap.day.food ?? [])).some((f) => f.microSrc === 'ki' || f.microSrc === 'mix');
   /** @param {NutrientDef['group']} g */
-  const rows = (g) => NUTRIENTS.filter((n) => n.group === g).map((n) => nutrientRow(n, a[n.key] ?? 0, targets[n.key]));
+  const src = {
+    food: week
+      ? Array.from({ length: 7 }, (_, i) => addDays(ctx.date, -i)).flatMap((d) =>
+          (ctx.state.days[d]?.food ?? []).map((f) => ({ ...f, day: d })),
+        )
+      : (snap.day.food ?? []),
+    week,
+  };
+  const rows = (/** @type {NutrientDef['group']} */ g) =>
+    NUTRIENTS.filter((n) => n.group === g).map((n) =>
+      nutrientRow(
+        n,
+        a[n.key] ?? 0,
+        targets[n.key],
+        n.key === 'vitD' && supp > 0 ? { ...src, extra: `Dazu Präparat ${fmt(supp, 1)} µg pro Tag.` } : src,
+      ),
+    );
   const reached = (/** @type {NutrientDef['group']} */ g) =>
     NUTRIENTS.filter((n) => n.group === g && n.kind === 'target' && n.ref && (a[n.key] ?? 0) >= (targets[n.key] ?? Infinity)).length;
   const total = (/** @type {NutrientDef['group']} */ g) => NUTRIENTS.filter((n) => n.group === g && n.kind === 'target' && n.ref).length;
@@ -604,6 +710,19 @@ export function suggestCard(ctx, snap) {
   );
 }
 
+/** Gruppen hinter jeder Pyramidenzeile (für die Aufschlüsselung). */
+const PYRAMID_KEYS = /** @type {Record<string, import('../domain/foodgroups.js').GroupKey[]>} */ ({
+  fv: ['gemuese', 'frucht'],
+  staerke: ['staerke'],
+  milch: ['milch'],
+  protein: ['fleisch', 'wurst', 'fisch', 'ei', 'pflanzlProtein', 'huelsen'],
+  nuss: ['nuss'],
+  suess: ['suess'],
+  fisch: ['fisch'],
+  fleisch: ['fleisch', 'wurst'],
+  huelsen: ['huelsen'],
+});
+
 /** Zahl für den Balken einer Pyramidenzeile (Ziel bzw. Obergrenze). */
 const PYRAMID_SCALE = /** @type {Record<string, number>} */ ({
   fv: 5,
@@ -625,20 +744,49 @@ const PYRAMID_SCALE = /** @type {Record<string, number>} */ ({
 export function pyramidCard(ctx, snap) {
   const week = Array.from({ length: 7 }, (_, i) => ctx.state.days[addDays(ctx.date, -i)]?.food ?? []);
   const p = pyramid({ today: snap.day.food ?? [], week });
-  /** @param {import('../domain/foodgroups.js').PyramidRow} r */
-  const row = (r) => {
+  const todayFood = snap.day.food ?? [];
+  const weekFood = Array.from({ length: 7 }, (_, i) => addDays(ctx.date, -i)).flatMap((d) =>
+    (ctx.state.days[d]?.food ?? []).map((f) => ({ ...f, day: d })),
+  );
+  /**
+   * @param {import('../domain/foodgroups.js').PyramidRow} r
+   * @param {boolean} weekly
+   */
+  const row = (r, weekly) => {
     const scale = PYRAMID_SCALE[r.id] ?? 1;
     const pct = Math.min(r.value / scale, 1);
     const fill = h('span', { class: 'nbar-fill' });
     fill.style.width = `${pct * 100}%`;
     const state = r.status === 'over' ? 'over' : r.status === 'ok' ? 'done' : pct >= 0.5 ? 'mid' : 'low';
-    return h(
-      'li',
-      { class: `nrow n-${state}`, id: `pyr-${r.id}` },
-      h('span', { class: 'nrow-label' }, r.label, h('small', {}, r.detail ? `${r.target} · ${r.detail}` : r.target)),
-      h('span', { class: 'nrow-val' }, h('strong', {}, fmt(r.value, r.unit === 'g' ? 0 : 1)), ` ${r.unit}`),
-      h('span', { class: 'nbar', 'aria-hidden': 'true' }, fill),
-      h('span', { class: 'nrow-pct' }, r.status === 'ok' ? '✓' : r.status === 'over' ? '!' : ''),
+    const keys = PYRAMID_KEYS[r.id] ?? [];
+    const items = (weekly ? weekFood : todayFood)
+      .map((f) => {
+        const portions = keys.reduce((a, k) => a + (f.groups?.[k] ?? 0), 0);
+        return { f, portions };
+      })
+      .filter((x) => x.portions > 0)
+      .sort((a, b) => b.portions - a.portions);
+    const untagged = (weekly ? weekFood : todayFood).filter((f) => !f.groups || !Object.keys(f.groups).length);
+    return drillRow(
+      `pyr-${r.id}`,
+      `n-${state}`,
+      [
+        h('span', { class: 'nrow-label' }, r.label, h('small', {}, r.detail ? `${r.target} · ${r.detail}` : r.target)),
+        h('span', { class: 'nrow-val' }, h('strong', {}, fmt(r.value, r.unit === 'g' ? 0 : 1)), ` ${r.unit}`),
+        h('span', { class: 'nbar', 'aria-hidden': 'true' }, fill),
+        h('span', { class: 'nrow-pct' }, r.status === 'ok' ? '✓' : r.status === 'over' ? '!' : ''),
+      ],
+      () =>
+        contribList(
+          items.map((x) => ({
+            label: `${weekly && 'day' in x.f && x.f.day ? `${fmtDate(String(x.f.day), 'dm')} ` : ''}${x.f.time} ${x.f.name}`,
+            value: r.unit === 'g' ? `${fmt(x.portions * 25)} g` : `${fmt(x.portions, 1)} ${x.portions === 1 ? 'Portion' : 'Portionen'}`,
+          })),
+          'Kein Eintrag zählt hierzu.',
+          untagged.length
+            ? `Ohne Zuordnung: ${untagged.length} ${untagged.length === 1 ? 'Eintrag' : 'Einträge'} (z. B. Schnellerfassung).`
+            : '',
+        ),
     );
   };
   const coverage = Math.round(p.coverage * 100);
@@ -653,9 +801,9 @@ export function pyramidCard(ctx, snap) {
       'Portionen nach der Schweizer Lebensmittelpyramide (SGE). Wichtiger als einzelne Vitamine ist die Mischung über die Woche.',
     ),
     h('h3', { class: 'eyebrow' }, 'Heute'),
-    h('ul', { class: 'nlist' }, ...p.daily.map(row)),
+    h('ul', { class: 'nlist' }, ...p.daily.map((r) => row(r, false))),
     h('h3', { class: 'eyebrow' }, 'Letzte 7 Tage'),
-    h('ul', { class: 'nlist' }, ...p.weekly.map(row)),
+    h('ul', { class: 'nlist' }, ...p.weekly.map((r) => row(r, true))),
     novaKcal > 0
       ? h(
           'p',

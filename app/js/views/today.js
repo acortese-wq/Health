@@ -273,10 +273,25 @@ function nutritionCard(ctx, snap) {
     ),
   );
 
-  return h(
+  // Zuerst, was heute gegessen wurde (ohne Scrollen), darunter die Erfassung.
+  const eaten = h(
     'section',
-    { class: 'card', 'aria-labelledby': 'n-h' },
-    h('h2', { id: 'n-h' }, 'Tagesbilanz'),
+    { class: 'card', 'aria-labelledby': 'n-h', id: 'eaten-card' },
+    h(
+      'div',
+      { class: 'card-head' },
+      h('h2', { id: 'n-h' }, 'Heute gegessen'),
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'btn small-btn',
+          id: 'jump-capture',
+          on: { click: () => document.getElementById('capture-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) },
+        },
+        '+ Erfassen',
+      ),
+    ),
     meter({ value: snap.kcal, target: snap.kcalTarget, label: 'Energie', unit: 'kcal' }),
     meter({ value: snap.proteinG, target: snap.protein.grams, label: 'Protein', unit: 'g', over: 'good' }),
     hasMicro
@@ -287,40 +302,6 @@ function nutritionCard(ctx, snap) {
           h('span', { class: salt > SALT_LIMIT_G ? 'over' : '' }, `Salz ${fmt(salt, 1)} / max. ${SALT_LIMIT_G} g`),
         )
       : null,
-    photoBlock(ctx, snap),
-    foodSearchBlock(ctx),
-    recent.length
-      ? [
-          h('p', { class: 'eyebrow' }, 'Zuletzt gegessen'),
-          h(
-            'div',
-            { class: 'chips' },
-            ...recent.map((f, i) =>
-              h(
-                'button',
-                { type: 'button', class: 'chip', id: `recent-${i}`, on: { click: () => add(f) } },
-                f.name,
-                h('small', {}, `${fmt(f.kcal)} kcal · ${fmt(f.protein)} g`),
-              ),
-            ),
-          ),
-        ]
-      : null,
-    h('p', { class: 'eyebrow' }, 'Schnell erfassen'),
-    h(
-      'div',
-      { class: 'chips' },
-      ...ctx.state.presets.food.map((p) =>
-        h(
-          'button',
-          { type: 'button', class: 'chip', id: `preset-${p.id}`, on: { click: () => add(p) } },
-          p.name,
-          h('small', {}, `${fmt(p.kcal)} kcal · ${fmt(p.protein)} g`),
-        ),
-      ),
-    ),
-    custom,
-    handMethod,
     food.length
       ? h(
           'ul',
@@ -378,6 +359,46 @@ function nutritionCard(ctx, snap) {
       ),
     ),
   );
+  const captureCard = h(
+    'section',
+    { class: 'card', 'aria-labelledby': 'cap-h', id: 'capture-card' },
+    h('h2', { id: 'cap-h' }, 'Erfassen'),
+    photoBlock(ctx, snap),
+    foodSearchBlock(ctx),
+    recent.length
+      ? [
+          h('p', { class: 'eyebrow' }, 'Zuletzt gegessen'),
+          h(
+            'div',
+            { class: 'chips' },
+            ...recent.map((f, i) =>
+              h(
+                'button',
+                { type: 'button', class: 'chip', id: `recent-${i}`, on: { click: () => add(f) } },
+                f.name,
+                h('small', {}, `${fmt(f.kcal)} kcal · ${fmt(f.protein)} g`),
+              ),
+            ),
+          ),
+        ]
+      : null,
+    h('p', { class: 'eyebrow' }, 'Schnell erfassen'),
+    h(
+      'div',
+      { class: 'chips' },
+      ...ctx.state.presets.food.map((p) =>
+        h(
+          'button',
+          { type: 'button', class: 'chip', id: `preset-${p.id}`, on: { click: () => add(p) } },
+          p.name,
+          h('small', {}, `${fmt(p.kcal)} kcal · ${fmt(p.protein)} g`),
+        ),
+      ),
+    ),
+    custom,
+    handMethod,
+  );
+  return [eaten, captureCard];
 }
 
 /**

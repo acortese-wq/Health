@@ -464,3 +464,49 @@ export function entryFromFood(food, grams) {
     source: /** @type {const} */ ('datenbank'),
   };
 }
+
+/**
+ * Menge eines Nährstoffs in einem Eintrag (Makros aus den Feldern, Mikros aus «micros»;
+ * Natrium notfalls aus Salz). undefined = für diesen Eintrag nicht bekannt.
+ * @param {EntryLike} f
+ * @param {NutrientKey} key
+ * @returns {number | undefined}
+ */
+export function entryValue(f, key) {
+  switch (key) {
+    case 'kcal':
+    case 'protein':
+      return f[key];
+    case 'carbs':
+    case 'fat':
+    case 'satFat':
+    case 'fiber':
+    case 'sugar':
+      return f[key];
+    case 'sodium':
+      return f.micros?.sodium ?? (typeof f.salt === 'number' ? (f.salt / 2.5) * 1000 : undefined);
+    default:
+      return f.micros?.[key];
+  }
+}
+
+/**
+ * Woher ein Nährstoff kommt: Einträge mit Beitrag, grösster zuerst, plus Einträge ohne Angabe.
+ * @template {EntryLike} T
+ * @param {T[]} food
+ * @param {NutrientKey} key
+ */
+export function contributions(food, key) {
+  /** @type {{ f: T, value: number }[]} */
+  const items = [];
+  /** @type {T[]} */
+  const unknown = [];
+  for (const f of food) {
+    const v = entryValue(f, key);
+    if (v === undefined) unknown.push(f);
+    else if (v > 0) items.push({ f, value: v });
+  }
+  items.sort((a, b) => b.value - a.value);
+  const total = items.reduce((a, x) => a + x.value, 0);
+  return { items: items.map((x) => ({ ...x, share: total > 0 ? x.value / total : 0 })), unknown, total };
+}

@@ -2091,3 +2091,53 @@ textarea {
     border: 1px solid #ccc;
   }
 }
+
+/* Antippbare Nährstoff- und Pyramidenzeilen */
+.ndetails > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.ndetails > summary::-webkit-details-marker {
+  display: none;
+}
+.ndetails > summary .nrow-label::after {
+  content: ' ▸';
+  color: var(--muted);
+  font-size: 0.8em;
+}
+.ndetails[open] > summary .nrow-label::after {
+  content: ' ▾';
+}
+.ndetails > summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.contrib {
+  padding: 8px 0 12px 12px;
+  border-left: 3px solid var(--petrol-soft);
+  margin: 4px 0 8px;
+}
+.contrib ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.contrib li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+.contrib-name {
+  min-width: 0;
+}
+.contrib-val {
+  font-family: var(--f-data);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.contrib-val small {
+  color: var(--muted);
+}
