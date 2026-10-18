@@ -70,6 +70,24 @@ Die Daten liegen im Browser-Speicher des Geräts. Wer den Browserverlauf samt We
 App-Daten. Deshalb: **Profil → Daten → «Backup herunterladen»**, zum Beispiel einmal pro Woche. Mit dem Backup lassen sich die
 Daten auch auf ein neues Gerät übertragen.
 
+Zusätzlich schützt die App den Tagesstand selbst:
+
+- **Jede Eingabe wird sofort gespeichert.** Ist der Speicher voll, opfert die App zuerst ihre Sicherungen, nie die Hauptdaten;
+  klappt das Speichern trotzdem nicht, erscheint eine Warnung.
+- **Automatische Sicherungen** (Profil → Daten → «Automatische Sicherungen»): ein Tagesstand pro Tag (höchstens alle
+  15 Minuten aktualisiert) sowie ein Stand vor jedem Import, Löschen oder Wiederherstellen; die letzten 7 bleiben erhalten
+  und lassen sich mit einem Tipp zurückholen.
+- **Halb ausgefüllte Felder** werden gesichert, wenn das Handy die App in den Hintergrund schickt oder beendet, und beim
+  nächsten Öffnen wieder eingesetzt (gleiche Seite, gleicher Tag, höchstens 12 Stunden).
+- **Unlesbare Daten** werden beiseitegelegt statt überschrieben; ein Hinweis erscheint.
+- **Mehrere Fenster:** Änderungen in einem anderen Tab werden übernommen statt später überschrieben.
+- **Mitternacht:** Bleibt die App offen, springt die Ansicht auf den neuen Tag; Einträge landen nie unbemerkt beim Vortag.
+- **iPhone:** Safari kann Website-Daten nach 7 Tagen ohne Nutzung löschen, und Safari und Home-Bildschirm haben getrennte
+  Speicher. Die App weist im Safari-Browser darauf hin: immer über das Symbol auf dem Home-Bildschirm öffnen.
+
+Grenze: Alle Sicherungen liegen im selben Browser. Gegen das Löschen der Website-Daten, Geräteverlust oder Handywechsel hilft
+nur die Backup-Datei; die App erinnert nach 7 Tagen ohne Backup daran.
+
 ## Deployment (GitHub Pages)
 
 **Live:** https://acortese-wq.github.io/Health/app/ (Veröffentlichung über «Deploy from branch» bei jedem Push auf `main`; `_config.yml` schliesst persönliche Dateien aus).

@@ -326,15 +326,18 @@ function sanitizeDay(d) {
 
 /**
  * @param {Storage | undefined} storage
- * @returns {{ state: State, error: string | null }}
+ * @returns {{ state: State, error: string | null, raw?: string }}
  */
 export function load(storage = safeStorage()) {
+  /** @type {string | null | undefined} */
+  let raw;
   try {
-    const raw = storage?.getItem(STORAGE_KEY);
+    raw = storage?.getItem(STORAGE_KEY);
     if (!raw) return { state: emptyState(), error: null };
     return { state: sanitize(JSON.parse(raw)), error: null };
   } catch (e) {
-    return { state: emptyState(), error: e instanceof Error ? e.message : String(e) };
+    // Rohdaten mitgeben, damit sie vor dem nächsten Speichern gesichert werden können
+    return { state: emptyState(), error: e instanceof Error ? e.message : String(e), ...(raw ? { raw } : {}) };
   }
 }
 

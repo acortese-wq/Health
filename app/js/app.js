@@ -2,7 +2,8 @@
 // App-Schale: Zustand, Navigation, Speichern, Rückmeldungen.
 
 import { h, s } from './ui/dom.js';
-import { load, save, safeStorage } from './store.js';
+import { load, safeStorage, STORAGE_KEY } from './store.js';
+import { saveWithBackup, snapshot as backupSnapshot, preserveCorrupt, saveDraft, takeDraft } from './safety.js';
 import { snapshot } from './model.js';
 import { addDays, daysBetween, toISODate } from './domain/util.js';
 import { shouldNudge } from './domain/hydration.js';
@@ -58,7 +59,13 @@ const root = /** @type {HTMLElement} */ (document.getElementById('app'));
 const storage = safeStorage();
 const loaded = load(storage);
 let state = loaded.state;
+// Unlesbare Daten beiseitelegen, bevor irgendetwas gespeichert wird
+if (loaded.error && loaded.raw) preserveCorrupt(storage, loaded.raw);
 let date = toISODate();
+/** Folgt die Ansicht dem heutigen Tag? Dann springt sie nach Mitternacht automatisch weiter. */
+let followToday = true;
+/** Entwurf aus der letzten Sitzung (halb ausgefüllte Felder), wird einmal eingesetzt. */
+let pendingDraft = takeDraft(storage, (location.hash || '#heute').slice(1), date);
 let lastFocusId = '';
 
 // Rückmeldungen leben ausserhalb der neu gezeichneten Ansicht, damit sie nicht verschwinden.
@@ -146,7 +153,8 @@ function dirtyInputs() {
 }
 
 function persist() {
-  if (!save(state, storage)) toast('Speichern nicht möglich. Bitte regelmässig exportieren.', 'error');
+  if (!saveWithBackup(JSON.stringify(state), storage, toISODate()))
+    toast('Speichern nicht möglich. Bitte sofort unter Profil → Daten ein Backup herunterladen.', 'error');
 }
 
 function render() {
@@ -170,6 +178,8 @@ function render() {
     },
     replace(next, message) {
       const previous = state;
+      // Vor dem Ersetzen (Import, Löschen, Beispieldaten) den bisherigen Stand sichern
+      if (storage && previous.profile && !previous.demo) backupSnapshot(storage, JSON.stringify(previous), today, 'vor Ersetzen');
       state = next;
       persist();
       render();
@@ -177,6 +187,7 @@ function render() {
     },
     setDate(d) {
       date = d > today ? today : d;
+      followToday = date === today;
       discardDirty = true;
       render();
     },
@@ -245,7 +256,24 @@ function render() {
       h('div', { class: 'banner banner-alert', role: 'alert' }, `Gespeicherte Daten konnten nicht gelesen werden: ${loaded.error}`),
     );
   const dataDays = Object.keys(state.days).length;
-  if (state.profile && !state.demo && dataDays >= 7 && (!state.lastBackup || daysBetween(state.lastBackup, today) > 14)) {
+  if (loaded.error && loaded.raw)
+    banners.push(
+      h(
+        'div',
+        { class: 'banner banner-alert', role: 'alert', id: 'corrupt-banner' },
+        'Die bisherigen Daten wurden sicher beiseitegelegt. Unter Profil → Daten → «Automatische Sicherungen» kannst du einen früheren Stand wiederherstellen.',
+      ),
+    );
+  if (state.profile && !state.demo && isIosBrowser() && !hidden('ios-tip'))
+    banners.push(
+      h(
+        'div',
+        { class: 'banner banner-warn', role: 'status', id: 'ios-banner' },
+        'Wichtig auf dem iPhone: Füge die App zum Home-Bildschirm hinzu (Teilen → «Zum Home-Bildschirm») und nutze nur noch diese. Safari kann Daten von Webseiten nach 7 Tagen ohne Nutzung löschen. Achtung: Safari und Home-Bildschirm haben getrennte Speicher; übertrage deine Daten mit Backup.',
+        h('button', { type: 'button', class: 'link-btn', id: 'ios-banner-close', on: { click: () => hide('ios-tip') } }, 'Verstanden'),
+      ),
+    );
+  if (state.profile && !state.demo && dataDays >= 7 && (!state.lastBackup || daysBetween(state.lastBackup, today) > 7)) {
     banners.push(
       h(
         'div',
@@ -267,6 +295,8 @@ function render() {
   }
 
   const dirty = dirtyInputs();
+  for (const [id, v] of Object.entries(pendingDraft)) if (!dirty.has(id)) dirty.set(id, v);
+  pendingDraft = {};
   submittedIds = new Set();
   const main = h('main', { id: 'main', class: `view view-${route.id}`, tabindex: '-1' }, ...banners, route.render(ctx));
   root.replaceChildren(header, main, nav);
@@ -334,15 +364,75 @@ window.addEventListener('hashchange', () => {
   window.scrollTo(0, 0);
   document.getElementById('main')?.focus({ preventScroll: true });
 });
-// Datumswechsel um Mitternacht: beim Zurückkehren in die App aktualisieren.
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible') return;
-  if (date < toISODate() && date === addDays(toISODate(), -1)) {
-    date = toISODate();
+// Datumswechsel: Wer «heute» ansieht, landet nach Mitternacht (auch nach Tagen im
+// Hintergrund) automatisch beim neuen Tag, damit Einträge nicht beim alten Datum landen.
+function followDate() {
+  const t = toISODate();
+  if (followToday && date !== t) {
+    date = t;
+    discardDirty = true;
     render();
   }
+}
+window.setInterval(followDate, 60 * 1000);
+window.addEventListener('focus', followDate);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    storeDraft();
+    return;
+  }
+  followDate();
   waterNudge();
 });
+window.addEventListener('pagehide', storeDraft);
+
+/** Halb ausgefüllte Felder sichern, falls das Telefon die App beendet. */
+function storeDraft() {
+  /** @type {Record<string, string>} */
+  const values = {};
+  for (const el of root.querySelectorAll('input[id], textarea[id]')) {
+    const input = /** @type {HTMLInputElement | HTMLTextAreaElement} */ (el);
+    if (input.type === 'file' || input.type === 'checkbox' || input.type === 'password' || input.type === 'search') continue;
+    if (input.value !== input.defaultValue) values[input.id] = input.value;
+  }
+  saveDraft(storage, { route: currentRoute().id, date, values });
+}
+
+// Änderungen aus einem anderen Fenster übernehmen statt sie später zu überschreiben.
+window.addEventListener('storage', (e) => {
+  if (e.key !== STORAGE_KEY || e.newValue === null) return;
+  const next = load(storage);
+  if (next.error) return;
+  state = next.state;
+  render();
+  toast('In einem anderen Fenster geändert. Ansicht aktualisiert.');
+});
+
+/** iPhone/iPad im Safari-Browser (nicht als Home-Bildschirm-App). */
+function isIosBrowser() {
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = /** @type {any} */ (navigator).standalone === true || window.matchMedia?.('(display-mode: standalone)').matches;
+  return ios && !standalone;
+}
+
+/** @param {string} id */
+function hidden(id) {
+  try {
+    return localStorage.getItem(`${STORAGE_KEY}.hinweis.${id}`) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** @param {string} id */
+function hide(id) {
+  try {
+    localStorage.setItem(`${STORAGE_KEY}.hinweis.${id}`, '1');
+  } catch {
+    /* ignorieren */
+  }
+  render();
+}
 
 /** Beim Öffnen an das Trinken erinnern, wenn man hinter dem Tagesplan liegt (höchstens alle 90 Min.). */
 function waterNudge() {

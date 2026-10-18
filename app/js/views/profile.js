@@ -1,7 +1,8 @@
 // @ts-check
 import { h, field, select, fmt, fmtDate, num, str } from '../ui/dom.js';
 import { ACTIVITY_LEVELS } from '../domain/energy.js';
-import { emptyState, exportCSV, exportJSON, importJSON } from '../store.js';
+import { emptyState, exportCSV, exportJSON, importJSON, safeStorage } from '../store.js';
+import { listSnapshots, restoreSnapshot } from '../safety.js';
 import { demoState } from '../demo.js';
 import { isISODate } from '../domain/util.js';
 import { FASTING_OPTIONS, FASTING_CAUTION } from '../domain/fasting.js';
@@ -638,6 +639,7 @@ function dataCard(ctx) {
           },
           ctx.state.demo ? 'Beispieldaten löschen' : 'Alle Daten löschen',
         ),
+    safetyBlock(ctx),
   );
 }
 
@@ -795,5 +797,76 @@ function visionCard(ctx) {
           : null,
       ),
     ),
+  );
+}
+
+/**
+ * Automatische Sicherungen (letzte 7 Tage, vor Import/Löschen) und Speicherschutz.
+ * @param {Ctx} ctx
+ */
+function safetyBlock(ctx) {
+  const storage = safeStorage();
+  const list = listSnapshots(storage);
+  const status = h('p', { class: 'small', id: 'persist-status' }, 'Speicherschutz wird geprüft …');
+  navigator.storage?.persisted?.().then(
+    (ok) => {
+      status.textContent = ok
+        ? 'Speicherschutz aktiv: Der Browser löscht die Daten nicht automatisch.'
+        : 'Speicherschutz nicht bestätigt: Der Browser könnte die Daten bei Platzmangel oder langer Nichtnutzung löschen. Regelmässige Backups sind wichtig.';
+    },
+    () => {
+      status.textContent = 'Speicherschutz unbekannt.';
+    },
+  ) ?? (status.textContent = 'Speicherschutz unbekannt (Browser meldet ihn nicht).');
+  const reasonLabel = (/** @type {string} */ r) => (r === 'täglich' ? 'Tagesstand' : 'vor Import/Löschen');
+  return h(
+    'details',
+    { class: 'safety', id: 'safety' },
+    h('summary', {}, `Automatische Sicherungen (${list.length})`),
+    status,
+    h(
+      'p',
+      { class: 'small muted' },
+      'Die App sichert jeden Tag automatisch einen Stand und zusätzlich vor jedem Import oder Löschen (die letzten 7 Sicherungen). Sie liegen im selben Browser: gegen das Löschen der Website-Daten oder einen Handywechsel hilft nur das Backup als Datei.',
+    ),
+    list.length
+      ? h(
+          'ul',
+          { class: 'entries', id: 'snapshot-list' },
+          ...list.map((x, i) =>
+            h(
+              'li',
+              {},
+              h('span', { class: 'entry-time' }, fmtDate(x.day, 'dm')),
+              h(
+                'span',
+                { class: 'entry-name' },
+                `${reasonLabel(x.reason)} · ${new Date(x.savedAt).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}`,
+                h('small', { class: 'muted' }, ` · ${x.days} Tage, ${x.entries} Mahlzeiten`),
+              ),
+              h(
+                'button',
+                {
+                  type: 'button',
+                  class: 'btn small-btn',
+                  id: `restore-${i}`,
+                  on: {
+                    click: () => {
+                      try {
+                        const st = restoreSnapshot(storage, x.id);
+                        if (!st) return ctx.toast('Sicherung nicht gefunden.', 'error');
+                        ctx.replace(st, `Stand vom ${fmtDate(x.day)} wiederhergestellt`);
+                      } catch {
+                        ctx.toast('Sicherung ist beschädigt.', 'error');
+                      }
+                    },
+                  },
+                },
+                'Wiederherstellen',
+              ),
+            ),
+          ),
+        )
+      : h('p', { class: 'small muted' }, 'Noch keine Sicherung vorhanden. Sie entsteht beim nächsten Speichern.'),
   );
 }
