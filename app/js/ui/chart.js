@@ -44,7 +44,7 @@ export function weightChart({ from, to, points, trend, plan, goalKg, width = 640
   // Zeichenfläche in echten Pixeln, damit Schrift und Linien auf jedem Bildschirm gleich gross bleiben.
   const W = Math.round(Math.min(Math.max(width, 280), 1100));
   const H = Math.round(Math.min(Math.max(W * 0.45, 220), 340));
-  const m = { top: 16, right: 16, bottom: 30, left: 44 };
+  const m = { top: 22, right: 16, bottom: 30, left: 44 };
   const iw = W - m.left - m.right;
   const ih = H - m.top - m.bottom;
 
@@ -80,7 +80,16 @@ export function weightChart({ from, to, points, trend, plan, goalKg, width = 640
   const last = tr[tr.length - 1];
   return s(
     'svg',
-    { viewBox: `0 0 ${W} ${H}`, class: 'chart', role: 'img', 'aria-label': `Gewichtsverlauf vom ${fmtDate(from)} bis ${fmtDate(to)}` },
+    {
+      viewBox: `0 0 ${W} ${H}`,
+      class: 'chart',
+      role: 'img',
+      'aria-label': `Gewichtsverlauf vom ${fmtDate(from)} bis ${fmtDate(to)}: ${pts.length} Messungen${
+        last ? `, Trend zuletzt ${fmt(last.kg, 1)} kg` : ''
+      }, Ziel ${fmt(goalKg, 1)} kg.`,
+    },
+    // Einheit der y-Achse
+    s('text', { class: 'axis-unit', x: m.left - 8, y: 12, 'text-anchor': 'end' }, 'kg'),
     s('g', { class: 'grid' }, ...yT.ticks.map((t) => s('line', { x1: m.left, x2: W - m.right, y1: y(t), y2: y(t) }))),
     s(
       'g',

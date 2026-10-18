@@ -81,7 +81,7 @@ function reset(keepMode = true) {
 }
 
 /** @param {Ctx} ctx */
-const redraw = (ctx) => ctx.go('heute');
+const redraw = (ctx) => ctx.go('ernaehrung');
 
 /**
  * Lauf mit Ladeanzeige, Abbruch und Fehlertext.

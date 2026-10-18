@@ -29,7 +29,7 @@ export function viewWeight(ctx) {
   return h(
     'div',
     { class: 'stack' },
-    h('h1', {}, 'Gewicht und Energie'),
+    h('h1', {}, 'Fortschritt'),
     h(
       'section',
       { class: 'card', 'aria-labelledby': 'chart-h' },
@@ -50,7 +50,7 @@ export function viewWeight(ctx) {
                 on: {
                   click: () => {
                     range = x.id;
-                    ctx.go('gewicht');
+                    ctx.go('fortschritt');
                   },
                 },
               },

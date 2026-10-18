@@ -1,12 +1,21 @@
 // Service Worker: App-Schale offline verfügbar machen. Gesundheitsdaten liegen im
 // localStorage und werden hier nicht berührt.
-const VERSION = 'v1.8.0';
+const VERSION = 'v2.0.0';
 const CACHE = `cockpit-${VERSION}`;
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './css/app.css',
+  './fonts/OFL.txt',
+  './fonts/barlow-semi-condensed-latin-500-normal.woff2',
+  './fonts/barlow-semi-condensed-latin-600-normal.woff2',
+  './fonts/barlow-semi-condensed-latin-700-normal.woff2',
+  './fonts/ibm-plex-mono-latin-400-normal.woff2',
+  './fonts/ibm-plex-mono-latin-500-normal.woff2',
+  './fonts/source-sans-3-latin-400-normal.woff2',
+  './fonts/source-sans-3-latin-600-normal.woff2',
+  './fonts/source-sans-3-latin-700-normal.woff2',
   './icons/icon.svg',
   './icons/apple-touch-icon.png',
   './icons/icon-192.png',

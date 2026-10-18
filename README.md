@@ -9,14 +9,19 @@ Sie läuft im Browser, ist auf dem Handy installierbar (PWA) und funktioniert of
 
 ## Funktionen
 
-| Bereich        | Was die App macht                                                                                                                                                                                       |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Heute**      | Gewicht, **Mahlzeit fotografieren → Gericht und Kalorien per Claude erkennen**, Mahlzeiten (Schnellerfassung), Protein, Koffein mit Restmenge beim Schlafengehen, **Trinkmenge** (Glas/Flasche, Ziel nach EFSA), Schritte, Schlaf, Ruhepuls, Coach-Hinweise nach Dringlichkeit                                                 |
-| **Gewicht**    | Robuster Trend (Theil-Sen und exponentielle Glättung), Planlinie, Zwischenziele, Prognose, **adaptiver Energiebedarf** aus den eigenen Daten statt aus der Formel                                         |
-| **Training**   | Ganzkörper-Kraftplan A/B mit **doppelter Progression** (Vorschlag für Gewicht und Wiederholungen), Laufprotokoll mit Pace, Wochenbilanz nach WHO                                                        |
-| **Gesundheit** | Blutdruck (ESC 2024, 7-Tage-Serie), Taille und Taille-zu-Grösse, VO₂max, Laborwerte mit Einordnung, **eGFR (CKD-EPI 2021)**, **FIB-4**, STOP-BANG-Schlafapnoe-Check, Schweizer Vorsorge-Checkliste |
-| **Wissen**     | Aussagen mit Evidenzgrad (gut belegt / wahrscheinlich sinnvoll / unsicher / unbelegt) und Originalquellen                                                                                              |
-| **Profil**     | Ziele, Koffein-Ausschleichplan, Backup (JSON), CSV-Export für Excel, Import, Löschen                                                                                                                      |
+Navigation: fünf Hauptbereiche unten (mobil) bzw. links (Desktop), dazu **Wissen** und **Profil** oben rechts.
+
+| Bereich         | Was die App macht |
+| --------------- | ----------------- |
+| **Heute**       | Antippbare Kennzahlen (Trendgewicht, Kalorien übrig, Protein, Plan), Schnellaktionen, Coach-Hinweise nach Dringlichkeit, Gewicht, **Trinkmenge** mit Erinnerungen, Koffein mit Restmenge beim Schlafengehen, Erholung (Schritte, Schlaf, Ruhepuls), Tagesrückblick |
+| **Ernährung**   | **Mahlzeit fotografieren, beschreiben oder Packung scannen** (Claude oder GPT, Open Food Facts), Zuletzt gegessen, Schnellerfassung, Einträge direkt bearbeiten |
+| **Fortschritt** | Robuster Trend (Theil-Sen und exponentielle Glättung), Planlinie, Zwischenziele, Prognose, **adaptiver Energiebedarf** aus den eigenen Daten |
+| **Training**    | Laufplan (oder Lauf plus Kraft mit **doppelter Progression**), Wochenbilanz nach WHO, Garmin-CSV-Import, Lebenserwartung durch Bewegung |
+| **Gesundheit**  | Blutdruck (ESC 2024), Taille, VO₂max, Laborwerte, **eGFR (CKD-EPI 2021)**, **FIB-4**, STOP-BANG, Schweizer Vorsorge |
+| **Wissen**      | Aussagen mit Evidenzgrad und Originalquellen |
+| **Profil**      | Ziele, KI-Anbieter, Backup (JSON), CSV-Export, Import, Löschen, Datenschutzhinweise |
+
+Jede Änderung lässt sich 5 Sekunden lang über «Rückgängig» zurücknehmen. Begonnene, nicht gespeicherte Eingaben bleiben beim Neuzeichnen erhalten.
 
 Die Methodik und alle Grenzwerte mit Quellen stehen in [docs/MEDIZIN.md](docs/MEDIZIN.md).
 
@@ -30,7 +35,7 @@ Die Methodik und alle Grenzwerte mit Quellen stehen in [docs/MEDIZIN.md](docs/ME
 
 ### Mahlzeiten erfassen (inspiriert von Foodvisor und PlateLens)
 
-Unter «Heute» → «Erfassen mit KI» gibt es drei Wege:
+Unter «Ernährung» → «Erfassen mit KI» gibt es drei Wege:
 
 | Modus | Ablauf | Genauigkeit |
 | --- | --- | --- |
@@ -52,7 +57,7 @@ Kennzeichnung **«proteinreich»** (≥ 20 % der Energie aus Protein, EU-Verordn
 ### Garmin
 
 - **Läufe:** Garmin Connect (Web) → Aktivitäten → «Export CSV» → in der App unter Training → «Von Garmin importieren». Läufe und Krafttraining werden übernommen, Doppelte übersprungen; Intervalle am Titel erkannt, ab 60 Minuten «langer Lauf».
-- **Tageswerte:** Garmin Connect → Apple Health → iPhone-Kurzbefehl kopiert `cockpit;schritte=…;ruhepuls=…;schlaf=…;gewicht=…` → in der App unter Heute → «Werte einfügen». Anleitung in der App.
+- **Tageswerte:** Garmin Connect → Apple Health → iPhone-Kurzbefehl kopiert `cockpit;schritte=…;ruhepuls=…;schlaf=…;gewicht=…` → in der App unter Heute → «Werte aus Garmin / Apple Health einfügen». Anleitung in der App.
 - Eine direkte Verbindung ist nicht möglich: Garmins Schnittstelle ist nur für zugelassene Firmenpartner mit Server zugänglich, und Web-Apps dürfen Apple Health nicht direkt lesen.
 
 ### Datensicherung
@@ -86,7 +91,7 @@ npm run test:e2e     # Browser-Tests auf Mobil- und Desktop-Viewport
 app/
   index.html, manifest.webmanifest, sw.js (Offline-Cache), css/, icons/
   js/domain/   Fachlogik ohne DOM: Energie, Trend, Koffein, Training, Klinik, Coach, Evidenz
-  js/views/    Ansichten (Heute, Gewicht, Training, Gesundheit, Wissen, Profil)
+  js/views/    Ansichten (Heute, Ernährung, Fortschritt, Training, Gesundheit, Wissen, Profil)
   js/ui/       DOM-Baukasten (nur Textknoten, kein innerHTML) und SVG-Diagramm
   js/store.js  Speicher, Validierung, Import/Export
 tests/unit/    Referenzrechnungen für jede Formel und jeden Grenzwert
@@ -100,7 +105,9 @@ Neue Datei in `app/`? Dann auch in `app/sw.js` eintragen und `VERSION` erhöhen.
 - Strikte Content-Security-Policy: nur eigene Skripte, keine Inline-Skripte, kein `eval`.
 - Nutzereingaben werden ausschliesslich als Textknoten in die Seite eingefügt (ein Test prüft das auf XSS).
 - Importierte Backups werden Feld für Feld validiert. Unbekannte Felder werden verworfen.
-- Netzwerkanfragen nur für Schriften (Google Fonts) und, wenn du sie nutzt, für die Foto-Erkennung an `api.anthropic.com` (Foto plus Resttagesziel, keine weiteren Gesundheitsdaten).
+- Schriften liegen in der App (`app/fonts`, SIL Open Font License). Ohne KI-Nutzung verlässt keine Anfrage das Gerät (Test `audit.spec.js`).
+- Netzwerkanfragen nur, wenn du sie auslöst: Foto- oder Texterkennung an `api.anthropic.com` bzw. `api.openai.com` (Foto oder Text plus Resttagesziel), Barcode an Open Food Facts (nur die Nummer).
+- Ein automatischer Test prüft 21 Farbpaare auf WCAG-Kontrast ≥ 4.5:1 im hellen und dunklen Modus.
 
 ## Urheber
 

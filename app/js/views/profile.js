@@ -50,7 +50,36 @@ export function viewProfile(ctx) {
     h(
       'section',
       { class: 'card', 'aria-labelledby': 'about-h' },
-      h('h2', { id: 'about-h' }, 'Über diese App'),
+      h('h2', { id: 'about-h' }, 'Datenschutz und Hinweise'),
+      h(
+        'ul',
+        { class: 'small privacy-list' },
+        h(
+          'li',
+          {},
+          h('strong', {}, 'Speicherort: '),
+          'Alle Gesundheitsdaten liegen nur in diesem Browser auf diesem Gerät. Es gibt kein Konto, keinen Server, kein Tracking und keine Werbung.',
+        ),
+        h(
+          'li',
+          {},
+          h('strong', {}, 'KI-Erfassung (nur wenn du sie nutzt): '),
+          'Foto bzw. Beschreibung und dein restliches Tagesziel gehen direkt an den gewählten Anbieter (Anthropic oder OpenAI, Server in den USA). Es gelten die Datenschutzbestimmungen des Anbieters.',
+        ),
+        h('li', {}, h('strong', {}, 'Barcode-Suche: '), 'Nur die Barcode-Nummer wird an Open Food Facts gesendet.'),
+        h(
+          'li',
+          {},
+          h('strong', {}, 'Schriften und Programmcode '),
+          'werden von deiner App-Adresse geladen. Andere Dritte erhalten keine Anfragen.',
+        ),
+        h(
+          'li',
+          {},
+          h('strong', {}, 'Deine Rechte: '),
+          'Unter «Daten» kannst du jederzeit alles exportieren (JSON, CSV) oder vollständig löschen.',
+        ),
+      ),
       h(
         'p',
         { class: 'small' },

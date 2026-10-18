@@ -53,6 +53,8 @@ test('Tageserfassung: Gewicht, Mahlzeit, Koffein, Werte bleiben nach Neuladen er
   await page.click('#weight-save');
   await expect(page.locator('#weight')).toHaveValue('94.6');
 
+  await page.click('#cta-meal');
+  await expect(page).toHaveURL(/#ernaehrung$/);
   await page.click('#preset-skyr');
   await expect(page.locator('.entries').first()).toContainText('Skyr');
   await page.fill('#food-name', 'Kantine');
@@ -61,6 +63,8 @@ test('Tageserfassung: Gewicht, Mahlzeit, Koffein, Werte bleiben nach Neuladen er
   await page.click('#food-add');
   await expect(page.locator('.meter').first()).toContainText('860');
 
+  await page.click('#nav-profil');
+  await page.goto('/#heute');
   await page.click('#caf-kaffee');
   await expect(page.locator('#c-h').locator('..')).toContainText('90');
 
@@ -72,12 +76,14 @@ test('Tageserfassung: Gewicht, Mahlzeit, Koffein, Werte bleiben nach Neuladen er
   await page.reload();
   await expect(page.locator('#weight')).toHaveValue('94.6');
   await expect(page.locator('#steps')).toHaveValue('9500');
+  await page.goto('/#ernaehrung');
   await expect(page.locator('.meter').first()).toContainText('860');
   expect(errors).toEqual([]);
 });
 
 test('Eingaben werden nie als HTML interpretiert', async ({ page }) => {
   await createProfile(page);
+  await page.goto('/#ernaehrung');
   await page.fill('#food-name', '<img src=x onerror="window.__xss=1">');
   await page.fill('#food-kcal', '100');
   await page.click('#food-add');
@@ -89,13 +95,13 @@ test('Beispieldaten: alle Ansichten rendern ohne Fehler und ohne horizontales Sc
   const errors = collectErrors(page);
   await page.goto('/');
   await page.click('#load-demo');
-  for (const route of ['heute', 'gewicht', 'training', 'gesundheit', 'wissen', 'profil']) {
+  for (const route of ['heute', 'ernaehrung', 'fortschritt', 'training', 'gesundheit', 'wissen', 'profil']) {
     await page.goto(`/#${route}`);
     await expect(page.locator('main h1, main .summary').first()).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, `horizontales Scrollen auf #${route}`).toBeLessThanOrEqual(0);
   }
-  await page.goto('/#gewicht');
+  await page.goto('/#gewicht'); // alte Adresse leitet auf Fortschritt
   await expect(page.locator('svg.chart .trend-line')).toBeVisible();
   await expect(page.locator('svg.chart .dots circle').first()).toBeAttached();
   await page.goto('/#gesundheit');

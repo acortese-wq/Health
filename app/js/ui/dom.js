@@ -23,8 +23,11 @@ function applyProps(el, props) {
     else if (k === 'text') el.textContent = String(v);
     else if (k === 'on')
       for (const [ev, fn] of Object.entries(/** @type {Record<string, EventListener>} */ (v))) el.addEventListener(ev, fn);
-    else if (k === 'value' && (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement))
+    else if (k === 'value' && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) {
+      // Auch den Ausgangswert setzen, damit erkennbar bleibt, was der Benutzer geändert hat.
+      el.defaultValue = String(v);
       el.value = String(v);
+    } else if (k === 'value' && el instanceof HTMLSelectElement) el.value = String(v);
     else if (k === 'checked' && el instanceof HTMLInputElement) el.checked = Boolean(v);
     else el.setAttribute(k, v === true ? '' : String(v));
   }

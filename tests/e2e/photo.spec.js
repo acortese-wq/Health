@@ -37,6 +37,7 @@ async function setup(page) {
   await page.fill('#p-goaldate', '2027-03-31');
   await page.click('#profile-save');
   await expect(page).toHaveURL(/#heute$/);
+  await page.goto('/#ernaehrung');
 }
 
 /**
@@ -90,7 +91,7 @@ test('Foto → Gericht, Kalorien, Portion anpassen → übernehmen', async ({ pa
   // Schlüssel ist nicht Teil der App-Daten (und damit nie im Backup)
   expect(await page.evaluate(() => localStorage.getItem('gesundheitscockpit'))).not.toContain('sk-ant');
 
-  await page.goto('/#heute');
+  await page.goto('/#ernaehrung');
   await page.setInputFiles('#photo-input', IMAGE);
   await expect(page.locator('#photo-dish')).toHaveText('Älplermagronen mit Apfelmus');
   await expect(page.locator('#photo-total-kcal')).toHaveText('730 kcal');
@@ -130,7 +131,7 @@ test('Ungültiger Schlüssel: klare Fehlermeldung', async ({ page }) => {
   await page.goto('/#profil');
   await page.fill('#api-key', KEY);
   await page.click('#api-key-save');
-  await page.goto('/#heute');
+  await page.goto('/#ernaehrung');
   await page.setInputFiles('#photo-input', IMAGE);
   await expect(page.locator('#photo-error')).toContainText('API-Schlüssel ist ungültig');
 });
@@ -221,7 +222,7 @@ test('GPT als Anbieter: Responses-API mit Bild und JSON-Schema', async ({ page }
   await expect(page.locator('#ai-model')).toHaveValue('gpt-5.5');
   await page.fill('#api-key', 'sk-proj-test0123456789abcdefghij');
   await page.click('#api-key-save');
-  await page.goto('/#heute');
+  await page.goto('/#ernaehrung');
   await page.setInputFiles('#photo-input', IMAGE);
   await expect(page.locator('#photo-dish')).toHaveText('Älplermagronen mit Apfelmus');
   await expect(page.getByText('geschätzt mit GPT (OpenAI)')).toBeVisible();

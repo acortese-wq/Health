@@ -188,7 +188,7 @@ export function healthPasteBlock(ctx) {
     h(
       'details',
       { id: 'health-manual' },
-      h('summary', {}, 'Text manuell einfügen'),
+      h('summary', {}, 'Text von Hand einfügen'),
       h(
         'form',
         {
@@ -212,7 +212,7 @@ export function healthPasteBlock(ctx) {
     h(
       'details',
       {},
-      h('summary', {}, 'Anleitung: Kurzbefehl einrichten (einmalig, ca. 10 Minuten)'),
+      h('summary', {}, 'Einrichten (einmalig, ca. 10 Minuten)'),
       h(
         'ol',
         { class: 'small steps-list' },

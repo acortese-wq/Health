@@ -10,25 +10,30 @@ import { reviewCard } from './review.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 
-/** @param {Ctx} ctx */
+/**
+ * Heute: Stand auf einen Blick, das Wichtigste vom Coach, schnelle Erfassung, Rückblick.
+ * @param {Ctx} ctx
+ */
 export function viewToday(ctx) {
   const snap = /** @type {NonNullable<Ctx['snap']>} */ (ctx.snap);
   return h(
     'div',
     { class: 'stack' },
+    h('h1', { class: 'sr-only' }, 'Heute'),
     summary(ctx, snap),
     hints(snap),
+    h('div', { class: 'grid-2' }, weightCard(ctx, snap), waterCard(ctx, snap), caffeineCard(ctx, snap), recoveryCard(ctx, snap)),
     reviewCard(ctx),
-    h(
-      'div',
-      { class: 'grid-2' },
-      weightCard(ctx, snap),
-      nutritionCard(ctx, snap),
-      caffeineCard(ctx, snap),
-      waterCard(ctx, snap),
-      recoveryCard(ctx, snap),
-    ),
   );
+}
+
+/**
+ * Ernährung: Tagesbilanz, Erfassung (KI, Schnellwahl, frei), Einträge.
+ * @param {Ctx} ctx
+ */
+export function viewNutrition(ctx) {
+  const snap = /** @type {NonNullable<Ctx['snap']>} */ (ctx.snap);
+  return h('div', { class: 'stack' }, h('h1', {}, 'Ernährung'), nutritionCard(ctx, snap));
 }
 
 /**
@@ -39,18 +44,41 @@ function summary(ctx, snap) {
   const perWeek = snap.slope ? snap.slope.slopeKgPerDay * 7 : null;
   const kcalLeft = snap.kcalTarget - snap.kcal;
   const nextTraining = plannedSession(ctx.date, snap.profile.trainingMode);
+  const toGoal = snap.weightKg - snap.profile.goalWeightKg;
   return h(
-    'section',
-    { class: 'summary', 'aria-label': 'Tagesübersicht' },
-    stat(
-      'Trendgewicht',
-      snap.slope ? fmt(snap.slope.levelKg, 1) : snap.avg7 ? fmt(snap.avg7.kg, 1) : '–',
-      'kg',
-      perWeek !== null ? `${fmtSigned(perWeek, 2)} kg/Woche` : 'Trend ab 7 Messungen',
+    'div',
+    { class: 'stack-sm' },
+    h(
+      'section',
+      { class: 'summary', 'aria-label': 'Tagesübersicht' },
+      stat(
+        'Trendgewicht',
+        snap.slope ? fmt(snap.slope.levelKg, 1) : snap.avg7 ? fmt(snap.avg7.kg, 1) : '–',
+        'kg',
+        [
+          perWeek !== null ? `${fmtSigned(perWeek, 2)} kg/Woche` : 'Trend ab 7 Messungen',
+          toGoal > 0 ? `noch ${fmt(toGoal, 1)} kg bis Ziel` : 'Ziel erreicht',
+        ].join(' · '),
+        '',
+        '#fortschritt',
+      ),
+      stat('Kalorien übrig', fmt(kcalLeft), 'kcal', `Ziel ${fmt(snap.kcalTarget)} kcal`, kcalLeft < 0 ? 'neg' : '', '#ernaehrung'),
+      stat(
+        'Protein',
+        fmt(snap.proteinG),
+        'g',
+        `Ziel ${fmt(snap.protein.grams)} g`,
+        snap.proteinG >= snap.protein.grams ? 'pos' : '',
+        '#ernaehrung',
+      ),
+      stat(ctx.date === ctx.today ? 'Heute geplant' : 'Geplant', nextTraining.title, '', nextTraining.detail, '', '#training'),
     ),
-    stat('Kalorien übrig', fmt(kcalLeft), 'kcal', `Ziel ${fmt(snap.kcalTarget)} kcal`, kcalLeft < 0 ? 'neg' : ''),
-    stat('Protein', fmt(snap.proteinG), 'g', `Ziel ${fmt(snap.protein.grams)} g`, snap.proteinG >= snap.protein.grams ? 'pos' : ''),
-    stat('Heute geplant', nextTraining.title, '', nextTraining.detail),
+    h(
+      'div',
+      { class: 'quick-actions' },
+      h('a', { href: '#ernaehrung', class: 'btn primary', id: 'cta-meal' }, '+ Mahlzeit erfassen'),
+      h('a', { href: '#training', class: 'btn', id: 'cta-run' }, '+ Training erfassen'),
+    ),
   );
 }
 
@@ -60,11 +88,12 @@ function summary(ctx, snap) {
  * @param {string} unit
  * @param {string} sub
  * @param {string} [tone]
+ * @param {string} [href] Ziel, wenn die Kennzahl antippbar ist
  */
-function stat(label, value, unit, sub, tone = '') {
+function stat(label, value, unit, sub, tone = '', href = '') {
   return h(
-    'div',
-    { class: `stat ${tone}` },
+    href ? 'a' : 'div',
+    { class: `stat ${tone} ${href ? 'stat-link' : ''}`, href: href || undefined },
     h('span', { class: 'stat-label' }, label),
     h('span', { class: 'stat-value' }, value, unit ? h('small', {}, ` ${unit}`) : null),
     h('span', { class: 'stat-sub' }, sub),
@@ -74,14 +103,33 @@ function stat(label, value, unit, sub, tone = '') {
 /** @param {NonNullable<Ctx['snap']>} snap */
 function hints(snap) {
   if (!snap.hints.length) return null;
+  // Dringendes immer zeigen, sonst die zwei wichtigsten; der Rest aufklappbar.
+  const shown = Math.max(2, snap.hints.filter((x) => x.severity === 'alert' || x.severity === 'warn').length);
+  const rest = snap.hints.slice(shown);
   return h(
     'section',
     { class: 'card hints', 'aria-labelledby': 'hints-h' },
     h('h2', { id: 'hints-h' }, 'Coach'),
-    h(
-      'ul',
-      { class: 'hint-list' },
-      ...snap.hints.map((x) => h('li', { class: `hint-item sev-${x.severity}` }, h('strong', {}, x.title), h('p', {}, x.text))),
+    hintList(snap.hints.slice(0, shown)),
+    rest.length ? h('details', { class: 'more-hints' }, h('summary', {}, `${rest.length} weitere Hinweise`), hintList(rest)) : null,
+  );
+}
+
+const SEVERITY_LABEL = { alert: 'Dringend', warn: 'Wichtig', info: 'Tipp', ok: 'Info' };
+
+/** Schweregrad als Text und Randfarbe, nicht nur als Farbe. @param {NonNullable<Ctx['snap']>['hints']} list */
+function hintList(list) {
+  return h(
+    'ul',
+    { class: 'hint-list' },
+    ...list.map((x) =>
+      h(
+        'li',
+        { class: `hint-item sev-${x.severity}` },
+        h('span', { class: 'sev-label' }, SEVERITY_LABEL[x.severity]),
+        h('strong', {}, x.title),
+        h('p', {}, x.text),
+      ),
     ),
   );
 }
@@ -182,7 +230,7 @@ function nutritionCard(ctx, snap) {
   return h(
     'section',
     { class: 'card', 'aria-labelledby': 'n-h' },
-    h('h2', { id: 'n-h' }, 'Ernährung'),
+    h('h2', { id: 'n-h' }, 'Tagesbilanz'),
     meter({ value: snap.kcal, target: snap.kcalTarget, label: 'Energie', unit: 'kcal' }),
     meter({ value: snap.proteinG, target: snap.protein.grams, label: 'Protein', unit: 'g', over: 'good' }),
     hasMicro
@@ -228,32 +276,8 @@ function nutritionCard(ctx, snap) {
     food.length
       ? h(
           'ul',
-          { class: 'entries' },
-          ...food.map((f) =>
-            h(
-              'li',
-              {},
-              h('span', { class: 'entry-time' }, f.time),
-              h('span', { class: 'entry-name' }, f.name),
-              h('span', { class: 'entry-num' }, `${fmt(f.kcal)} kcal · ${fmt(f.protein)} g`),
-              h(
-                'button',
-                {
-                  type: 'button',
-                  class: 'icon-btn',
-                  'aria-label': `${f.name} entfernen`,
-                  on: {
-                    click: () =>
-                      ctx.commit(
-                        (s) => void (s.days[ctx.date].food = (s.days[ctx.date].food ?? []).filter((x) => x.id !== f.id)),
-                        'Eintrag entfernt',
-                      ),
-                  },
-                },
-                '×',
-              ),
-            ),
-          ),
+          { class: 'entries', id: 'food-entries' },
+          ...[...food].sort((x, y) => (x.time < y.time ? -1 : x.time > y.time ? 1 : 0)).map((f) => foodRow(ctx, f)),
         )
       : h('p', { class: 'muted small' }, 'Noch nichts erfasst.'),
     h(
@@ -333,30 +357,35 @@ function caffeineCard(ctx, snap) {
     ),
     list.length
       ? h(
-          'ul',
-          { class: 'entries' },
-          ...list.map((x) =>
-            h(
-              'li',
-              {},
-              h('span', { class: 'entry-time' }, x.time),
-              h('span', { class: 'entry-name' }, x.label),
-              h('span', { class: 'entry-num' }, `${fmt(x.mg)} mg`),
+          'details',
+          { class: 'entry-details' },
+          h('summary', {}, `${list.length} ${list.length === 1 ? 'Eintrag' : 'Einträge'} anzeigen`),
+          h(
+            'ul',
+            { class: 'entries' },
+            ...list.map((x) =>
               h(
-                'button',
-                {
-                  type: 'button',
-                  class: 'icon-btn',
-                  'aria-label': `${x.label} entfernen`,
-                  on: {
-                    click: () =>
-                      ctx.commit(
-                        (s) => void (s.days[ctx.date].caffeine = (s.days[ctx.date].caffeine ?? []).filter((y) => y.id !== x.id)),
-                        'Eintrag entfernt',
-                      ),
+                'li',
+                {},
+                h('span', { class: 'entry-time' }, x.time),
+                h('span', { class: 'entry-name' }, x.label),
+                h('span', { class: 'entry-num' }, `${fmt(x.mg)} mg`),
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    class: 'icon-btn',
+                    'aria-label': `${x.label} entfernen`,
+                    on: {
+                      click: () =>
+                        ctx.commit(
+                          (s) => void (s.days[ctx.date].caffeine = (s.days[ctx.date].caffeine ?? []).filter((y) => y.id !== x.id)),
+                          'Eintrag entfernt',
+                        ),
+                    },
                   },
-                },
-                '×',
+                  '×',
+                ),
               ),
             ),
           ),
@@ -608,6 +637,139 @@ function reminderBlock(ctx, target) {
         'p',
         { class: 'hint' },
         'Die Erinnerungen kommen als Kalender-Benachrichtigung, auch wenn die App geschlossen ist. Tipp: Beim Import einen eigenen Kalender «Trinken» wählen. Dann kannst du die Erinnerungen später einfach ausblenden oder löschen. Zusätzlich erinnert dich die App beim Öffnen, wenn du hinter dem Trinkplan liegst.',
+      ),
+    ),
+  );
+}
+
+/** Eintrag, der gerade bearbeitet wird. */
+let editingFoodId = '';
+
+/**
+ * Eine Mahlzeit: anzeigen oder direkt in der Liste bearbeiten (ohne Dialog).
+ * @param {Ctx} ctx
+ * @param {import('../store.js').FoodEntry} f
+ */
+function foodRow(ctx, f) {
+  const remove = () =>
+    ctx.commit((s) => void (s.days[ctx.date].food = (s.days[ctx.date].food ?? []).filter((x) => x.id !== f.id)), `${f.name} entfernt`);
+  if (editingFoodId !== f.id) {
+    return h(
+      'li',
+      {},
+      h('span', { class: 'entry-time' }, f.time),
+      h(
+        'span',
+        { class: 'entry-name' },
+        f.name,
+        f.source === 'foto' || f.source === 'text' ? h('small', { class: 'muted' }, ' · geschätzt') : null,
+      ),
+      h('span', { class: 'entry-num' }, `${fmt(f.kcal)} kcal · ${fmt(f.protein)} g`),
+      h(
+        'span',
+        { class: 'entry-actions' },
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'icon-btn',
+            'aria-label': `${f.name} bearbeiten`,
+            on: {
+              click: () => {
+                editingFoodId = f.id;
+                ctx.go('ernaehrung');
+              },
+            },
+          },
+          '✎',
+        ),
+        h('button', { type: 'button', class: 'icon-btn', 'aria-label': `${f.name} entfernen`, on: { click: remove } }, '×'),
+      ),
+    );
+  }
+  return h(
+    'li',
+    { class: 'editing' },
+    h(
+      'form',
+      {
+        class: 'edit-form',
+        on: {
+          submit: (e) => {
+            e.preventDefault();
+            const fd = new FormData(/** @type {HTMLFormElement} */ (e.target));
+            const kcal = num(fd, 'edit-kcal');
+            const protein = num(fd, 'edit-protein');
+            const time = str(fd, 'edit-time');
+            if (kcal === null || kcal < 0 || kcal > 5000) return ctx.toast('Bitte Kalorien zwischen 0 und 5000 eingeben.', 'error');
+            if (protein === null || protein < 0 || protein > 300) return ctx.toast('Protein muss zwischen 0 und 300 g liegen.', 'error');
+            editingFoodId = '';
+            // Weitere Nährwerte im gleichen Verhältnis wie die Kalorien anpassen, damit die Summen stimmig bleiben.
+            const factor = f.kcal > 0 ? kcal / f.kcal : 1;
+            ctx.commit((s) => {
+              const list = s.days[ctx.date].food ?? [];
+              const i = list.findIndex((x) => x.id === f.id);
+              if (i < 0) return;
+              /** @type {import('../store.js').FoodEntry} */
+              const next = {
+                ...list[i],
+                name: str(fd, 'edit-name') || f.name,
+                kcal: Math.round(kcal),
+                protein: Math.round(protein),
+                time: /^\d{2}:\d{2}$/.test(time) ? time : f.time,
+              };
+              for (const k of /** @type {const} */ (['carbs', 'fat', 'sugar', 'satFat', 'fiber', 'salt'])) {
+                const v = list[i][k];
+                if (v !== undefined) next[k] = Math.round(v * factor * 10) / 10;
+              }
+              list[i] = next;
+            }, 'Eintrag geändert');
+          },
+        },
+      },
+      h(
+        'div',
+        { class: 'field' },
+        h('label', { for: 'edit-name' }, 'Was'),
+        h('input', { id: 'edit-name', name: 'edit-name', value: f.name }),
+      ),
+      h(
+        'div',
+        { class: 'field' },
+        h('label', { for: 'edit-time' }, 'Zeit'),
+        h('input', { id: 'edit-time', name: 'edit-time', type: 'time', value: f.time }),
+      ),
+      h(
+        'div',
+        { class: 'field' },
+        h('label', { for: 'edit-kcal' }, 'kcal'),
+        h('input', { id: 'edit-kcal', name: 'edit-kcal', inputmode: 'numeric', value: String(f.kcal) }),
+      ),
+      h(
+        'div',
+        { class: 'field' },
+        h('label', { for: 'edit-protein' }, 'Protein g'),
+        h('input', { id: 'edit-protein', name: 'edit-protein', inputmode: 'numeric', value: String(f.protein) }),
+      ),
+      h(
+        'div',
+        { class: 'btn-row' },
+        h('button', { type: 'submit', class: 'btn primary', id: 'edit-save' }, 'Speichern'),
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'btn',
+            on: {
+              click: () => {
+                editingFoodId = '';
+                ctx.go('ernaehrung');
+              },
+            },
+          },
+          'Abbrechen',
+        ),
+        h('button', { type: 'button', class: 'btn danger-outline', on: { click: remove } }, 'Löschen'),
       ),
     ),
   );

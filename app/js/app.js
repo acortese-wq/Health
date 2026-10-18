@@ -6,7 +6,7 @@ import { load, save, safeStorage } from './store.js';
 import { snapshot } from './model.js';
 import { addDays, daysBetween, toISODate } from './domain/util.js';
 import { shouldNudge } from './domain/hydration.js';
-import { viewToday } from './views/today.js';
+import { viewToday, viewNutrition } from './views/today.js';
 import { viewWeight } from './views/weight.js';
 import { viewTraining } from './views/training.js';
 import { viewHealth } from './views/health.js';
@@ -30,14 +30,26 @@ import { viewProfile } from './views/profile.js';
  * }} Ctx
  */
 
+/** Hauptbereiche (Tab-Leiste). Wissen und Profil sind über die Kopfzeile erreichbar. */
 const ROUTES = [
-  { id: 'heute', label: 'Heute', icon: 'M4 12h16M12 4v16', render: viewToday },
-  { id: 'gewicht', label: 'Gewicht', icon: 'M4 18l5-6 4 3 7-9', render: viewWeight },
-  { id: 'training', label: 'Training', icon: 'M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12', render: viewTraining },
-  { id: 'gesundheit', label: 'Gesundheit', icon: 'M3 12h4l2-5 4 10 2-5h6', render: viewHealth },
-  { id: 'wissen', label: 'Wissen', icon: 'M5 4h10a4 4 0 014 4v12H9a4 4 0 01-4-4zM5 16a4 4 0 014-4h10', render: viewKnowledge },
-  { id: 'profil', label: 'Profil', icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0', render: viewProfile },
+  { id: 'heute', label: 'Heute', icon: 'M12 3v3M12 18v3M3 12h3M18 12h3M12 8a4 4 0 100 8 4 4 0 000-8z', render: viewToday, dated: true },
+  { id: 'ernaehrung', label: 'Ernährung', icon: 'M7 3v8a3 3 0 006 0V3M10 3v18M17 3c-2 2-2 6 0 8v10', render: viewNutrition, dated: true },
+  { id: 'fortschritt', label: 'Fortschritt', icon: 'M4 18l5-6 4 3 7-9', render: viewWeight, dated: false },
+  { id: 'training', label: 'Training', icon: 'M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12', render: viewTraining, dated: false },
+  { id: 'gesundheit', label: 'Gesundheit', icon: 'M3 12h4l2-5 4 10 2-5h6', render: viewHealth, dated: false },
 ];
+const SECONDARY = [
+  {
+    id: 'wissen',
+    label: 'Wissen',
+    icon: 'M5 4h10a4 4 0 014 4v12H9a4 4 0 01-4-4zM5 16a4 4 0 014-4h10',
+    render: viewKnowledge,
+    dated: false,
+  },
+  { id: 'profil', label: 'Profil', icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0', render: viewProfile, dated: false },
+];
+/** Frühere Adressen weiter unterstützen (Lesezeichen, Home-Bildschirm). */
+const ALIASES = /** @type {Record<string, string>} */ ({ gewicht: 'fortschritt' });
 
 const root = /** @type {HTMLElement} */ (document.getElementById('app'));
 const storage = safeStorage();
@@ -46,20 +58,88 @@ let state = loaded.state;
 let date = toISODate();
 let lastFocusId = '';
 
-/** @param {string} message @param {'ok' | 'error'} [kind] */
-function toast(message, kind = 'ok') {
-  const region = document.getElementById('toast');
-  if (!region) return;
-  region.textContent = '';
-  region.append(h('div', { class: `toast toast-${kind}` }, message));
-  window.clearTimeout(Number(region.dataset.timer));
-  region.dataset.timer = String(window.setTimeout(() => (region.textContent = ''), 3200));
+// Rückmeldungen leben ausserhalb der neu gezeichneten Ansicht, damit sie nicht verschwinden.
+const toastRegion = h('div', { id: 'toast', class: 'toast-region', role: 'status', 'aria-live': 'polite' });
+document.body.append(toastRegion);
+
+/**
+ * @param {string} message
+ * @param {'ok' | 'error'} [kind]
+ * @param {(() => void) | null} [undo] Rückgängig-Aktion (5 Sekunden verfügbar)
+ */
+function toast(message, kind = 'ok', undo = null) {
+  toastRegion.replaceChildren(
+    h(
+      'div',
+      { class: `toast toast-${kind}` },
+      h('span', {}, message),
+      undo
+        ? h(
+            'button',
+            {
+              type: 'button',
+              class: 'toast-undo',
+              id: 'toast-undo',
+              on: {
+                click: () => {
+                  toastRegion.replaceChildren();
+                  undo();
+                },
+              },
+            },
+            'Rückgängig',
+          )
+        : null,
+    ),
+  );
+  window.clearTimeout(Number(toastRegion.dataset.timer));
+  toastRegion.dataset.timer = String(window.setTimeout(() => toastRegion.replaceChildren(), undo ? 5000 : 3200));
 }
 
 function currentRoute() {
-  const id = location.hash.replace('#', '');
-  if (!state.profile) return ROUTES[5];
-  return ROUTES.find((r) => r.id === id) ?? ROUTES[0];
+  const raw = location.hash.replace('#', '');
+  const id = ALIASES[raw] ?? raw;
+  if (!state.profile) return SECONDARY[1];
+  return [...ROUTES, ...SECONDARY].find((r) => r.id === id) ?? ROUTES[0];
+}
+
+/** @param {State} previous */
+function undoTo(previous) {
+  state = previous;
+  persist();
+  render();
+  toast('Rückgängig gemacht');
+}
+
+// Ungespeicherte Eingaben überstehen das Neuzeichnen (z. B. wenn zwischendurch Wasser
+// erfasst wird). Ausgenommen ist das Formular, das gerade abgeschickt wurde.
+/** @type {Set<string>} */
+let submittedIds = new Set();
+document.addEventListener(
+  'submit',
+  (e) => {
+    const form = /** @type {HTMLFormElement} */ (e.target);
+    submittedIds = new Set([...form.elements].map((el) => /** @type {HTMLElement} */ (el).id).filter(Boolean));
+  },
+  true,
+);
+
+/** Nach Datums- oder Seitenwechsel gehören offene Eingaben nicht mehr zum Inhalt. */
+let discardDirty = false;
+
+/** @returns {Map<string, string>} */
+function dirtyInputs() {
+  const out = new Map();
+  if (discardDirty) {
+    discardDirty = false;
+    return out;
+  }
+  for (const el of root.querySelectorAll('input[id], textarea[id]')) {
+    const input = /** @type {HTMLInputElement | HTMLTextAreaElement} */ (el);
+    if (input.type === 'file' || input.type === 'checkbox' || input.type === 'password') continue;
+    if (input.value !== input.defaultValue && !submittedIds.has(input.id)) out.set(input.id, input.value);
+  }
+  return out;
 }
 
 function persist() {
@@ -79,19 +159,22 @@ function render() {
     today,
     snap: state.profile ? snapshot(state, date) : null,
     commit(mutate, message) {
+      const previous = structuredClone(state);
       mutate(state);
       persist();
       render();
-      if (message) toast(message);
+      if (message) toast(message, 'ok', () => undoTo(previous));
     },
     replace(next, message) {
+      const previous = state;
       state = next;
       persist();
       render();
-      if (message) toast(message);
+      if (message) toast(message, 'ok', () => undoTo(previous));
     },
     setDate(d) {
       date = d > today ? today : d;
+      discardDirty = true;
       render();
     },
     go(id) {
@@ -104,7 +187,7 @@ function render() {
 
   const nav = h(
     'nav',
-    { class: 'tabs', 'aria-label': 'Hauptnavigation' },
+    { class: 'tabs', 'aria-label': 'Hauptnavigation', hidden: !state.profile },
     ...ROUTES.map((r) =>
       h(
         'a',
@@ -117,8 +200,32 @@ function render() {
   const header = h(
     'header',
     { class: 'top' },
-    h('div', { class: 'brand' }, h('span', { class: 'brand-mark', 'aria-hidden': 'true' }), h('span', {}, 'Gesundheitscockpit')),
-    state.profile && ['heute'].includes(route.id) ? dateNav(ctx) : null,
+    h(
+      'a',
+      { class: 'brand', href: '#heute' },
+      h('span', { class: 'brand-mark', 'aria-hidden': 'true' }),
+      h('span', {}, 'Gesundheitscockpit'),
+    ),
+    state.profile && route.dated ? dateNav(ctx) : null,
+    state.profile
+      ? h(
+          'nav',
+          { class: 'top-links', 'aria-label': 'Weitere Bereiche' },
+          ...SECONDARY.map((r) =>
+            h(
+              'a',
+              {
+                href: `#${r.id}`,
+                class: r === route ? 'top-link active' : 'top-link',
+                'aria-current': r === route ? 'page' : undefined,
+                id: `nav-${r.id}`,
+              },
+              s('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true', class: 'tab-icon' }, s('path', { d: r.icon })),
+              h('span', {}, r.label),
+            ),
+          ),
+        )
+      : null,
   );
 
   const banners = [];
@@ -156,9 +263,15 @@ function render() {
     );
   }
 
+  const dirty = dirtyInputs();
+  submittedIds = new Set();
   const main = h('main', { id: 'main', class: `view view-${route.id}`, tabindex: '-1' }, ...banners, route.render(ctx));
-  root.replaceChildren(header, main, nav, h('div', { id: 'toast', class: 'toast-region', role: 'status', 'aria-live': 'polite' }));
+  root.replaceChildren(header, main, nav);
   document.title = `${route.label} · Gesundheitscockpit`;
+  for (const [id, value] of dirty) {
+    const el = /** @type {HTMLInputElement | null} */ (document.getElementById(id));
+    if (el && el.value === el.defaultValue) el.value = value;
+  }
 
   if (lastFocusId) document.getElementById(lastFocusId)?.focus({ preventScroll: true });
   window.scrollTo(0, scrollY);
@@ -213,6 +326,7 @@ function dateNav(ctx) {
 }
 
 window.addEventListener('hashchange', () => {
+  discardDirty = true;
   render();
   window.scrollTo(0, 0);
   document.getElementById('main')?.focus({ preventScroll: true });
@@ -261,7 +375,7 @@ let lastWidth = window.innerWidth;
 window.addEventListener('resize', () => {
   window.clearTimeout(resizeTimer);
   resizeTimer = window.setTimeout(() => {
-    if (Math.abs(window.innerWidth - lastWidth) < 40 || currentRoute().id !== 'gewicht') return;
+    if (Math.abs(window.innerWidth - lastWidth) < 40 || currentRoute().id !== 'fortschritt') return;
     lastWidth = window.innerWidth;
     render();
   }, 200);
