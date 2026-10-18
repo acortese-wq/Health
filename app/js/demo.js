@@ -131,6 +131,7 @@ export function demoState(today) {
             kcal,
             protein: 55,
             time: '19:15',
+            ...(i % 3 === 0 ? { hunger: /** @type {const} */ (2), trigger: /** @type {const} */ ('gewohnheit') } : {}),
             ...microsFor(kcal, [
               ['pasta', 225],
               ['pouletbrust', 150],

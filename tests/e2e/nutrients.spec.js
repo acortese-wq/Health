@@ -56,3 +56,29 @@ test('Vorlieben: ohne Fisch, Fleisch und Milch keine solchen Vorschläge; Abdeck
   await expect(page.locator('#p-pref-fisch')).not.toBeChecked();
   await expect(page.locator('#p-pref-kantine')).toBeChecked();
 });
+
+test('Essrhythmus: Kurznotiz zu Hunger und Grund, Muster, Lebensmittelpyramide', async ({ page }) => {
+  await page.goto('/');
+  await page.click('#load-demo');
+  await page.goto('/#ernaehrung');
+  await expect(page.locator('#quick-tag')).toContainText('19:15 Pasta-Teller');
+  await page.click('#qt-stress');
+  await expect(page.locator('#quick-tag')).not.toContainText('19:15');
+  await expect(page.locator('#food-entries li', { hasText: 'Pasta-Teller' })).toContainText('Stress');
+  await expect(page.locator('#slot-zmittag')).toContainText('kcal');
+  await expect(page.locator('#patterns')).toBeVisible();
+  await expect(page.locator('#trigger-top')).toContainText('Häufigster Grund abends');
+  // Pyramide aus den Beispieldaten
+  await expect(page.locator('#pyr-fv')).toContainText('Portionen');
+  await expect(page.locator('#pyr-milch .nrow-val strong')).not.toHaveText('0.0');
+  await expect(page.locator('#pyr-fisch')).toBeVisible();
+  // Grund im Bearbeiten-Formular ändern
+  await page
+    .locator('#food-entries li', { hasText: 'Pasta-Teller' })
+    .getByRole('button', { name: /bearbeiten/ })
+    .click();
+  await expect(page.locator('#edit-trigger')).toHaveValue('stress');
+  await page.selectOption('#edit-trigger', 'muede');
+  await page.click('#edit-save');
+  await expect(page.locator('#food-entries li', { hasText: 'Pasta-Teller' })).toContainText('Müdigkeit');
+});

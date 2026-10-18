@@ -18,6 +18,7 @@ import {
 import { addDays } from '../domain/util.js';
 import { productPortion } from '../domain/foodvision.js';
 import { pyramid } from '../domain/foodgroups.js';
+import { mealSlots, proteinPerMeal, cravingPatterns, TRIGGERS, HUNGER, TRIGGER_TIPS } from '../domain/meals.js';
 import { searchProducts } from '../vision.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -581,5 +582,137 @@ export function pyramidCard(ctx, snap) {
           `Gruppen bekannt für ${coverage} % der heutigen Kalorien. Schnellerfassungen und Packungen ohne Zuordnung fehlen; Foto, Beschreibung und Lebensmittelsuche ordnen automatisch zu.`,
         )
       : null,
+  );
+}
+
+/** Einträge, bei denen «Später» gewählt wurde (nur für diese Sitzung). */
+const skippedTag = new Set();
+
+/**
+ * Essrhythmus und Heisshunger: Verteilung über den Tag, Protein pro Mahlzeit,
+ * Kurznotiz zu Hunger und Grund, Muster der letzten 28 Tage.
+ * @param {Ctx} ctx
+ * @param {NonNullable<Ctx['snap']>} snap
+ */
+export function rhythmCard(ctx, snap) {
+  const food = snap.day.food ?? [];
+  const ppm = proteinPerMeal(food, snap.profile.goalWeightKg);
+  const slots = mealSlots(food);
+  const maxKcal = Math.max(1, ...slots.map((s) => s.kcal));
+  const total = slots.reduce((a, s) => a + s.kcal, 0);
+  const evening = slots.filter((s) => s.id === 'znacht' || s.id === 'spaet').reduce((a, s) => a + s.kcal, 0);
+  const patterns = cravingPatterns(ctx.state.days, ctx.date, snap.protein.grams);
+  const okIds = new Set(ppm.slots.filter((s) => s.ok).map((s) => s.id));
+  const mainIds = new Set(ppm.slots.map((s) => s.id));
+
+  // Neuester Eintrag von heute ohne Notiz (ab 100 kcal)
+  const open = [...food]
+    .filter((f) => f.kcal >= 100 && !f.trigger && !f.hunger && !skippedTag.has(f.id))
+    .sort((a, b) => (a.time < b.time ? 1 : -1))[0];
+  /** @param {Partial<import('../store.js').FoodEntry>} patch */
+  const tag = (patch) =>
+    ctx.commit((st) => {
+      const list = st.days[ctx.date].food ?? [];
+      const i = list.findIndex((x) => x.id === open?.id);
+      if (i >= 0) list[i] = { ...list[i], ...patch };
+    }, 'Notiert');
+
+  return h(
+    'section',
+    { class: 'card', 'aria-labelledby': 'rhy-h', id: 'rhythm-card' },
+    h('h2', { id: 'rhy-h' }, 'Essrhythmus und Heisshunger'),
+    open
+      ? h(
+          'div',
+          { class: 'quick-tag', id: 'quick-tag' },
+          h('p', { class: 'small' }, h('strong', {}, `${open.time} ${open.name}`), ' – kurz notieren hilft, Muster zu erkennen:'),
+          h(
+            'div',
+            { class: 'segmented wrap', role: 'group', 'aria-label': 'Wie hungrig warst du?' },
+            h('span', { class: 'small muted' }, 'Hunger:'),
+            ...HUNGER.map(([v, label]) => h('button', { type: 'button', id: `qt-h${v}`, on: { click: () => tag({ hunger: v }) } }, label)),
+          ),
+          h(
+            'div',
+            { class: 'segmented wrap', role: 'group', 'aria-label': 'Warum gegessen?' },
+            h('span', { class: 'small muted' }, 'Grund:'),
+            ...TRIGGERS.map(([id, label]) =>
+              h('button', { type: 'button', id: `qt-${id}`, on: { click: () => tag({ trigger: id }) } }, label),
+            ),
+            h(
+              'button',
+              {
+                type: 'button',
+                id: 'qt-skip',
+                on: {
+                  click: () => {
+                    skippedTag.add(open.id);
+                    ctx.go('ernaehrung');
+                  },
+                },
+              },
+              'Später',
+            ),
+          ),
+        )
+      : null,
+    h('h3', { class: 'eyebrow' }, 'Heute über den Tag'),
+    h(
+      'ul',
+      { class: 'nlist' },
+      ...slots
+        .filter((s) => s.n > 0)
+        .map((s) => {
+          const fill = h('span', { class: 'nbar-fill' });
+          fill.style.width = `${(s.kcal / maxKcal) * 100}%`;
+          const main = mainIds.has(s.id);
+          return h(
+            'li',
+            { class: `nrow ${main ? (okIds.has(s.id) ? 'n-done' : 'n-low') : 'n-mid'}`, id: `slot-${s.id}` },
+            h('span', { class: 'nrow-label' }, s.label),
+            h('span', { class: 'nrow-val' }, h('strong', {}, fmt(s.kcal)), ` kcal · ${fmt(s.protein)} g Protein`),
+            h('span', { class: 'nbar', 'aria-hidden': 'true' }, fill),
+            h('span', { class: 'nrow-pct' }, main ? (okIds.has(s.id) ? '✓' : `<${ppm.target}`) : ''),
+          );
+        }),
+    ),
+    total
+      ? h(
+          'p',
+          { class: 'small' },
+          `Ab 17:30 Uhr: ${Math.round((evening / total) * 100)} % der Kalorien. Ziel pro Hauptmahlzeit: mindestens ${ppm.target} g Protein. Viel Protein und Energie in der ersten Tageshälfte macht den Abend ruhiger.`,
+        )
+      : h('p', { class: 'small muted' }, 'Noch keine Einträge.'),
+    h('h3', { class: 'eyebrow' }, 'Muster der letzten 4 Wochen'),
+    !patterns.enough
+      ? h(
+          'p',
+          { class: 'small muted', id: 'pattern-wait' },
+          `Noch ${7 - patterns.days} vollständig erfasste Tage, dann zeigt die App, was deinen Heisshunger am Abend begünstigt.`,
+        )
+      : h(
+          'div',
+          { class: 'stack-sm', id: 'patterns' },
+          h('p', { class: 'small' }, `${patterns.highDays} von ${patterns.days} Tagen mit mehr als der Hälfte der Kalorien am Abend.`),
+          ...patterns.insights.map((i) => h('p', { class: 'note info small' }, i.text)),
+          !patterns.insights.length
+            ? h('p', { class: 'small muted' }, 'Kein klarer Zusammenhang mit Schlaf, Protein, Mittagessen oder Koffein erkennbar.')
+            : null,
+        ),
+    patterns.triggers.length
+      ? h(
+          'div',
+          { class: 'stack-sm', id: 'trigger-top' },
+          h(
+            'p',
+            { class: 'small' },
+            'Häufigster Grund abends: ',
+            h('strong', {}, TRIGGERS.find((t) => t[0] === patterns.triggers[0].id)?.[1] ?? ''),
+            ` (${patterns.triggers[0].n} von ${patterns.tagged} Notizen).`,
+          ),
+          h('p', { class: 'note ok small' }, TRIGGER_TIPS[patterns.triggers[0].id]),
+        )
+      : null,
+    h('p', { class: 'hint' }, 'Zusammenhänge im eigenen Alltag, keine Beweise. Eine Ernährungsberatung kann sie mit dir vertiefen.'),
   );
 }

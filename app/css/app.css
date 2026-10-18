@@ -2043,3 +2043,15 @@ textarea {
     max-width: 150px;
   }
 }
+
+/* Essrhythmus: Kurznotiz */
+.quick-tag {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.quick-tag .segmented {
+  align-items: center;
+}

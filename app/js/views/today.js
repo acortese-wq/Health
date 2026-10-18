@@ -1,5 +1,5 @@
 // @ts-check
-import { h, field, meter, badge, fmt, fmtSigned, num, str, nowTime } from '../ui/dom.js';
+import { h, field, select, meter, badge, fmt, fmtSigned, num, str, nowTime } from '../ui/dom.js';
 import { uid, extraNutrients, recentFoods } from '../store.js';
 import { FIBER_TARGET_G, SALT_LIMIT_G } from '../domain/foodvision.js';
 import { plannedSession } from '../domain/training.js';
@@ -7,9 +7,10 @@ import { photoBlock } from './photo.js';
 import { healthPasteBlock } from './garmin.js';
 import { waterPace, waterFact, reminderTimes, buildReminderIcs } from '../domain/hydration.js';
 import { reviewCard } from './review.js';
-import { foodSearchBlock, nutrientsCard, suggestCard, pyramidCard } from './nutrients.js';
+import { foodSearchBlock, nutrientsCard, suggestCard, pyramidCard, rhythmCard } from './nutrients.js';
 import { scaleMicros } from '../domain/micros.js';
 import { scaleGroups } from '../domain/foodgroups.js';
+import { TRIGGERS, HUNGER } from '../domain/meals.js';
 import {
   eatingWindow,
   windowLabel,
@@ -61,6 +62,7 @@ export function viewNutrition(ctx) {
     h('h1', {}, 'Ernährung'),
     nutritionCard(ctx, snap),
     suggestCard(ctx, snap),
+    rhythmCard(ctx, snap),
     pyramidCard(ctx, snap),
     nutrientsCard(ctx, snap),
   );
@@ -772,6 +774,7 @@ function foodRow(ctx, f) {
         f.name,
         f.source === 'foto' || f.source === 'text' ? h('small', { class: 'muted' }, ' · geschätzt') : null,
         outside ? h('small', { class: 'fast-tag' }, ' · ausserhalb Fenster') : null,
+        f.trigger ? h('small', { class: 'muted' }, ` · ${TRIGGERS.find((t) => t[0] === f.trigger)?.[1] ?? ''}`) : null,
       ),
       h('span', { class: 'entry-num' }, `${fmt(f.kcal)} kcal · ${fmt(f.protein)} g`),
       h(
@@ -833,6 +836,12 @@ function foodRow(ctx, f) {
               }
               if (list[i].micros) next.micros = scaleMicros(list[i].micros, factor);
               if (list[i].groups) next.groups = scaleGroups(list[i].groups, factor);
+              const hunger = Number(str(fd, 'edit-hunger'));
+              if (hunger === 1 || hunger === 2 || hunger === 3) next.hunger = hunger;
+              else delete next.hunger;
+              const trig = TRIGGERS.find((t) => t[0] === str(fd, 'edit-trigger'));
+              if (trig) next.trigger = trig[0];
+              else delete next.trigger;
               list[i] = next;
             }, 'Eintrag geändert');
           },
@@ -862,6 +871,18 @@ function foodRow(ctx, f) {
         h('label', { for: 'edit-protein' }, 'Protein g'),
         h('input', { id: 'edit-protein', name: 'edit-protein', inputmode: 'numeric', value: String(f.protein) }),
       ),
+      select({
+        id: 'edit-hunger',
+        label: 'Hunger vorher',
+        value: String(f.hunger ?? ''),
+        options: [{ value: '', label: '–' }, ...HUNGER.map(([v, l]) => ({ value: String(v), label: l }))],
+      }),
+      select({
+        id: 'edit-trigger',
+        label: 'Grund',
+        value: f.trigger ?? '',
+        options: [{ value: '', label: '–' }, ...TRIGGERS.map(([v, l]) => ({ value: v, label: l }))],
+      }),
       h(
         'div',
         { class: 'btn-row' },

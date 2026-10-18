@@ -5,6 +5,9 @@
 import { isISODate, isNum } from './domain/util.js';
 import { MICRO_KEYS } from './domain/micros.js';
 import { GROUP_KEYS } from './domain/foodgroups.js';
+import { TRIGGERS } from './domain/meals.js';
+
+const TRIGGER_IDS = /** @type {string[]} */ (TRIGGERS.map((t) => t[0]));
 
 export const STORAGE_KEY = 'gesundheitscockpit';
 export const SCHEMA_VERSION = 1;
@@ -29,6 +32,7 @@ export const SCHEMA_VERSION = 1;
  *   grams?: number, source?: FoodSource,
  *   micros?: import('./domain/micros.js').Amounts, microSrc?: 'db' | 'ki' | 'mix' | 'etikett',
  *   groups?: import('./domain/foodgroups.js').Groups,
+ *   hunger?: 1 | 2 | 3, trigger?: import('./domain/meals.js').Trigger, nova?: number,
  * }} FoodEntry
  * @typedef {{ id: string, label: string, mg: number, time: string }} CaffeineEntry
  * @typedef {{
@@ -419,6 +423,10 @@ export function extraNutrients(f) {
     if (isNum(v) && v >= 0 && v < 10000) out[k] = v;
   }
   if (typeof f.source === 'string' && SOURCES.includes(f.source)) out.source = /** @type {FoodSource} */ (f.source);
+  if (f.hunger === 1 || f.hunger === 2 || f.hunger === 3) out.hunger = f.hunger;
+  if (typeof f.trigger === 'string' && TRIGGER_IDS.includes(f.trigger))
+    out.trigger = /** @type {import('./domain/meals.js').Trigger} */ (f.trigger);
+  if (f.nova === 1 || f.nova === 2 || f.nova === 3 || f.nova === 4) out.nova = f.nova;
   if (isObj(f.groups)) {
     /** @type {import('./domain/foodgroups.js').Groups} */
     const g = {};

@@ -33,6 +33,7 @@ const ASSETS = [
   './js/domain/evidence.js',
   './js/domain/fasting.js',
   './js/domain/foodgroups.js',
+  './js/domain/meals.js',
   './js/domain/micros.js',
   './js/data/foods.js',
   './js/domain/review.js',
