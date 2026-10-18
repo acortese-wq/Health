@@ -309,3 +309,27 @@ test('Aufschlüsselung: welche Einträge einen Nährstoff liefern', async () => 
   assert.equal(Math.round(entryValue(food[3], 'sodium') ?? 0), 1000, 'Natrium aus Salz');
   assert.equal(contributions(food, 'protein').items[0].f.name, 'Kantine');
 });
+
+test('Open Food Facts: neue Suche (hits), Namen je Sprache, Strichcodes', async () => {
+  const { parseOffSearch, offSearchCodes, offSearchaliciousUrl } = await import('../../app/js/domain/foodvision.js');
+  const json = {
+    hits: [
+      {
+        code: '7610000000001',
+        product_name: { main: 'Pain', de: 'Brot' },
+        brands: ['Migros'],
+        stores: ['Migros', 'Coop'],
+        nutriments: { 'energy-kcal_100g': 250 },
+      },
+      { code: 'x', product_name: 'ohne' },
+    ],
+  };
+  const list = parseOffSearch(json);
+  assert.equal(list.length, 1);
+  assert.equal(list[0].name, 'Brot');
+  assert.equal(list[0].brand, 'Migros');
+  assert.equal(list[0].stores, 'Migros, Coop');
+  assert.deepEqual(offSearchCodes(json), ['7610000000001']);
+  const q = new URL(offSearchaliciousUrl('Joghurt (nature) "light"', 'migros')).searchParams.get('q');
+  assert.equal(q, 'Joghurt nature light countries_tags:"en:switzerland" stores_tags:"migros"');
+});

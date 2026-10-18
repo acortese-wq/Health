@@ -14,6 +14,8 @@ import {
   parseOpenFoodFacts,
   parseOffSearch,
   offSearchUrl,
+  offSearchaliciousUrl,
+  offSearchCodes,
   userPrompt,
 } from './domain/foodvision.js';
 
@@ -271,25 +273,67 @@ export async function detectBarcode(blob) {
   }
 }
 
+/** Meldung, wenn Open Food Facts nicht antwortet (offline oder Server überlastet). */
+function offUnavailable() {
+  return new Error(
+    typeof navigator !== 'undefined' && navigator.onLine === false
+      ? 'Keine Internetverbindung. Die Schweizer Nährwertdatenbank (Suche oben) funktioniert auch offline.'
+      : 'Open Food Facts ist gerade überlastet oder nicht erreichbar. Bitte in einer Minute erneut versuchen. Die Schweizer Nährwertdatenbank (Suche oben) funktioniert weiterhin.',
+  );
+}
+
+/**
+ * fetch mit Zeitlimit; ein Abbruch durch die App (signal) wird als AbortError weitergereicht.
+ * @param {string} url
+ * @param {AbortSignal | undefined} signal
+ * @param {number} ms
+ */
+async function fetchWithTimeout(url, signal, ms) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  const onAbort = () => ctrl.abort();
+  signal?.addEventListener('abort', onAbort, { once: true });
+  try {
+    return await fetch(url, { signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', onAbort);
+  }
+}
+
+/** @param {AbortSignal | undefined} signal */
+function throwIfAborted(signal) {
+  if (signal?.aborted) throw new DOMException('Abgebrochen', 'AbortError');
+}
+
 /**
  * Produkt in Open Food Facts nachschlagen (frei, ohne Schlüssel, Daten aus der Community).
+ * Bei Netzfehlern einmal wiederholen (Mobilnetz, kurz überlasteter Server).
  * @param {string} barcode
  * @param {AbortSignal} [signal]
  */
 export async function lookupBarcode(barcode, signal) {
   const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=product_name,product_name_de,generic_name,brands,quantity,serving_quantity,nutriments,nova_group`;
-  let res;
-  try {
-    res = await fetch(url, { signal });
-  } catch {
-    throw new Error('Open Food Facts ist nicht erreichbar. Bitte Internetverbindung prüfen.');
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let res;
+    try {
+      res = await fetchWithTimeout(url, signal, 12000);
+    } catch {
+      throwIfAborted(signal);
+      continue;
+    }
+    if (res.status === 404) return parseOpenFoodFacts(await res.json().catch(() => null), barcode);
+    if (res.status >= 500 || res.status === 429) continue;
+    if (!res.ok) throw new Error(`Open Food Facts antwortet nicht (Fehler ${res.status}).`);
+    return parseOpenFoodFacts(await res.json().catch(() => null), barcode);
   }
-  if (!res.ok && res.status !== 404) throw new Error(`Open Food Facts antwortet nicht (Fehler ${res.status}).`);
-  return parseOpenFoodFacts(await res.json().catch(() => null), barcode);
+  throw offUnavailable();
 }
 
 /**
  * Produkte aus der Schweiz in Open Food Facts suchen (z. B. von Migros oder Coop).
+ * Zuerst die neue, schnelle Suche (search-a-licious), bei Fehlern die klassische Suche.
+ * Treffer ohne Nährwerte werden einzeln über den Strichcode nachgeladen.
  * Open Food Facts begrenzt Suchen auf wenige pro Minute; die App sucht deshalb nur auf
  * Knopfdruck, nicht bei jedem Tastendruck.
  * @param {string} query
@@ -298,16 +342,42 @@ export async function lookupBarcode(barcode, signal) {
  * @returns {Promise<import('./domain/foodvision.js').Product[]>}
  */
 export async function searchProducts(query, store, signal) {
-  let res;
-  try {
-    res = await fetch(offSearchUrl(query, store), { signal });
-  } catch (e) {
-    if (e instanceof DOMException && e.name === 'AbortError') throw e;
-    throw new Error('Open Food Facts ist nicht erreichbar. Bitte Internetverbindung prüfen.');
+  let limited = false;
+  let answered = false;
+  for (const [url, ms] of /** @type {const} */ ([
+    [offSearchaliciousUrl(query, store), 10000],
+    [offSearchUrl(query, store), 20000],
+  ])) {
+    let res;
+    try {
+      res = await fetchWithTimeout(url, signal, ms);
+    } catch {
+      throwIfAborted(signal);
+      continue;
+    }
+    if (res.status === 429) {
+      limited = true;
+      continue;
+    }
+    if (!res.ok) continue;
+    const json = await res.json().catch(() => null);
+    if (json === null) continue;
+    const found = parseOffSearch(json);
+    if (found.length) return found;
+    // Treffer ohne Nährwerte: die ersten 8 einzeln nachladen
+    const codes = offSearchCodes(json).slice(0, 8);
+    if (!codes.length) {
+      // Keine Treffer: die andere Suche könnte anders filtern, daher noch versuchen
+      answered = true;
+      continue;
+    }
+    const loaded = await Promise.all(codes.map((c) => lookupBarcode(c, signal).catch(() => null)));
+    throwIfAborted(signal);
+    return loaded.filter((p) => p !== null);
   }
-  if (res.status === 429) throw new Error('Zu viele Suchen in kurzer Zeit. Bitte eine Minute warten.');
-  if (!res.ok) throw new Error(`Open Food Facts antwortet nicht (Fehler ${res.status}).`);
-  return parseOffSearch(await res.json().catch(() => null));
+  if (answered) return [];
+  if (limited) throw new Error('Zu viele Suchen in kurzer Zeit. Bitte eine Minute warten.');
+  throw offUnavailable();
 }
 
 /**

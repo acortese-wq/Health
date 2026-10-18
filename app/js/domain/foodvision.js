@@ -508,14 +508,16 @@ export function parseOffProduct(pr, barcode) {
   const g = (k) => (isNum(Number(n[k])) ? Number(n[k]) : 0);
   const kcal = g('energy-kcal_100g') || g('energy_100g') / 4.184;
   if (!kcal && !g('proteins_100g') && !g('carbohydrates_100g')) return null;
-  const name = [pr.product_name_de, pr.product_name, pr.generic_name].find((x) => typeof x === 'string' && x.trim()) ?? 'Produkt';
+  const name = [pr.product_name_de, pr.product_name, pr.generic_name].map(langText).find((x) => x.trim()) ?? 'Produkt';
   const quantity = typeof pr.quantity === 'string' ? pr.quantity : '';
   const micros = offMicros(n);
   // Natrium allein (aus Salz berechnet) zählt nicht als Mikronährstoff-Angabe
   const hasMicros = Object.keys(micros).some((k) => k !== 'sodium');
   return {
     name: String(name).trim().slice(0, 80),
-    brand: typeof pr.brands === 'string' ? pr.brands.split(',')[0].trim().slice(0, 60) : '',
+    brand: (Array.isArray(pr.brands) ? String(pr.brands[0] ?? '') : typeof pr.brands === 'string' ? pr.brands.split(',')[0] : '')
+      .trim()
+      .slice(0, 60),
     barcode: barcode || (typeof pr.code === 'string' ? pr.code : ''),
     unit: /\bml\b|\bcl\b|\bl\b/i.test(quantity) && !/\bg\b/i.test(quantity) ? 'ml' : 'g',
     servingG: Math.round(num(Number(pr.serving_quantity), 2000)),
@@ -531,9 +533,31 @@ export function parseOffProduct(pr, barcode) {
       ...(hasMicros ? { micros, microSrc: /** @type {const} */ ('etikett') } : {}),
     },
     source: 'barcode',
-    ...(typeof pr.stores === 'string' && pr.stores.trim() ? { stores: pr.stores.trim().slice(0, 80) } : {}),
+    ...(storesText(pr.stores) ? { stores: storesText(pr.stores).slice(0, 80) } : {}),
     ...([1, 2, 3, 4].includes(Number(pr.nova_group)) ? { nova: Number(pr.nova_group) } : {}),
   };
+}
+
+/**
+ * Text, der als String oder als Objekt je Sprache kommt ({ de, main, en, … }).
+ * @param {unknown} v
+ */
+function langText(v) {
+  if (typeof v === 'string') return v;
+  if (typeof v !== 'object' || v === null) return '';
+  const o = /** @type {Record<string, unknown>} */ (v);
+  const hit = [o.de, o.main, o.en, o.fr, o.it, ...Object.values(o)].find((x) => typeof x === 'string' && x.trim());
+  return typeof hit === 'string' ? hit : '';
+}
+
+/** @param {unknown} v */
+function storesText(v) {
+  if (Array.isArray(v))
+    return v
+      .filter((x) => typeof x === 'string')
+      .join(', ')
+      .trim();
+  return typeof v === 'string' ? v.trim() : '';
 }
 
 /**
@@ -543,7 +567,9 @@ export function parseOffProduct(pr, barcode) {
  */
 export function parseOffSearch(json) {
   if (typeof json !== 'object' || json === null) return [];
-  const list = /** @type {Record<string, any>} */ (json).products;
+  // Klassische Suche liefert «products», die neue Suche (search-a-licious) «hits»
+  const j = /** @type {Record<string, any>} */ (json);
+  const list = Array.isArray(j.products) ? j.products : j.hits;
   if (!Array.isArray(list)) return [];
   /** @type {Product[]} */
   const out = [];
@@ -580,6 +606,41 @@ export function offSearchUrl(query, store = '') {
     p.set('tag_1', store);
   }
   return `https://world.openfoodfacts.org/cgi/search.pl?${p}`;
+}
+
+/**
+ * Strichcodes aus einem Suchergebnis (für Treffer ohne Nährwerte, die einzeln nachgeladen werden).
+ * @param {unknown} json
+ * @returns {string[]}
+ */
+export function offSearchCodes(json) {
+  if (typeof json !== 'object' || json === null) return [];
+  const j = /** @type {Record<string, any>} */ (json);
+  const list = Array.isArray(j.products) ? j.products : Array.isArray(j.hits) ? j.hits : [];
+  return list.map((x) => (x && typeof x.code === 'string' ? x.code : '')).filter((c) => /^\d{8,14}$/.test(c));
+}
+
+/**
+ * Suchadresse für die neue, schnellere Suche von Open Food Facts (search-a-licious).
+ * Die alte Suche ist oft überlastet; diese dient als erste Wahl.
+ * @param {string} query
+ * @param {string} [store]
+ */
+export function offSearchaliciousUrl(query, store = '') {
+  // Sonderzeichen der Suchsprache entfernen, damit Eingaben keine Syntaxfehler auslösen
+  const terms = query
+    .replace(/[\\"():[\]{}^~*?!+\-&|/]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80);
+  const filter = [`countries_tags:"en:switzerland"`, store ? `stores_tags:"${store.replace(/[^a-z0-9-]/g, '')}"` : ''].filter(Boolean);
+  const p = new URLSearchParams({
+    q: [terms, ...filter].join(' '),
+    langs: 'de,fr,it,en',
+    page_size: '20',
+    fields: 'code,product_name,product_name_de,generic_name,brands,stores,quantity,serving_quantity,nutriments,nova_group',
+  });
+  return `https://search.openfoodfacts.org/search?${p}`;
 }
 
 /**
