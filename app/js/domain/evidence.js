@@ -293,4 +293,67 @@ export const EVIDENCE = [
       'Diese Werte eignen sich, um Trends zu erkennen, etwa einen Infekt oder Übertraining. Einzelne Tageswerte schwanken stark. Ein Ruhepuls, der mehrere Tage lang deutlich erhöht ist, ist das robustere Signal.',
     refs: [],
   },
+  {
+    id: 'pyramid',
+    topic: 'Ernährung',
+    level: 'gut belegt',
+    claim: 'Eine Ernährung nach der Schweizer Lebensmittelpyramide deckt den Nährstoffbedarf ohne Präparate weitgehend.',
+    detail:
+      'Täglich 5 Portionen Gemüse und Früchte, 3 Portionen Getreide/Kartoffeln (die Hälfte Vollkorn), 3 Portionen Milchprodukte, 1 Portion Proteinlieferant, 20–30 g Nüsse; Fisch 1–2 Mal pro Woche, Fleisch massvoll. Die App zählt diese Portionen automatisch.',
+    refs: ['Schweizerische Gesellschaft für Ernährung (SGE): Schweizer Lebensmittelpyramide'],
+  },
+  {
+    id: 'protein-meal',
+    topic: 'Ernährung',
+    level: 'wahrscheinlich sinnvoll',
+    claim: 'Protein auf die Mahlzeiten verteilt (je ca. 0.4 g/kg) und ein proteinreicher Tagesbeginn helfen gegen Heisshunger am Abend.',
+    detail:
+      'Pro Mahlzeit etwa 25–40 g Protein nutzen die Muskeln am besten. Eine proteinreiche erste Tageshälfte sättigt stärker und reduziert in Studien das Snacken am Abend.',
+    refs: ['Schoenfeld BJ, Aragon AA, J Int Soc Sports Nutr 2018;15:10', 'Leidy HJ et al., Am J Clin Nutr 2015;101:1320S–1329S'],
+  },
+  {
+    id: 'upf',
+    topic: 'Ernährung',
+    level: 'gut belegt',
+    claim: 'Mit stark verarbeiteten Lebensmitteln wird spontan mehr gegessen.',
+    detail:
+      'In einer kontrollierten Stoffwechselstudie assen dieselben Personen bei stark verarbeiteter Kost rund 500 kcal pro Tag mehr und nahmen zu, bei gleich angebotenen Nährstoffen. Die App markiert Produkte mit NOVA-Gruppe 4.',
+    refs: ['Hall KD et al., Cell Metab 2019;30:67–77'],
+  },
+  {
+    id: 'coffee-iron',
+    topic: 'Ernährung',
+    level: 'gut belegt',
+    claim: 'Kaffee zur Mahlzeit senkt die Eisenaufnahme deutlich.',
+    detail:
+      'In Studien sank die Aufnahme von Eisen aus einer Mahlzeit mit Kaffee um rund 40 %. Abstand von 1 Stunde und Vitamin C zum Essen verbessern die Aufnahme.',
+    refs: ['Morck TA et al., Am J Clin Nutr 1983;37:416–420', 'Hallberg L et al., Am J Clin Nutr 1989;49:140–144'],
+  },
+  {
+    id: 'vitamin-d-ch',
+    topic: 'Supplemente',
+    level: 'wahrscheinlich sinnvoll',
+    claim: 'Im Winterhalbjahr ist Vitamin D in der Schweiz über Sonne und Essen kaum zu decken.',
+    detail:
+      'Das BAG empfiehlt Erwachsenen 15 µg (600 IE) Vitamin D pro Tag, ab 60 Jahren 20 µg (800 IE). Ein Präparat mit der Ärztin oder dem Arzt besprechen.',
+    refs: ['BAG / Eidgenössische Ernährungskommission: Vitamin D-Mangel, Bericht 2012'],
+  },
+  {
+    id: 'diet-break',
+    topic: 'Ernährung',
+    level: 'unsicher',
+    claim: 'Geplante Diätpausen von 1–2 Wochen können das Abnehmen langfristig erleichtern.',
+    detail:
+      'In einer kleinen Studie verloren Männer mit Pausen auf Erhaltung mehr Fett und hielten das Gewicht besser. Andere Studien zeigen keinen Vorteil, aber auch keinen Nachteil. Sinnvoll vor allem gegen Diätmüdigkeit.',
+    refs: ['Byrne NM et al., Int J Obes 2018;42:129–138'],
+  },
+  {
+    id: 'dietitian',
+    topic: 'Verhalten',
+    level: 'gut belegt',
+    claim: 'Professionelle Ernährungsberatung verbessert den Abnehmerfolg.',
+    detail:
+      'Strukturierte Beratung mit Verhaltensansätzen wirkt besser als Abnehmen allein. In der Schweiz übernimmt die Grundversicherung Ernährungsberatung durch anerkannte Fachpersonen (SVDE) bei Adipositas auf ärztliche Verordnung (KLV Art. 9b). Die App erstellt dafür einen Bericht (Profil).',
+    refs: ['Krankenpflege-Leistungsverordnung (KLV) Art. 9b', 'Williams LT et al., Healthcare (Basel) 2019;7:20'],
+  },
 ];

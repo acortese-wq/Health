@@ -83,6 +83,23 @@ PSA 50–69 nur nach Aufklärung · dT mit 25/45/65 · Gürtelrose und Grippe ab
 | Vorschläge | Für die grössten offenen Lücken je das Lebensmittel, das sie mit wenig Energie am besten schliesst (Nährstoffdichte), innerhalb des Restbudgets, mit Vorlieben (Fisch, Milch, Fleisch, unterwegs). Vitamin D ist ausgenommen, weil es über die Nahrung kaum erreichbar ist. | – |
 | Einschränkungen | Jod aus Jodsalz beim Kochen wird nicht erfasst. Vitamin K nur teilweise erfasst. Bei Vitaminen zählt der Wochenschnitt mehr als ein Tag. Die App ersetzt keine Ernährungsberatung und keine Laborwerte (z. B. Vitamin D, B12, Ferritin). | – |
 
+## Ernährungsberatung im Alltag
+
+| Thema | Umsetzung | Quelle |
+| --- | --- | --- |
+| Lebensmittelpyramide | Portionen je Eintrag aus Datenbank-Kategorie bzw. KI-Zuordnung: Gemüse/Früchte 120 g, Brot 100 g, Teigwaren/Reis gekocht 200 g, Kartoffeln 240 g, Milch 2 dl, Joghurt/Quark 170 g, Hartkäse 30 g, Weichkäse 60 g, Fleisch/Fisch 110 g, Wurst 50 g, Nüsse 25 g; Süsses, Snacks, Alkohol pro 150 kcal. Richtwerte pro Tag und Woche. | SGE, Schweizer Lebensmittelpyramide |
+| Protein pro Mahlzeit | Ziel 0.4 g/kg Zielgewicht (25–40 g) je Hauptmahlzeit; Verteilung über Morgen, Mittag, Nachmittag, Abend, Spät. | Schoenfeld & Aragon 2018; Leidy 2015 |
+| Heisshunger-Muster | Vergleich vollständig erfasster Tage (28 Tage) mit/ohne Faktor; Hinweis erst ab je 3 Tagen und ≥ 25 Prozentpunkten Unterschied. Auslöser mit verhaltenstherapeutischen Standardstrategien. Zusammenhänge, keine Beweise. | – |
+| Mahlzeiten-Vorschläge | 17 Vorlagen nach Teller-Modell, bewertet nach offenem Protein, Nährstoff- und Pyramidenlücken, Restbudget, Tageszeit, Vorlieben. | – |
+| NOVA | Gruppe aus Open Food Facts; NOVA 4 wird markiert und als kcal-Anteil gezeigt. | Hall et al., Cell Metab 2019 |
+| Sporternährung | Kohlenhydrate um intensive Einheiten, 30–60 g/h ab ca. 75 Min., Protein danach; Defizit eher an Ruhetagen. | ACSM/AND/DC 2016 |
+| Zu wenig Energie (RED-S) | Warnung ab 2 Zeichen: Abnahme > 1 %/Woche, Ruhepuls ≥ 5/min über Basis, Schlaf < 6.5 h, Defizit > 1000 kcal. | Mountjoy et al., BJSM 2023 |
+| Kaffee und Eisen | Hinweis, wenn an ≥ 3 von 7 Tagen Kaffee innerhalb 45 Min. einer Mahlzeit ≥ 300 kcal. | Morck 1983; Hallberg 1989 |
+| Vitamin D | Hinweis Oktober–März; Präparat im Profil zählt in den Nährstoffen. | BAG/EEK 2012 |
+| Diätpause | Kalorienziel = Gesamtumsatz bis zum gewählten Datum; Angebot nach 12 Wochen Defizit. | Byrne et al., Int J Obes 2018 (klein) |
+| SCOFF | 5 Fragen, ab 2 Ja Abklärung empfohlen; Antworten werden nicht gespeichert. | Morgan et al., BMJ 1999 |
+| Bericht | 4-Wochen-Zusammenfassung zum Drucken/PDF; Hinweis auf Kostenübernahme bei Adipositas. | KLV Art. 9b |
+
 ## Bewusste Grenzen
 
 - Die 7700 kcal/kg sind eine Näherung. Der adaptive Bedarf gleicht diesen Fehler aus, weil er auf der tatsächlichen Gewichtsentwicklung beruht.

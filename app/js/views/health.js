@@ -36,6 +36,7 @@ export function viewHealth(ctx) {
     h('div', { class: 'grid-2' }, bpCard(ctx), bodyCard(ctx)),
     labCard(ctx),
     h('div', { class: 'grid-2' }, stopBangCard(ctx), preventionCard(ctx)),
+    scoffCard(ctx),
   );
 }
 
@@ -478,5 +479,74 @@ function preventionCard(ctx) {
         );
       }),
     ),
+  );
+}
+
+/** SCOFF-Antworten nur im Arbeitsspeicher: sensible Angaben werden nicht gespeichert. */
+const scoff = /** @type {Record<string, boolean>} */ ({});
+
+const SCOFF_ITEMS = [
+  ['s', 'Übergibst du dich, wenn du dich unangenehm voll fühlst?'],
+  ['c', 'Machst du dir Sorgen, weil du manchmal nicht mit dem Essen aufhören kannst?'],
+  ['o', 'Hast du in den letzten 3 Monaten mehr als 6 kg abgenommen (ohne geplante Diät)?'],
+  ['f', 'Findest du dich zu dick, während andere dich zu dünn finden?'],
+  ['f2', 'Würdest du sagen, dass Essen dein Leben stark bestimmt?'],
+];
+
+/**
+ * Kurzer Essstörungs-Check (SCOFF, Morgan JF et al., BMJ 1999;319:1467). Ab 2 Ja-Antworten
+ * ist eine fachliche Abklärung sinnvoll. Kein Diagnoseinstrument.
+ * @param {Ctx} ctx
+ */
+function scoffCard(ctx) {
+  const yes = Object.values(scoff).filter(Boolean).length;
+  return h(
+    'section',
+    { class: 'card', 'aria-labelledby': 'scoff-h', id: 'scoff-card' },
+    h('h2', { id: 'scoff-h' }, 'Gesundes Verhältnis zum Essen (SCOFF)'),
+    h(
+      'p',
+      { class: 'small' },
+      'Kalorien zählen hilft vielen, kann aber bei manchen zwanghaft werden. Dieser kurze, international verwendete Check dauert 30 Sekunden. Die Antworten werden nicht gespeichert.',
+    ),
+    h(
+      'ul',
+      { class: 'checklist' },
+      ...SCOFF_ITEMS.map(([id, text]) =>
+        h(
+          'li',
+          {},
+          h(
+            'label',
+            { class: 'check' },
+            h('input', {
+              type: 'checkbox',
+              id: `scoff-${id}`,
+              checked: Boolean(scoff[id]),
+              on: {
+                change: (e) => {
+                  scoff[id] = /** @type {HTMLInputElement} */ (e.target).checked;
+                  ctx.go('gesundheit');
+                },
+              },
+            }),
+            h('span', {}, text),
+          ),
+        ),
+      ),
+    ),
+    h(
+      'p',
+      { id: 'scoff-result' },
+      h('strong', {}, `${yes} von 5 `),
+      yes >= 2 ? badge('warn', 'Abklärung empfohlen') : badge('ok', 'unauffällig'),
+    ),
+    yes >= 2
+      ? h(
+          'p',
+          { class: 'small' },
+          'Zwei oder mehr Ja-Antworten können auf ein gestörtes Essverhalten hinweisen. Sprich mit deiner Hausärztin oder deinem Hausarzt; Fachstellen für Essstörungen können ebenfalls weiterhelfen. Pausiere in dieser Zeit das genaue Kalorienzählen.',
+        )
+      : null,
   );
 }

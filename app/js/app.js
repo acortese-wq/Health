@@ -11,6 +11,7 @@ import { viewWeight } from './views/weight.js';
 import { viewTraining } from './views/training.js';
 import { viewHealth } from './views/health.js';
 import { viewKnowledge } from './views/knowledge.js';
+import { viewReport } from './views/report.js';
 import { viewProfile } from './views/profile.js';
 
 /** @typedef {import('./store.js').State} State */
@@ -48,6 +49,8 @@ const SECONDARY = [
   },
   { id: 'profil', label: 'Profil', icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0', render: viewProfile, dated: false },
 ];
+/** Seiten ohne eigenen Navigationspunkt (z. B. aus dem Profil verlinkt). */
+const HIDDEN = [{ id: 'bericht', label: 'Bericht', icon: '', render: viewReport, dated: false }];
 /** Frühere Adressen weiter unterstützen (Lesezeichen, Home-Bildschirm). */
 const ALIASES = /** @type {Record<string, string>} */ ({ gewicht: 'fortschritt' });
 
@@ -100,7 +103,7 @@ function currentRoute() {
   const raw = location.hash.replace('#', '');
   const id = ALIASES[raw] ?? raw;
   if (!state.profile) return SECONDARY[1];
-  return [...ROUTES, ...SECONDARY].find((r) => r.id === id) ?? ROUTES[0];
+  return [...ROUTES, ...SECONDARY, ...HIDDEN].find((r) => r.id === id) ?? ROUTES[0];
 }
 
 /** @param {State} previous */

@@ -258,6 +258,20 @@ function nutritionCard(ctx, snap) {
     field({ id: 'food-protein', label: 'Protein g', inputmode: 'numeric' }),
     h('button', { class: 'btn', type: 'submit', id: 'food-add' }, 'Hinzufügen'),
   );
+  const handMethod = h(
+    'details',
+    { class: 'hand-method', id: 'hand-method' },
+    h('summary', {}, 'Portionen ohne Waage schätzen (Hand-Methode)'),
+    h(
+      'ul',
+      { class: 'small' },
+      h('li', {}, h('strong', {}, 'Handfläche'), ' (ohne Finger, so dick wie die Hand): Fleisch, Fisch, Tofu ≈ 100–120 g, 25–30 g Protein'),
+      h('li', {}, h('strong', {}, 'Faust'), ': Teigwaren, Reis, Kartoffeln gekocht ≈ 150–200 g, 200–250 kcal'),
+      h('li', {}, h('strong', {}, 'Zwei offene Hände'), ': Gemüse oder Salat ≈ 1 Portion (120 g)'),
+      h('li', {}, h('strong', {}, 'Daumen'), ': Butter, Öl, Nussmus ≈ 1 EL, 90–100 kcal'),
+      h('li', {}, h('strong', {}, 'Hohle Hand'), ': Nüsse ≈ 25–30 g, 170 kcal'),
+    ),
+  );
 
   return h(
     'section',
@@ -306,6 +320,7 @@ function nutritionCard(ctx, snap) {
       ),
     ),
     custom,
+    handMethod,
     food.length
       ? h(
           'ul',
@@ -337,6 +352,29 @@ function nutritionCard(ctx, snap) {
         {},
         'Tag vollständig erfasst',
         h('small', {}, 'Nur vollständige Tage fliessen in die Berechnung deines echten Verbrauchs ein.'),
+      ),
+    ),
+    h(
+      'details',
+      {
+        class: 'forgotten',
+        id: 'forgotten',
+        open: !snap.day.complete && food.length > 0 && ctx.date === ctx.today && new Date().getHours() >= 19,
+      },
+      h('summary', {}, 'Vor dem Abschliessen: oft vergessen'),
+      h(
+        'ul',
+        { class: 'small' },
+        h('li', {}, 'Öl, Butter oder Rahm beim Kochen (1 EL Öl = 90 kcal)'),
+        h('li', {}, 'Saucen, Dressing, Mayonnaise'),
+        h('li', {}, 'Getränke: Süssgetränke, Saft, Milch im Kaffee, Alkohol'),
+        h('li', {}, 'Probieren beim Kochen, Reste der Kinder, Snacks zwischendurch'),
+        h('li', {}, 'Zweite Portion und Brot zur Suppe'),
+      ),
+      h(
+        'p',
+        { class: 'hint' },
+        'Protokolle unterschätzen die Zufuhr typischerweise um 20–40 %. Die App gleicht das über deinen Gewichtsverlauf teilweise aus.',
       ),
     ),
   );

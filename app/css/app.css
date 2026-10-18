@@ -2055,3 +2055,39 @@ textarea {
 .quick-tag .segmented {
   align-items: center;
 }
+
+/* Bericht für die Ernährungsberatung */
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.report-table th,
+.report-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.report-table th {
+  width: 38%;
+  font-weight: 600;
+}
+@media print {
+  header.top,
+  .tabs,
+  .no-print,
+  .toast-region,
+  .banner {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .report .card {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+}

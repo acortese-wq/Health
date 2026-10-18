@@ -99,3 +99,28 @@ test('Ganze Mahlzeit vorschlagen und erfassen, Tipps fürs Personalrestaurant', 
   await page.locator('#canteen summary').click();
   await expect(page.locator('#canteen')).toContainText('Teller-Modell');
 });
+
+test('Bericht für die Ernährungsberatung, SCOFF ohne Speicherung, Hand-Methode', async ({ page }) => {
+  await page.goto('/');
+  await page.click('#load-demo');
+  await page.goto('/#profil');
+  await page.click('#open-report');
+  await expect(page).toHaveURL(/#bericht$/);
+  const r = page.locator('#report');
+  await expect(r).toContainText('Bericht für die Ernährungsberatung');
+  await expect(r).toContainText('Energiebedarf');
+  await expect(r).toContainText('Lebensmittelpyramide');
+  await expect(r).toContainText('KLV Art. 9b');
+  await expect(page.locator('#report-print')).toBeVisible();
+  // SCOFF: Auswertung, aber nichts gespeichert
+  await page.goto('/#gesundheit');
+  await page.check('#scoff-c');
+  await page.check('#scoff-f2');
+  await expect(page.locator('#scoff-result')).toContainText('Abklärung empfohlen');
+  const stored = await page.evaluate(() => JSON.stringify(localStorage));
+  expect(stored).not.toContain('scoff');
+  await page.goto('/#ernaehrung');
+  await page.locator('#hand-method summary').click();
+  await expect(page.locator('#hand-method')).toContainText('Handfläche');
+  await expect(page.locator('#forgotten')).toContainText('Öl, Butter');
+});

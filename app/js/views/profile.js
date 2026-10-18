@@ -45,6 +45,19 @@ export function viewProfile(ctx) {
             ),
           ),
         ),
+    p
+      ? h(
+          'section',
+          { class: 'card', 'aria-labelledby': 'report-h' },
+          h('h2', { id: 'report-h' }, 'Bericht für die Ernährungsberatung'),
+          h(
+            'p',
+            { class: 'small' },
+            'Zusammenfassung der letzten 4 Wochen (Gewicht, Energie, Essverhalten, Pyramide, Nährstoffe, Labor) zum Ausdrucken oder als PDF. Bei einem BMI ab 30 übernimmt die Grundversicherung Ernährungsberatung auf ärztliche Verordnung (KLV Art. 9b).',
+          ),
+          h('a', { class: 'btn', href: '#bericht', id: 'open-report' }, 'Bericht erstellen'),
+        )
+      : null,
     profileForm(ctx, p),
     p ? visionCard(ctx) : null,
     dataCard(ctx),
