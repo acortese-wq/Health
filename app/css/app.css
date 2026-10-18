@@ -1609,3 +1609,17 @@ textarea {
 .mot-details[open] summary {
   margin-bottom: 8px;
 }
+
+/* Garmin / Apple Health */
+.steps-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.health-paste {
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-md);
+}

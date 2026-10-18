@@ -49,6 +49,12 @@ Kennzeichnung **«proteinreich»** (≥ 20 % der Energie aus Protein, EU-Verordn
 - **SDKs:** `@anthropic-ai/sdk` und `openai` sind in `app/vendor/` gebündelt (`npm run vendor`) und werden erst bei Bedarf geladen.
 - **Bewusst nicht übernommen:** PlateLens' Tiefenmessung (braucht LiDAR-Zugriff, den Web-Apps nicht haben), Rezeptbibliotheken, Abo-Modelle.
 
+### Garmin
+
+- **Läufe:** Garmin Connect (Web) → Aktivitäten → «Export CSV» → in der App unter Training → «Von Garmin importieren». Läufe und Krafttraining werden übernommen, Doppelte übersprungen; Intervalle am Titel erkannt, ab 60 Minuten «langer Lauf».
+- **Tageswerte:** Garmin Connect → Apple Health → iPhone-Kurzbefehl kopiert `cockpit;schritte=…;ruhepuls=…;schlaf=…;gewicht=…` → in der App unter Heute → «Werte einfügen». Anleitung in der App.
+- Eine direkte Verbindung ist nicht möglich: Garmins Schnittstelle ist nur für zugelassene Firmenpartner mit Server zugänglich, und Web-Apps dürfen Apple Health nicht direkt lesen.
+
 ### Datensicherung
 
 Die Daten liegen im Browser-Speicher des Geräts. Wer den Browserverlauf samt Websitedaten löscht, löscht auch die

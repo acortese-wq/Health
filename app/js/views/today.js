@@ -4,6 +4,7 @@ import { uid, extraNutrients, recentFoods } from '../store.js';
 import { FIBER_TARGET_G, SALT_LIMIT_G } from '../domain/foodvision.js';
 import { plannedSession } from '../domain/training.js';
 import { photoBlock } from './photo.js';
+import { healthPasteBlock } from './garmin.js';
 import { waterPace, waterFact } from '../domain/hydration.js';
 import { reviewCard } from './review.js';
 
@@ -374,6 +375,7 @@ function recoveryCard(ctx, snap) {
     'section',
     { class: 'card', 'aria-labelledby': 'r-h' },
     h('h2', { id: 'r-h' }, 'Aktivität und Erholung'),
+    healthPasteBlock(ctx),
     h(
       'form',
       {

@@ -3,6 +3,7 @@ import { h, field, select, badge, fmt, fmtDate, num, str } from '../ui/dom.js';
 import { TEMPLATES, RUN_TYPES, suggestNext, exerciseHistory, findExercise, weekSummary, weekPlan } from '../domain/training.js';
 import { uid } from '../store.js';
 import { addDays } from '../domain/util.js';
+import { garminImportCard } from './garmin.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 
@@ -80,7 +81,13 @@ export function viewTraining(ctx) {
           )
         : null,
     ),
-    h('div', { class: 'grid-2' }, ...(runOnly ? [] : Object.entries(TEMPLATES).map(([id, t]) => strengthCard(ctx, id, t))), runCard(ctx)),
+    h(
+      'div',
+      { class: 'grid-2' },
+      ...(runOnly ? [] : Object.entries(TEMPLATES).map(([id, t]) => strengthCard(ctx, id, t))),
+      runCard(ctx),
+      garminImportCard(ctx),
+    ),
     historyCard(ctx),
   );
 }

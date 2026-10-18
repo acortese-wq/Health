@@ -1,0 +1,6 @@
+Activity Type,Date,Favorite,Title,Distance,Calories,Time,Avg HR,Max HR,Aerobic TE,Avg Run Cadence
+Running,2026-10-14 18:05:11,false,"Chur Running",7.02,"612",00:45:20,138,156,3.1,162
+Running,2026-10-16 18:10:00,false,"Intervall 4x4",6.10,555,00:38:05,151,176,3.9,170
+Strength Training,2026-10-15 12:00:00,false,"Kraft",0.00,250,00:42:00,110,135,1.5,--
+Cycling,2026-10-17 10:00:00,false,"Rheintal",32.5,800,01:20:00,125,150,2.8,--
+Trail Running,2026-10-18 08:30:00,false,"Langer Lauf, Calanda",11.43,"1,050",01:12:31,136,158,3.4,158
