@@ -277,7 +277,7 @@ export async function detectBarcode(blob) {
  * @param {AbortSignal} [signal]
  */
 export async function lookupBarcode(barcode, signal) {
-  const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=product_name,product_name_de,generic_name,brands,quantity,serving_quantity,nutriments`;
+  const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=product_name,product_name_de,generic_name,brands,quantity,serving_quantity,nutriments,nova_group`;
   let res;
   try {
     res = await fetch(url, { signal });

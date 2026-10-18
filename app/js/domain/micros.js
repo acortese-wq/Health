@@ -321,7 +321,8 @@ export function gaps(amounts, targets) {
   /** @type {{ key: NutrientKey, left: number, target: number, share: number }[]} */
   const out = [];
   for (const n of NUTRIENTS) {
-    if (n.kind !== 'target') continue;
+    // Makros (Energie, Protein, Kohlenhydrate, Fett) sind keine Lücken zum Auffüllen.
+    if (n.kind !== 'target' || n.key === 'protein' || n.key === 'carbs' || n.key === 'fat') continue;
     // Vitamin D ist über die Nahrung praktisch nicht zu decken, Vitamin K nur teilweise
     // erfasst; beide sind kein Vorschlagsziel.
     if (n.key === 'vitD' || n.key === 'vitK') continue;

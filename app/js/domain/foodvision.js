@@ -16,7 +16,7 @@ import { KI_GROUPS, portionsFor, scaleGroups, addGroups } from './foodgroups.js'
  * @typedef {{
  *   kcal: number, protein: number, carbs: number, fat: number, fiber: number, sugar: number, satFat: number, salt: number,
  *   micros?: import('./micros.js').Amounts, microSrc?: 'db' | 'ki' | 'mix' | 'etikett',
- *   groups?: import('./foodgroups.js').Groups,
+ *   groups?: import('./foodgroups.js').Groups, nova?: number,
  * }} Nutrients
  * @typedef {Nutrients & { kcalLow: number, kcalHigh: number, dbKey?: string }} ItemValues
  * @typedef {ItemValues & { name: string, portion: string, grams: number, baseGrams: number, base: ItemValues }} MealItem
@@ -26,7 +26,7 @@ import { KI_GROUPS, portionsFor, scaleGroups, addGroups } from './foodgroups.js'
  * }} MealEstimate
  * @typedef {{
  *   name: string, brand: string, barcode: string, unit: 'g' | 'ml', servingG: number, per100: Nutrients,
- *   source: 'etikett' | 'barcode', stores?: string,
+ *   source: 'etikett' | 'barcode', stores?: string, nova?: number,
  * }} Product
  */
 
@@ -532,6 +532,7 @@ export function parseOffProduct(pr, barcode) {
     },
     source: 'barcode',
     ...(typeof pr.stores === 'string' && pr.stores.trim() ? { stores: pr.stores.trim().slice(0, 80) } : {}),
+    ...([1, 2, 3, 4].includes(Number(pr.nova_group)) ? { nova: Number(pr.nova_group) } : {}),
   };
 }
 
@@ -568,7 +569,7 @@ export function offSearchUrl(query, store = '') {
     json: '1',
     page_size: '20',
     sort_by: 'unique_scans_n',
-    fields: 'code,product_name,product_name_de,generic_name,brands,stores,quantity,serving_quantity,nutriments',
+    fields: 'code,product_name,product_name_de,generic_name,brands,stores,quantity,serving_quantity,nutriments,nova_group',
     tagtype_0: 'countries',
     tag_contains_0: 'contains',
     tag_0: 'switzerland',
@@ -600,5 +601,6 @@ export function productPortion(p, grams) {
     fiber: r1(v.fiber * f),
     salt: r1(v.salt * f),
     ...(v.micros ? { micros: scaleMicros(v.micros, f), microSrc: v.microSrc } : {}),
+    ...(p.nova ? { nova: p.nova } : {}),
   };
 }

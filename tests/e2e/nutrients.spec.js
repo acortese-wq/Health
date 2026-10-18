@@ -18,7 +18,7 @@ test('Nährstoffe: Ring, Balken, 7 Tage, Vorschlag erfassen, Suche', async ({ pa
   await expect(page.locator('#nut-woche')).toHaveAttribute('aria-pressed', 'true');
 
   // Vorschlag direkt erfassen
-  const sug = page.locator('#suggest-card .suggestion');
+  const sug = page.locator('#suggest-card .suggestion:not(.meal)');
   await expect(sug).toHaveCount(3);
   const name = (await sug.first().locator('strong').textContent())?.split(':')[0] ?? '';
   await page.click('#sug-add-0');
@@ -48,7 +48,7 @@ test('Vorlieben: ohne Fisch, Fleisch und Milch keine solchen Vorschläge; Abdeck
   await page.fill('#food-kcal', '600');
   await page.click('#food-add');
   await expect(page.locator('#nut-coverage')).toContainText('0 % der Kalorien');
-  const text = await page.locator('#suggest-card').textContent();
+  const text = (await page.locator('#suggest-card .suggestion').allTextContents()).join(' ');
   for (const n of ['Lachs', 'Sardinen', 'Thon', 'Forelle', 'Poulet', 'Skyr', 'Joghurt', 'Käse', 'Emmentaler', 'Gruyère']) {
     expect(text).not.toContain(n);
   }
@@ -81,4 +81,21 @@ test('Essrhythmus: Kurznotiz zu Hunger und Grund, Muster, Lebensmittelpyramide',
   await page.selectOption('#edit-trigger', 'muede');
   await page.click('#edit-save');
   await expect(page.locator('#food-entries li', { hasText: 'Pasta-Teller' })).toContainText('Müdigkeit');
+});
+
+test('Ganze Mahlzeit vorschlagen und erfassen, Tipps fürs Personalrestaurant', async ({ page }) => {
+  await page.goto('/');
+  await page.click('#load-demo');
+  await page.goto('/#ernaehrung');
+  // Am Beispieltag ist das Budget aufgebraucht: Pasta-Teller entfernen schafft Platz
+  await page
+    .locator('#food-entries li', { hasText: 'Pasta-Teller' })
+    .getByRole('button', { name: /entfernen/ })
+    .click();
+  await expect(page.locator('#meal-0')).toBeVisible();
+  const name = await page.locator('#meal-0 strong').textContent();
+  await page.click('#meal-add-0');
+  await expect(page.locator('#food-entries')).toContainText(name ?? '');
+  await page.locator('#canteen summary').click();
+  await expect(page.locator('#canteen')).toContainText('Teller-Modell');
 });

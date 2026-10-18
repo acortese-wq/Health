@@ -19,6 +19,8 @@ import { addDays } from '../domain/util.js';
 import { productPortion } from '../domain/foodvision.js';
 import { pyramid } from '../domain/foodgroups.js';
 import { mealSlots, proteinPerMeal, cravingPatterns, TRIGGERS, HUNGER, TRIGGER_TIPS } from '../domain/meals.js';
+import { suggestMeals, nextSlot, CANTEEN_TIPS } from '../domain/mealplans.js';
+import { addGroups } from '../domain/foodgroups.js';
 import { searchProducts } from '../vision.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -67,6 +69,7 @@ function addProduct(ctx, p, grams) {
         salt: v.salt,
         ...(v.micros && Object.keys(v.micros).length ? { micros: v.micros, microSrc: v.microSrc ?? 'etikett' } : {}),
         grams: Math.round(grams),
+        ...(p.nova ? { nova: p.nova } : {}),
         source: 'barcode',
       },
     ];
@@ -189,6 +192,13 @@ function productSearch(ctx, query) {
           `Pro 100 ${p.unit}: ${fmt(p.per100.kcal)} kcal · ${fmt(p.per100.protein, 1)} g Protein · ${fmt(p.per100.carbs, 1)} g KH · ${fmt(p.per100.fat, 1)} g Fett`,
           micros ? ` · ${micros} Vitamine/Mineralstoffe vom Etikett` : '',
         ),
+        p.nova === 4
+          ? h(
+              'span',
+              { class: 'note warn small', id: 'off-nova' },
+              'Stark verarbeitet (NOVA 4): macht weniger satt; in Studien wurde damit mehr gegessen.',
+            )
+          : null,
         h('div', { class: 'with-suffix' }, grams, h('span', { class: 'suffix' }, p.unit)),
         h('button', { type: 'submit', class: 'btn primary', id: 'off-add' }, 'Erfassen'),
       ),
@@ -217,6 +227,7 @@ function productSearch(ctx, query) {
                     [p.brand, p.stores?.split(',')[0]].filter(Boolean).join(' · '),
                     ` · ${fmt(p.per100.kcal)} kcal/100 ${p.unit}`,
                     p.per100.micros ? ' · mit Vitaminen' : '',
+                    p.nova === 4 ? ' · stark verarbeitet' : '',
                   ),
                 ),
               )
@@ -480,10 +491,68 @@ export function suggestCard(ctx, snap) {
   const { amounts } = dayAmounts(snap.day.food ?? []);
   const kcalLeft = snap.kcalTarget - snap.kcal;
   const list = suggestions({ foods: FOODS, amounts, targets, kcalLeft, prefs: snap.profile.foodPrefs, limit: 3 });
+  const now = new Date();
+  const slot = ctx.date === ctx.today ? nextSlot(now.getHours() * 60 + now.getMinutes()) : 'mittag';
+  const weekFish = Array.from({ length: 7 }, (_, i) => ctx.state.days[addDays(ctx.date, -i)]?.food ?? [])
+    .flat()
+    .reduce((a, f) => a + (f.groups?.fisch ?? 0), 0);
+  const meals = suggestMeals({
+    slot,
+    kcalLeft,
+    proteinLeft: snap.protein.grams - snap.proteinG,
+    amounts,
+    targets,
+    prefs: snap.profile.foodPrefs,
+    dayGroups: addGroups(...(snap.day.food ?? []).map((f) => f.groups)),
+    weekFish,
+  });
+  const slotLabel = { morgen: 'Morgenessen', mittag: 'Mittagessen', zvieri: 'Zvieri', abend: 'Znacht' }[slot];
   return h(
     'section',
     { class: 'card', 'aria-labelledby': 'sug-h', id: 'suggest-card' },
     h('h2', { id: 'sug-h' }, 'Vorschlag fürs nächste Essen'),
+    meals.length && kcalLeft >= 120
+      ? [
+          h('h3', { class: 'eyebrow' }, `Passend als ${slotLabel}`),
+          h(
+            'ul',
+            { class: 'suggestions' },
+            ...meals.map((m, i) =>
+              h(
+                'li',
+                { class: 'suggestion meal', id: `meal-${i}` },
+                h('strong', {}, m.template.name),
+                h('span', { class: 'small' }, `${fmt(m.entry.kcal)} kcal · ${m.highlights.join(' · ')}`),
+                m.template.note ? h('span', { class: 'small muted' }, m.template.note) : null,
+                h(
+                  'span',
+                  { class: 'small muted' },
+                  m.template.parts.map(([k, g]) => `${FOODS.find((f) => f.k === k)?.n ?? k} ${g} g`).join(', '),
+                ),
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    class: 'btn small-btn',
+                    id: `meal-add-${i}`,
+                    on: {
+                      click: () => {
+                        const { tags: _t, ...e } = m.entry;
+                        ctx.commit((st) => {
+                          const d = (st.days[ctx.date] = st.days[ctx.date] ?? {});
+                          d.food = [...(d.food ?? []), { id: uid(), time: nowTime(), ...e }];
+                        }, `${m.template.name} erfasst`);
+                      },
+                    },
+                  },
+                  '+ Erfassen',
+                ),
+              ),
+            ),
+          ),
+          h('h3', { class: 'eyebrow' }, 'Gezielt ergänzen'),
+        ]
+      : null,
     list.length
       ? h(
           'ul',
@@ -520,6 +589,12 @@ export function suggestCard(ctx, snap) {
       'p',
       { class: 'hint' },
       'Berechnet aus deinen heutigen Einträgen, dem restlichen Kalorienbudget und deinen Vorlieben (Profil). Vitamin D ist ausgenommen: Es kommt vor allem aus der Sonne, im Winter ist ein Präparat oft sinnvoll (ärztlich besprechen).',
+    ),
+    h(
+      'details',
+      { id: 'canteen' },
+      h('summary', {}, 'Im Personalrestaurant oder auswärts'),
+      h('ul', { class: 'small' }, ...CANTEEN_TIPS.map((t) => h('li', {}, t))),
     ),
   );
 }
@@ -562,6 +637,7 @@ export function pyramidCard(ctx, snap) {
     );
   };
   const coverage = Math.round(p.coverage * 100);
+  const novaKcal = (snap.day.food ?? []).filter((f) => f.nova === 4).reduce((a, f) => a + f.kcal, 0);
   return h(
     'section',
     { class: 'card', 'aria-labelledby': 'pyr-h', id: 'pyramid-card' },
@@ -575,6 +651,13 @@ export function pyramidCard(ctx, snap) {
     h('ul', { class: 'nlist' }, ...p.daily.map(row)),
     h('h3', { class: 'eyebrow' }, 'Letzte 7 Tage'),
     h('ul', { class: 'nlist' }, ...p.weekly.map(row)),
+    novaKcal > 0
+      ? h(
+          'p',
+          { class: 'small', id: 'pyr-nova' },
+          `Stark verarbeitete Produkte (NOVA 4) heute: ${fmt(novaKcal)} kcal (${Math.round((novaKcal / Math.max(snap.kcal, 1)) * 100)} %). Weniger davon hilft beim Sattwerden.`,
+        )
+      : null,
     coverage < 90
       ? h(
           'p',
