@@ -26,7 +26,7 @@ export const SCHEMA_VERSION = 1;
  *   id: string, name: string, kcal: number, protein: number, time: string,
  *   carbs?: number, fat?: number, sugar?: number, satFat?: number, fiber?: number, salt?: number,
  *   grams?: number, source?: FoodSource,
- *   micros?: import('./domain/micros.js').Amounts, microSrc?: 'db' | 'ki' | 'mix',
+ *   micros?: import('./domain/micros.js').Amounts, microSrc?: 'db' | 'ki' | 'mix' | 'etikett',
  * }} FoodEntry
  * @typedef {{ id: string, label: string, mg: number, time: string }} CaffeineEntry
  * @typedef {{
@@ -426,7 +426,7 @@ export function extraNutrients(f) {
     }
     if (Object.keys(m).length) {
       out.micros = m;
-      out.microSrc = f.microSrc === 'ki' || f.microSrc === 'mix' ? f.microSrc : 'db';
+      out.microSrc = f.microSrc === 'ki' || f.microSrc === 'mix' || f.microSrc === 'etikett' ? f.microSrc : 'db';
     }
   }
   return out;

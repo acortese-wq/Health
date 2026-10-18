@@ -14,7 +14,7 @@ import { foodAmounts, pickMicros, scaleMicros } from './micros.js';
 /**
  * @typedef {{
  *   kcal: number, protein: number, carbs: number, fat: number, fiber: number, sugar: number, satFat: number, salt: number,
- *   micros?: import('./micros.js').Amounts, microSrc?: 'db' | 'ki' | 'mix',
+ *   micros?: import('./micros.js').Amounts, microSrc?: 'db' | 'ki' | 'mix' | 'etikett',
  * }} Nutrients
  * @typedef {Nutrients & { kcalLow: number, kcalHigh: number, dbKey?: string }} ItemValues
  * @typedef {ItemValues & { name: string, portion: string, grams: number, baseGrams: number, base: ItemValues }} MealItem
@@ -22,7 +22,10 @@ import { foodAmounts, pickMicros, scaleMicros } from './micros.js';
  *   isFood: boolean, dish: string, items: MealItem[], assumptions: string[],
  *   confidence: 'hoch' | 'mittel' | 'niedrig', tip: string,
  * }} MealEstimate
- * @typedef {{ name: string, brand: string, barcode: string, unit: 'g' | 'ml', servingG: number, per100: Nutrients, source: 'etikett' | 'barcode' }} Product
+ * @typedef {{
+ *   name: string, brand: string, barcode: string, unit: 'g' | 'ml', servingG: number, per100: Nutrients,
+ *   source: 'etikett' | 'barcode', stores?: string,
+ * }} Product
  */
 
 /** Tagesrichtwerte: Ballaststoffe ≥ 30 g (SGE), Salz < 5 g (WHO). */
@@ -415,7 +418,60 @@ export function parseOpenFoodFacts(json, barcode) {
   if (typeof json !== 'object' || json === null) return null;
   const j = /** @type {Record<string, any>} */ (json);
   if (j.status !== 1 || typeof j.product !== 'object' || j.product === null) return null;
-  const pr = j.product;
+  return parseOffProduct(j.product, barcode);
+}
+
+/**
+ * Vitamine und Mineralstoffe in Open Food Facts: Werte pro 100 g in Gramm, umgerechnet in
+ * die Einheit der App. Unplausible Angaben (Tippfehler in der Datenbank) werden verworfen.
+ */
+const OFF_MICROS = /** @type {const} */ ([
+  ['sodium', 'sodium', 1e3, 40000],
+  ['cholesterol', 'cholesterol', 1e3, 3000],
+  ['potassium', 'potassium', 1e3, 10000],
+  ['calcium', 'calcium', 1e3, 5000],
+  ['iron', 'iron', 1e3, 100],
+  ['magnesium', 'magnesium', 1e3, 2000],
+  ['phosphorus', 'phosphorus', 1e3, 5000],
+  ['zinc', 'zinc', 1e3, 100],
+  ['selenium', 'selenium', 1e6, 1000],
+  ['vitA', 'vitamin-a', 1e6, 10000],
+  ['vitC', 'vitamin-c', 1e3, 2000],
+  ['vitD', 'vitamin-d', 1e6, 200],
+  ['vitE', 'vitamin-e', 1e3, 200],
+  ['vitK', 'vitamin-k', 1e6, 2000],
+  ['b1', 'vitamin-b1', 1e3, 20],
+  ['b2', 'vitamin-b2', 1e3, 20],
+  ['niacin', 'vitamin-pp', 1e3, 200],
+  ['b6', 'vitamin-b6', 1e3, 20],
+  ['folate', 'vitamin-b9', 1e6, 3000],
+  ['b12', 'vitamin-b12', 1e6, 100],
+]);
+
+/**
+ * @param {Record<string, unknown>} n nutriments
+ * @returns {import('./micros.js').Amounts}
+ */
+function offMicros(n) {
+  /** @type {import('./micros.js').Amounts} */
+  const out = {};
+  for (const [key, off, factor, max] of OFF_MICROS) {
+    const raw = Number(n[`${off}_100g`] ?? (off === 'vitamin-b9' ? n.folates_100g : undefined));
+    if (!Number.isFinite(raw) || raw < 0) continue;
+    const v = raw * factor;
+    if (v > max) continue;
+    out[key] = Math.round(v * 100) / 100;
+  }
+  return out;
+}
+
+/**
+ * Ein Produkt aus Open Food Facts (Barcode-Abfrage oder Suche).
+ * @param {Record<string, any>} pr
+ * @param {string} barcode
+ * @returns {Product | null}
+ */
+export function parseOffProduct(pr, barcode) {
   const n = typeof pr.nutriments === 'object' && pr.nutriments !== null ? pr.nutriments : {};
   /** @param {string} k */
   const g = (k) => (isNum(Number(n[k])) ? Number(n[k]) : 0);
@@ -423,10 +479,13 @@ export function parseOpenFoodFacts(json, barcode) {
   if (!kcal && !g('proteins_100g') && !g('carbohydrates_100g')) return null;
   const name = [pr.product_name_de, pr.product_name, pr.generic_name].find((x) => typeof x === 'string' && x.trim()) ?? 'Produkt';
   const quantity = typeof pr.quantity === 'string' ? pr.quantity : '';
+  const micros = offMicros(n);
+  // Natrium allein (aus Salz berechnet) zählt nicht als Mikronährstoff-Angabe
+  const hasMicros = Object.keys(micros).some((k) => k !== 'sodium');
   return {
     name: String(name).trim().slice(0, 80),
     brand: typeof pr.brands === 'string' ? pr.brands.split(',')[0].trim().slice(0, 60) : '',
-    barcode,
+    barcode: barcode || (typeof pr.code === 'string' ? pr.code : ''),
     unit: /\bml\b|\bcl\b|\bl\b/i.test(quantity) && !/\bg\b/i.test(quantity) ? 'ml' : 'g',
     servingG: Math.round(num(Number(pr.serving_quantity), 2000)),
     per100: {
@@ -438,9 +497,57 @@ export function parseOpenFoodFacts(json, barcode) {
       satFat: r1(num(g('saturated-fat_100g'), 100)),
       fiber: r1(num(g('fiber_100g'), 100)),
       salt: r1(num(g('salt_100g'), 100)),
+      ...(hasMicros ? { micros, microSrc: /** @type {const} */ ('etikett') } : {}),
     },
     source: 'barcode',
+    ...(typeof pr.stores === 'string' && pr.stores.trim() ? { stores: pr.stores.trim().slice(0, 80) } : {}),
   };
+}
+
+/**
+ * Suchergebnis von Open Food Facts: gültige Produkte mit Nährwerten.
+ * @param {unknown} json
+ * @returns {Product[]}
+ */
+export function parseOffSearch(json) {
+  if (typeof json !== 'object' || json === null) return [];
+  const list = /** @type {Record<string, any>} */ (json).products;
+  if (!Array.isArray(list)) return [];
+  /** @type {Product[]} */
+  const out = [];
+  for (const pr of list.slice(0, 50)) {
+    if (typeof pr !== 'object' || pr === null) continue;
+    const p = parseOffProduct(pr, typeof pr.code === 'string' ? pr.code : '');
+    if (p) out.push(p);
+  }
+  return out;
+}
+
+/**
+ * Suchadresse für Open Food Facts, beschränkt auf Produkte aus der Schweiz, optional auf
+ * einen Händler (Migros, Coop …).
+ * @param {string} query
+ * @param {string} [store]
+ */
+export function offSearchUrl(query, store = '') {
+  const p = new URLSearchParams({
+    search_terms: query.trim().slice(0, 80),
+    search_simple: '1',
+    action: 'process',
+    json: '1',
+    page_size: '20',
+    sort_by: 'unique_scans_n',
+    fields: 'code,product_name,product_name_de,generic_name,brands,stores,quantity,serving_quantity,nutriments',
+    tagtype_0: 'countries',
+    tag_contains_0: 'contains',
+    tag_0: 'switzerland',
+  });
+  if (store) {
+    p.set('tagtype_1', 'stores');
+    p.set('tag_contains_1', 'contains');
+    p.set('tag_1', store);
+  }
+  return `https://world.openfoodfacts.org/cgi/search.pl?${p}`;
 }
 
 /**
@@ -461,5 +568,6 @@ export function productPortion(p, grams) {
     satFat: r1(v.satFat * f),
     fiber: r1(v.fiber * f),
     salt: r1(v.salt * f),
+    ...(v.micros ? { micros: scaleMicros(v.micros, f), microSrc: v.microSrc } : {}),
   };
 }

@@ -1,6 +1,6 @@
 // Service Worker: App-Schale offline verfügbar machen. Gesundheitsdaten liegen im
 // localStorage und werden hier nicht berührt.
-const VERSION = 'v2.3.0';
+const VERSION = 'v2.4.0';
 const CACHE = `cockpit-${VERSION}`;
 const ASSETS = [
   './',

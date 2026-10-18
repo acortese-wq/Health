@@ -15,7 +15,7 @@ Navigation: fünf Hauptbereiche unten (mobil) bzw. links (Desktop), dazu **Wisse
 | --------------- | ----------------- |
 | **Heute**       | Antippbare Kennzahlen (Trendgewicht, Kalorien übrig, Protein, Plan), Schnellaktionen, Coach-Hinweise nach Dringlichkeit, Gewicht, **Trinkmenge** mit Erinnerungen, Koffein mit Restmenge beim Schlafengehen, Erholung (Schritte, Schlaf, Ruhepuls), Tagesrückblick |
 | **Intervallfasten** | Optional im Profil (12:12, 14:10, 16:8): Karte auf Heute mit Fastenzeit, Countdown, Proteinplan im Fenster, Markierung von Mahlzeiten ausserhalb, Einordnung im Tagesrückblick. Einträge bis 50 kcal (Milch im Kaffee) zählen nicht als Mahlzeit |
-| **Ernährung**   | **Mahlzeit fotografieren, beschreiben oder Packung scannen** (Claude oder GPT, Open Food Facts), **Lebensmittelsuche** (119 Lebensmittel mit Vitaminen und Mineralstoffen), Zuletzt gegessen, Schnellerfassung, Einträge direkt bearbeiten. **Nährstoffe** wie bei MyFitnessPal: Makro-Ring und Balken für 26 Nährstoffe mit % vom Tagesbedarf (D-A-CH), Tag oder 7-Tage-Schnitt. **Vorschlag fürs nächste Essen** (z. B. Vitamin C → Kiwi, B12 → Fisch) |
+| **Ernährung**   | **Mahlzeit fotografieren, beschreiben oder Packung scannen** (Claude oder GPT, Open Food Facts), **Lebensmittelsuche** (119 Lebensmittel mit Vitaminen und Mineralstoffen) und **Produktsuche Migros, Coop, Denner, Aldi, Lidl** (Open Food Facts, Etikettwerte inkl. Vitaminen, wo angegeben), Zuletzt gegessen, Schnellerfassung, Einträge direkt bearbeiten. **Nährstoffe** wie bei MyFitnessPal: Makro-Ring und Balken für 26 Nährstoffe mit % vom Tagesbedarf (D-A-CH), Tag oder 7-Tage-Schnitt. **Vorschlag fürs nächste Essen** (z. B. Vitamin C → Kiwi, B12 → Fisch) |
 | **Fortschritt** | Robuster Trend (Theil-Sen und exponentielle Glättung), Planlinie, Zwischenziele, Prognose, **adaptiver Energiebedarf** aus den eigenen Daten |
 | **Training**    | Laufplan (oder Lauf plus Kraft mit **doppelter Progression**), Wochenbilanz nach WHO, Garmin-CSV-Import, Lebenserwartung durch Bewegung |
 | **Gesundheit**  | Blutdruck (ESC 2024), Taille, VO₂max, Laborwerte, **eGFR (CKD-EPI 2021)**, **FIB-4**, STOP-BANG, Schweizer Vorsorge |
@@ -110,7 +110,7 @@ Neue Datei in `app/`? Dann auch in `app/sw.js` eintragen und `VERSION` erhöhen.
 - Nutzereingaben werden ausschliesslich als Textknoten in die Seite eingefügt (ein Test prüft das auf XSS).
 - Importierte Backups werden Feld für Feld validiert. Unbekannte Felder werden verworfen.
 - Schriften liegen in der App (`app/fonts`, SIL Open Font License). Ohne KI-Nutzung verlässt keine Anfrage das Gerät (Test `audit.spec.js`).
-- Netzwerkanfragen nur, wenn du sie auslöst: Foto- oder Texterkennung an `api.anthropic.com` bzw. `api.openai.com` (Foto oder Text plus Resttagesziel), Barcode an Open Food Facts (nur die Nummer).
+- Netzwerkanfragen nur, wenn du sie auslöst: Foto- oder Texterkennung an `api.anthropic.com` bzw. `api.openai.com` (Foto oder Text plus Resttagesziel), Barcode bzw. Suchbegriff und Händler an Open Food Facts.
 - Ein automatischer Test prüft 21 Farbpaare auf WCAG-Kontrast ≥ 4.5:1 im hellen und dunklen Modus.
 
 ## Urheber

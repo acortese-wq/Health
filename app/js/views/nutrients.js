@@ -16,12 +16,60 @@ import {
   entryFromFood,
 } from '../domain/micros.js';
 import { addDays } from '../domain/util.js';
+import { productPortion } from '../domain/foodvision.js';
+import { searchProducts } from '../vision.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 /** @typedef {import('../domain/micros.js').NutrientDef} NutrientDef */
 
 /** Ansicht merken, solange die App offen ist. */
-const view = { period: /** @type {'tag' | 'woche'} */ ('tag') };
+const view = { period: /** @type {'tag' | 'woche'} */ ('tag'), store: '' };
+
+/** Händler-Filter für die Produktsuche (Tags in Open Food Facts). */
+const STORES = [
+  ['', 'Alle'],
+  ['migros', 'Migros'],
+  ['coop', 'Coop'],
+  ['denner', 'Denner'],
+  ['aldi', 'Aldi'],
+  ['lidl', 'Lidl'],
+];
+
+/** @type {AbortController | null} */
+let offAbort = null;
+
+/**
+ * Produkt aus Open Food Facts mit Grammzahl speichern (Etikettwerte).
+ * @param {Ctx} ctx
+ * @param {import('../domain/foodvision.js').Product} p
+ * @param {number} grams
+ */
+function addProduct(ctx, p, grams) {
+  const v = productPortion(p, grams);
+  const name = `${p.name}${p.brand ? ` (${p.brand})` : ''}, ${Math.round(grams)} ${p.unit}`;
+  ctx.commit((st) => {
+    const d = (st.days[ctx.date] = st.days[ctx.date] ?? {});
+    d.food = [
+      ...(d.food ?? []),
+      {
+        id: uid(),
+        time: nowTime(),
+        name,
+        kcal: v.kcal,
+        protein: Math.round(v.protein),
+        carbs: v.carbs,
+        fat: v.fat,
+        sugar: v.sugar,
+        satFat: v.satFat,
+        fiber: v.fiber,
+        salt: v.salt,
+        ...(v.micros && Object.keys(v.micros).length ? { micros: v.micros, microSrc: v.microSrc ?? 'etikett' } : {}),
+        grams: Math.round(grams),
+        source: 'barcode',
+      },
+    ];
+  }, `${p.name} erfasst`);
+}
 
 /**
  * Datenbank-Lebensmittel als Eintrag speichern.
@@ -96,6 +144,119 @@ export function foodSearchBlock(ctx) {
       },
     }),
     results,
+    productSearch(ctx, () => /** @type {HTMLInputElement | null} */ (document.getElementById('food-search'))?.value ?? ''),
+  );
+}
+
+/**
+ * Produkte aus der Schweiz (Migros, Coop …) über Open Food Facts suchen. Werte stammen von
+ * den Etiketten; Vitamine nur, wenn sie auf der Packung stehen.
+ * @param {Ctx} ctx
+ * @param {() => string} query
+ */
+function productSearch(ctx, query) {
+  const out = h('div', { class: 'search-results', id: 'off-results', 'aria-live': 'polite' });
+  /** @param {import('../domain/foodvision.js').Product} p */
+  const pick = (p) => {
+    const grams = h('input', {
+      id: 'off-grams',
+      inputmode: 'numeric',
+      value: String(p.servingG || 100),
+      'aria-label': `Menge in ${p.unit}`,
+    });
+    const micros = p.per100.micros ? Object.keys(p.per100.micros).filter((k) => k !== 'sodium').length : 0;
+    out.replaceChildren(
+      h(
+        'form',
+        {
+          class: 'search-pick',
+          on: {
+            submit: (e) => {
+              e.preventDefault();
+              const g = Number(/** @type {HTMLInputElement} */ (grams).value.replace(',', '.'));
+              if (!Number.isFinite(g) || g <= 0 || g > 3000) return ctx.toast('Bitte eine Menge zwischen 1 und 3000 eingeben.', 'error');
+              addProduct(ctx, p, g);
+            },
+          },
+        },
+        h('strong', {}, p.name),
+        h('span', { class: 'small muted' }, [p.brand, p.stores].filter(Boolean).join(' · ')),
+        h(
+          'span',
+          { class: 'small' },
+          `Pro 100 ${p.unit}: ${fmt(p.per100.kcal)} kcal · ${fmt(p.per100.protein, 1)} g Protein · ${fmt(p.per100.carbs, 1)} g KH · ${fmt(p.per100.fat, 1)} g Fett`,
+          micros ? ` · ${micros} Vitamine/Mineralstoffe vom Etikett` : '',
+        ),
+        h('div', { class: 'with-suffix' }, grams, h('span', { class: 'suffix' }, p.unit)),
+        h('button', { type: 'submit', class: 'btn primary', id: 'off-add' }, 'Erfassen'),
+      ),
+    );
+  };
+  const run = async () => {
+    const q = query().trim();
+    if (q.length < 2) return ctx.toast('Bitte zuerst einen Suchbegriff eingeben.', 'error');
+    offAbort?.abort();
+    offAbort = new AbortController();
+    out.replaceChildren(h('p', { class: 'small muted' }, 'Suche bei Open Food Facts …'));
+    try {
+      const list = await searchProducts(q, view.store, offAbort.signal);
+      out.replaceChildren(
+        ...(list.length
+          ? list
+              .slice(0, 12)
+              .map((p, i) =>
+                h(
+                  'button',
+                  { type: 'button', class: 'chip', id: `off-${i}`, on: { click: () => pick(p) } },
+                  p.name,
+                  h(
+                    'small',
+                    {},
+                    [p.brand, p.stores?.split(',')[0]].filter(Boolean).join(' · '),
+                    ` · ${fmt(p.per100.kcal)} kcal/100 ${p.unit}`,
+                    p.per100.micros ? ' · mit Vitaminen' : '',
+                  ),
+                ),
+              )
+          : [h('p', { class: 'small muted' }, 'Keine Produkte gefunden. Anderer Begriff, anderer Händler oder Barcode scannen.')]),
+      );
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return;
+      out.replaceChildren(h('p', { class: 'small note warn' }, e instanceof Error ? e.message : String(e)));
+    }
+  };
+  return h(
+    'div',
+    { class: 'off-search stack-sm' },
+    h(
+      'div',
+      { class: 'segmented wrap', role: 'group', 'aria-label': 'Händler' },
+      ...STORES.map(([id, label]) =>
+        h(
+          'button',
+          {
+            type: 'button',
+            id: `store-${id || 'alle'}`,
+            'aria-pressed': String(view.store === id),
+            on: {
+              click: (e) => {
+                view.store = id;
+                const group = /** @type {HTMLElement} */ (e.currentTarget).parentElement;
+                group?.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.id === `store-${id || 'alle'}`)));
+              },
+            },
+          },
+          label,
+        ),
+      ),
+    ),
+    h('button', { type: 'button', class: 'btn', id: 'off-search', on: { click: run } }, 'In Produkten von Migros, Coop & Co. suchen'),
+    out,
+    h(
+      'p',
+      { class: 'hint' },
+      'Quelle: Open Food Facts (offene Datenbank, ODbL), Werte von den Packungen. Vitamine nur, wenn sie auf dem Etikett stehen. Die Suchanfrage geht an Open Food Facts, keine weiteren Daten.',
+    ),
   );
 }
 

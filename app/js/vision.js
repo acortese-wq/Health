@@ -12,6 +12,8 @@ import {
   parseEstimate,
   parseLabel,
   parseOpenFoodFacts,
+  parseOffSearch,
+  offSearchUrl,
   userPrompt,
 } from './domain/foodvision.js';
 
@@ -284,6 +286,28 @@ export async function lookupBarcode(barcode, signal) {
   }
   if (!res.ok && res.status !== 404) throw new Error(`Open Food Facts antwortet nicht (Fehler ${res.status}).`);
   return parseOpenFoodFacts(await res.json().catch(() => null), barcode);
+}
+
+/**
+ * Produkte aus der Schweiz in Open Food Facts suchen (z. B. von Migros oder Coop).
+ * Open Food Facts begrenzt Suchen auf wenige pro Minute; die App sucht deshalb nur auf
+ * Knopfdruck, nicht bei jedem Tastendruck.
+ * @param {string} query
+ * @param {string} store
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<import('./domain/foodvision.js').Product[]>}
+ */
+export async function searchProducts(query, store, signal) {
+  let res;
+  try {
+    res = await fetch(offSearchUrl(query, store), { signal });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') throw e;
+    throw new Error('Open Food Facts ist nicht erreichbar. Bitte Internetverbindung prüfen.');
+  }
+  if (res.status === 429) throw new Error('Zu viele Suchen in kurzer Zeit. Bitte eine Minute warten.');
+  if (!res.ok) throw new Error(`Open Food Facts antwortet nicht (Fehler ${res.status}).`);
+  return parseOffSearch(await res.json().catch(() => null));
 }
 
 /**

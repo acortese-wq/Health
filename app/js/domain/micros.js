@@ -171,7 +171,7 @@ export function scaleMicros(micros, f) {
 
 /**
  * @typedef {{ kcal: number, protein: number, carbs?: number, fat?: number, satFat?: number, fiber?: number,
- *   sugar?: number, salt?: number, micros?: Amounts }} EntryLike
+ *   sugar?: number, salt?: number, micros?: Amounts, microSrc?: string }} EntryLike
  */
 
 /**
@@ -208,7 +208,8 @@ export function dayAmounts(food) {
     if (f.carbs !== undefined && f.fat !== undefined) macroCovered += f.kcal;
     else if (f.kcal <= NEGLIGIBLE_KCAL) macroCovered += f.kcal;
     if (f.micros && Object.keys(f.micros).length) {
-      covered += f.kcal;
+      // Etikettwerte nennen nur einzelne Nährstoffe: Werte zählen, gelten aber nicht als vollständig
+      if (f.microSrc !== 'etikett') covered += f.kcal;
       for (const [k, v] of Object.entries(f.micros)) add(/** @type {NutrientKey} */ (k), v);
     } else if (f.kcal <= NEGLIGIBLE_KCAL) covered += f.kcal;
     // Natrium aus Salz, wenn kein Natriumwert vorliegt (Salz = Natrium × 2.5)

@@ -205,3 +205,57 @@ test('Speicher: Mikronährstoffe und Vorlieben werden geprüft übernommen', () 
   assert.equal(alt.micros, undefined);
   assert.deepEqual(s.profile.foodPrefs, { fisch: false, milch: true, fleisch: true, kantine: true });
 });
+
+test('Open Food Facts: Vitamine in g → mg/µg, Unplausibles verworfen, Suche auf Schweiz und Händler', async () => {
+  const { parseOffProduct, parseOffSearch, offSearchUrl, productPortion } = await import('../../app/js/domain/foodvision.js');
+  const p = parseOffProduct(
+    {
+      code: '7610200000000',
+      product_name_de: 'Skyr nature',
+      brands: 'M-Classic',
+      stores: 'Migros',
+      quantity: '450 g',
+      serving_quantity: 150,
+      nutriments: {
+        'energy-kcal_100g': 63,
+        proteins_100g: 11,
+        carbohydrates_100g: 4,
+        fat_100g: 0.2,
+        salt_100g: 0.1,
+        sodium_100g: 0.04,
+        calcium_100g: 0.12,
+        'vitamin-b12_100g': 0.0000005,
+        'vitamin-c_100g': 7, // 7000 mg: Tippfehler in der Datenbank
+      },
+    },
+    '',
+  );
+  assert.ok(p);
+  assert.equal(p.barcode, '7610200000000');
+  assert.equal(p.stores, 'Migros');
+  assert.equal(p.per100.micros?.calcium, 120);
+  assert.equal(p.per100.micros?.b12, 0.5);
+  assert.equal(p.per100.micros?.sodium, 40);
+  assert.equal(p.per100.micros?.vitC, undefined);
+  assert.equal(p.per100.microSrc, 'etikett');
+  const portion = productPortion(p, 150);
+  assert.equal(portion.micros?.calcium, 180);
+  // Nur Natrium → keine Mikronährstoff-Angabe
+  const plain = parseOffProduct({ nutriments: { 'energy-kcal_100g': 250, sodium_100g: 0.4 } }, '1');
+  assert.equal(plain?.per100.micros, undefined);
+  assert.equal(
+    parseOffSearch({ products: [{ nutriments: {} }, { code: '1', product_name: 'Brot', nutriments: { 'energy-kcal_100g': 240 } }] }).length,
+    1,
+  );
+  assert.deepEqual(parseOffSearch(null), []);
+  const url = new URL(offSearchUrl(' skyr ', 'migros'));
+  assert.equal(url.hostname, 'world.openfoodfacts.org');
+  assert.equal(url.searchParams.get('search_terms'), 'skyr');
+  assert.equal(url.searchParams.get('tag_0'), 'switzerland');
+  assert.equal(url.searchParams.get('tag_1'), 'migros');
+  assert.equal(new URL(offSearchUrl('brot')).searchParams.get('tag_1'), null);
+  // Etikettwerte zählen, gelten aber nicht als vollständige Abdeckung
+  const r = dayAmounts([{ kcal: 100, protein: 10, micros: { calcium: 120 }, microSrc: 'etikett' }]);
+  assert.equal(r.amounts.calcium, 120);
+  assert.equal(r.coverage, 0);
+});

@@ -67,7 +67,12 @@ export function viewProfile(ctx) {
           h('strong', {}, 'KI-Erfassung (nur wenn du sie nutzt): '),
           'Foto bzw. Beschreibung und dein restliches Tagesziel gehen direkt an den gewählten Anbieter (Anthropic oder OpenAI, Server in den USA). Es gelten die Datenschutzbestimmungen des Anbieters.',
         ),
-        h('li', {}, h('strong', {}, 'Barcode-Suche: '), 'Nur die Barcode-Nummer wird an Open Food Facts gesendet.'),
+        h(
+          'li',
+          {},
+          h('strong', {}, 'Open Food Facts: '),
+          'Beim Barcode nur die Nummer, bei der Produktsuche nur Suchbegriff und gewählter Händler.',
+        ),
         h(
           'li',
           {},
