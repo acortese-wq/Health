@@ -5,6 +5,7 @@ import { h, s } from './ui/dom.js';
 import { load, save, safeStorage } from './store.js';
 import { snapshot } from './model.js';
 import { addDays, daysBetween, toISODate } from './domain/util.js';
+import { shouldNudge } from './domain/hydration.js';
 import { viewToday } from './views/today.js';
 import { viewWeight } from './views/weight.js';
 import { viewTraining } from './views/training.js';
@@ -218,11 +219,41 @@ window.addEventListener('hashchange', () => {
 });
 // Datumswechsel um Mitternacht: beim Zurückkehren in die App aktualisieren.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && date < toISODate() && date === addDays(toISODate(), -1)) {
+  if (document.visibilityState !== 'visible') return;
+  if (date < toISODate() && date === addDays(toISODate(), -1)) {
     date = toISODate();
     render();
   }
+  waterNudge();
 });
+
+/** Beim Öffnen an das Trinken erinnern, wenn man hinter dem Tagesplan liegt (höchstens alle 90 Min.). */
+function waterNudge() {
+  if (!state.profile || state.demo) return;
+  const today = toISODate();
+  const now = new Date();
+  /** @type {number | null} */
+  let last = null;
+  try {
+    last = Number(sessionStorage.getItem('cockpit.waterNudge')) || null;
+  } catch {
+    /* ohne Speicher: trotzdem erinnern */
+  }
+  const msg = shouldNudge({
+    ml: state.days[today]?.waterMl ?? 0,
+    target: state.profile.waterTargetMl,
+    minutes: now.getHours() * 60 + now.getMinutes(),
+    lastNudge: last,
+    now: now.getTime(),
+  });
+  if (!msg) return;
+  try {
+    sessionStorage.setItem('cockpit.waterNudge', String(now.getTime()));
+  } catch {
+    /* ignorieren */
+  }
+  toast(`Trinken: ${msg}`);
+}
 
 // Diagramme an neue Breite anpassen (z. B. Drehen des Telefons), Eingaben nicht stören.
 let resizeTimer = 0;
@@ -237,6 +268,7 @@ window.addEventListener('resize', () => {
 });
 
 render();
+waterNudge();
 
 // Browser bitten, die Daten nicht automatisch zu löschen (v. a. Safari nach 7 Tagen Inaktivität).
 navigator.storage?.persist?.().catch(() => {

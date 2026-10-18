@@ -35,3 +35,24 @@ test('Gesundheit: Lebenserwartung, Risiken und Nutzen von Bewegung', async ({ pa
   await page.goto('/#heute');
   await expect(page.locator('#water-pace')).toBeVisible();
 });
+
+test('Trink-Erinnerungen als Kalenderdatei', async ({ page }) => {
+  await page.goto('/');
+  await page.fill('#p-birth', '1977-05-09');
+  await page.fill('#p-height', '172');
+  await page.fill('#p-startkg', '95');
+  await page.fill('#p-goalkg', '80');
+  await page.fill('#p-goaldate', '2027-03-31');
+  await page.click('#profile-save');
+  await page.locator('#water-reminders summary').click();
+  await expect(page.locator('#rem-preview')).toContainText('6 Erinnerungen');
+  await page.selectOption('#rem-every', '180');
+  await expect(page.locator('#rem-preview')).toContainText('4 Erinnerungen');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('#rem-create')]);
+  expect(download.suggestedFilename()).toBe('trink-erinnerungen.ics');
+  const fs = await import('node:fs/promises');
+  const ics = await fs.readFile(await download.path(), 'utf8');
+  expect((ics.match(/BEGIN:VEVENT/g) ?? []).length).toBe(4);
+  expect(ics).toContain('RRULE:FREQ=DAILY');
+  expect(ics).toContain('Trinken: 500 ml Wasser');
+});

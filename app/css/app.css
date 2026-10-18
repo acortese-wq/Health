@@ -1623,3 +1623,8 @@ textarea {
   border: 1px dashed var(--line);
   border-radius: var(--r-md);
 }
+
+.reminders {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}

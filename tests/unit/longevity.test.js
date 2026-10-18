@@ -61,3 +61,33 @@ test('Trinkplan über den Tag', () => {
   assert.equal(waterPace({ ml: 1200, target: 2000, minutes: 0, isToday: false }).status, 'past');
   assert.notEqual(waterFact('2026-10-18'), waterFact('2026-10-19'));
 });
+
+test('Erinnerungszeiten und Kalenderdatei', async () => {
+  const { reminderTimes, buildReminderIcs, shouldNudge } = await import('../../app/js/domain/hydration.js');
+  assert.deepEqual(reminderTimes('09:00', '19:00', 120), ['09:00', '11:00', '13:00', '15:00', '17:00', '19:00']);
+  assert.deepEqual(reminderTimes('08:30', '10:00', 45), ['08:30', '09:15', '10:00']);
+  assert.deepEqual(reminderTimes('19:00', '09:00', 60), []);
+  assert.deepEqual(reminderTimes('09:00', '19:00', 10), []);
+  const ics = buildReminderIcs({
+    times: ['09:00', '11:00'],
+    mlPerReminder: 333,
+    weekdaysOnly: true,
+    startDate: '2026-10-18',
+    stamp: '20261018T080000Z',
+  });
+  assert.ok(ics.startsWith('BEGIN:VCALENDAR\r\nVERSION:2.0\r\n'));
+  assert.ok(ics.endsWith('END:VCALENDAR\r\n'));
+  assert.equal((ics.match(/BEGIN:VEVENT/g) ?? []).length, 2);
+  assert.equal((ics.match(/BEGIN:VALARM/g) ?? []).length, 2);
+  assert.match(ics, /DTSTART:20261018T090000\r\n/);
+  assert.match(ics, /RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR/);
+  assert.match(ics, /SUMMARY:Trinken: 350 ml Wasser/);
+  assert.equal(ics.split('\r\n').join('').includes('\n'), false, 'nur CRLF-Zeilenenden');
+  const daily = buildReminderIcs({ times: ['09:00'], mlPerReminder: 250, weekdaysOnly: false, startDate: '2026-10-18', stamp: 'x' });
+  assert.match(daily, /RRULE:FREQ=DAILY/);
+  assert.match(daily, /Trinken: 1 Glas Wasser/);
+  const now = Date.UTC(2026, 9, 18, 12);
+  assert.match(shouldNudge({ ml: 200, target: 2000, minutes: 14 * 60, lastNudge: null, now }) ?? '', /Gläser/);
+  assert.equal(shouldNudge({ ml: 200, target: 2000, minutes: 14 * 60, lastNudge: now - 30 * 60000, now }), null);
+  assert.equal(shouldNudge({ ml: 1000, target: 2000, minutes: 14 * 60, lastNudge: null, now }), null);
+});

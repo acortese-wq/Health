@@ -5,7 +5,7 @@ import { FIBER_TARGET_G, SALT_LIMIT_G } from '../domain/foodvision.js';
 import { plannedSession } from '../domain/training.js';
 import { photoBlock } from './photo.js';
 import { healthPasteBlock } from './garmin.js';
-import { waterPace, waterFact } from '../domain/hydration.js';
+import { waterPace, waterFact, reminderTimes, buildReminderIcs } from '../domain/hydration.js';
 import { reviewCard } from './review.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -494,6 +494,121 @@ function waterCard(ctx, snap) {
     pace ? h('p', { class: `water-pace pace-${pace.status}`, id: 'water-pace' }, pace.message) : null,
     h('p', { class: 'water-fact small' }, waterFact(ctx.date)),
     snap.water7 ? h('p', { class: 'small muted' }, `7-Tage-Schnitt: ${fmt(snap.water7.value)} ml`) : null,
+    reminderBlock(ctx, target),
     h('p', { class: 'hint' }, 'Kaffee und Tee zählen mit. Bei Herz- oder Nierenerkrankungen gilt die ärztlich empfohlene Trinkmenge.'),
+  );
+}
+
+/** Einstellungen der Erinnerungen (nur für die laufende Sitzung, die Termine leben im Kalender). */
+const reminder = { start: '09:00', end: '19:00', every: 120, weekdaysOnly: false, open: false };
+
+/**
+ * Trink-Erinnerungen als Kalenderdatei: zuverlässige Benachrichtigungen auch bei
+ * geschlossener App, ohne Server.
+ * @param {Ctx} ctx
+ * @param {number} target
+ */
+function reminderBlock(ctx, target) {
+  const times = reminderTimes(reminder.start, reminder.end, reminder.every);
+  const perReminder = times.length ? target / times.length : 0;
+  /** @param {Event} e */
+  const update = (e) => {
+    const form = /** @type {HTMLFormElement} */ (/** @type {HTMLElement} */ (e.target).closest('form'));
+    const fd = new FormData(form);
+    reminder.start = str(fd, 'rem-start') || reminder.start;
+    reminder.end = str(fd, 'rem-end') || reminder.end;
+    reminder.every = Number(str(fd, 'rem-every')) || reminder.every;
+    reminder.weekdaysOnly = fd.get('rem-weekdays') === 'on';
+    ctx.go('heute');
+  };
+  return h(
+    'details',
+    {
+      class: 'reminders',
+      id: 'water-reminders',
+      open: reminder.open,
+      // Offen bleiben, wenn die Ansicht nach einer Änderung neu gezeichnet wird.
+      on: { toggle: (e) => void (reminder.open = /** @type {HTMLDetailsElement} */ (e.target).open) },
+    },
+    h('summary', {}, 'Erinnerungen einrichten'),
+    h(
+      'form',
+      {
+        class: 'stack-sm',
+        on: {
+          change: update,
+          submit: (e) => {
+            e.preventDefault();
+            if (!times.length) return ctx.toast('Bitte Zeitraum prüfen: «Bis» muss nach «Von» liegen.', 'error');
+            const now = new Date();
+            const stamp = now
+              .toISOString()
+              .replace(/[-:]/g, '')
+              .replace(/\.\d{3}/, '');
+            const ics = buildReminderIcs({
+              times,
+              mlPerReminder: perReminder,
+              weekdaysOnly: reminder.weekdaysOnly,
+              startDate: ctx.today,
+              stamp,
+            });
+            const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+            const a = h('a', { href: url, download: 'trink-erinnerungen.ics' });
+            document.body.append(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+            ctx.toast('Kalenderdatei erstellt. Im Kalender «Alle hinzufügen» wählen.');
+          },
+        },
+      },
+      h(
+        'div',
+        { class: 'form-grid' },
+        h(
+          'div',
+          { class: 'field' },
+          h('label', { for: 'rem-start' }, 'Von'),
+          h('input', { id: 'rem-start', name: 'rem-start', type: 'time', value: reminder.start }),
+        ),
+        h(
+          'div',
+          { class: 'field' },
+          h('label', { for: 'rem-end' }, 'Bis'),
+          h('input', { id: 'rem-end', name: 'rem-end', type: 'time', value: reminder.end }),
+        ),
+        h(
+          'div',
+          { class: 'field' },
+          h('label', { for: 'rem-every' }, 'Alle'),
+          h(
+            'select',
+            { id: 'rem-every', name: 'rem-every' },
+            ...[60, 90, 120, 180].map((m) =>
+              h('option', { value: String(m), selected: m === reminder.every }, m % 60 ? `${m / 60} Std.` : `${m / 60} Std.`),
+            ),
+          ),
+        ),
+      ),
+      h(
+        'label',
+        { class: 'check' },
+        h('input', { type: 'checkbox', id: 'rem-weekdays', name: 'rem-weekdays', checked: reminder.weekdaysOnly }),
+        h('span', {}, 'Nur Montag bis Freitag'),
+      ),
+      h(
+        'p',
+        { class: 'small', id: 'rem-preview' },
+        times.length
+          ? `${times.length} Erinnerungen täglich (${times.join(', ')}), je etwa ${fmt(Math.round(perReminder / 50) * 50)} ml.`
+          : 'Keine Erinnerungen im gewählten Zeitraum.',
+      ),
+      h('button', { type: 'submit', class: 'btn primary', id: 'rem-create' }, 'In Kalender übernehmen'),
+      h(
+        'p',
+        { class: 'hint' },
+        'Die Erinnerungen kommen als Kalender-Benachrichtigung, auch wenn die App geschlossen ist. Tipp: Beim Import einen eigenen Kalender «Trinken» wählen. Dann kannst du die Erinnerungen später einfach ausblenden oder löschen. Zusätzlich erinnert dich die App beim Öffnen, wenn du hinter dem Trinkplan liegst.',
+      ),
+    ),
   );
 }
