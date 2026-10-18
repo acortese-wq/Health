@@ -30,6 +30,7 @@ import { addDays, timeToMinutes } from './util.js';
  *   dietBreakUntil: string,
  *   startDate: string,
  *   maintenance: boolean,
+ *   cycle?: { status: string, lastStart: string, phase: string | null, trainingHeavy: boolean },
  * }} s
  * @returns {Hint[]}
  */
@@ -120,6 +121,61 @@ export function nutritionAdvice(s) {
       severity: 'ok',
       title: 'Seit über 12 Wochen im Defizit',
       text: 'Eine geplante Diätpause von 1–2 Wochen auf Erhaltung kann Hunger und Motivation entlasten (Studienlage klein, aber ermutigend). Im Profil unter «Diätpause bis» eintragen; das Zieldatum verschiebt sich entsprechend.',
+    });
+  }
+
+  // Zyklus und Lebensphase (nur bei weiblich und Angabe im Profil)
+  const c = s.cycle;
+  if (c && c.status === 'natuerlich') {
+    if (!c.lastStart) {
+      out.push({
+        id: 'cycle-start',
+        severity: 'ok',
+        title: 'Zyklus: Periodenbeginn eintragen',
+        text: 'Tippe am ersten Tag der Periode auf «Periode heute». Dann erklärt die App Gewichtsschwankungen und Heisshunger im Zyklus und warnt, falls die Periode ausbleibt.',
+      });
+    } else {
+      const since = Math.round((Date.parse(s.date) - Date.parse(c.lastStart)) / 86400000);
+      if (since > 90) {
+        out.push({
+          id: 'amenorrhea',
+          severity: 'warn',
+          title: `Keine Periode seit ${since} Tagen`,
+          text: `Bleibt die Periode über 3 Monate aus, gehört das ärztlich abgeklärt (Schwangerschaft, Schilddrüse, Hormone).${c.trainingHeavy ? ' Zusammen mit viel Training und Kaloriendefizit ist es ein Hauptzeichen für zu wenig Energie (RED-S), mit Risiko für die Knochen: Defizit verkleinern, an Trainingstagen mehr essen.' : ''} Falls die Periode nur nicht eingetragen wurde: im Profil den letzten Beginn nachtragen.`,
+        });
+      }
+    }
+    if (c.phase === 'praemenstruell') {
+      out.push({
+        id: 'cycle-pms',
+        severity: 'ok',
+        title: 'Tage vor der Periode',
+        text: 'Gewicht oft 0.5–2 kg höher durch Wasser, das ist kein Fett. Der Trend in der App gleicht das aus. Mehr Appetit ist normal: Protein und Ballaststoffe einplanen, ein Genuss ist erlaubt.',
+      });
+    }
+  }
+  if (c && c.status === 'schwanger') {
+    out.push({
+      id: 'pregnancy',
+      severity: 'info',
+      title: 'Schwangerschaft: kein Kaloriendefizit',
+      text: 'Das Kalorienziel steht auf Erhaltung; ab dem 2. Drittel kommt ein Mehrbedarf dazu (mit Ärztin oder Hebamme besprechen). Folsäure 400 µg und Jod als Ergänzung, Koffein höchstens 200 mg pro Tag, kein Alkohol. Meiden: Rohmilchkäse, rohes Fleisch und Rohschinken, Rauchlachs und rohen Fisch, rohe Eier.',
+    });
+  }
+  if (c && c.status === 'stillend') {
+    out.push({
+      id: 'lactation',
+      severity: 'info',
+      title: 'Stillzeit: kein Kaloriendefizit',
+      text: 'Stillen braucht zusätzliche Energie; die App rechnet mit Erhaltung. Eine langsame Abnahme ist möglich, aber nicht forciert. Jod und Omega-3 (Fisch) sind besonders wichtig, Koffein in Massen, ausreichend trinken.',
+    });
+  }
+  if (c && c.status === 'wechseljahre') {
+    out.push({
+      id: 'menopause',
+      severity: 'ok',
+      title: 'Wechseljahre: Muskeln und Knochen schützen',
+      text: 'Krafttraining 2× pro Woche, Protein auf alle Mahlzeiten verteilt, 3 Portionen Milchprodukte (Calcium) und im Winter Vitamin D. Der Eisenbedarf ist ohne Periode geringer.',
     });
   }
 

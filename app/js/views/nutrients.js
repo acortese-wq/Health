@@ -22,6 +22,7 @@ import { pyramid } from '../domain/foodgroups.js';
 import { mealSlots, proteinPerMeal, cravingPatterns, TRIGGERS, HUNGER, TRIGGER_TIPS } from '../domain/meals.js';
 import { suggestMeals, nextSlot, CANTEEN_TIPS } from '../domain/mealplans.js';
 import { addGroups } from '../domain/foodgroups.js';
+import { isPremenstrual } from '../domain/cycle.js';
 import { searchProducts } from '../vision.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -481,7 +482,7 @@ function nutrientRow(n, value, target, src) {
  * @param {NonNullable<Ctx['snap']>} snap
  */
 export function nutrientsCard(ctx, snap) {
-  const targets = dailyTargets({ kcalTarget: snap.kcalTarget, proteinG: snap.protein.grams, sex: snap.profile.sex });
+  const targets = dailyTargets({ kcalTarget: snap.kcalTarget, proteinG: snap.protein.grams, sex: snap.profile.sex, stage: snap.lifeStage });
   const week = view.period === 'woche';
   const days = Array.from({ length: 7 }, (_, i) => ctx.state.days[addDays(ctx.date, -i)]?.food ?? []);
   const r = week ? averageAmounts(days) : { ...dayAmounts(snap.day.food ?? []), days: 1 };
@@ -598,7 +599,7 @@ export function nutrientsCard(ctx, snap) {
  * @param {NonNullable<Ctx['snap']>} snap
  */
 export function suggestCard(ctx, snap) {
-  const targets = dailyTargets({ kcalTarget: snap.kcalTarget, proteinG: snap.protein.grams, sex: snap.profile.sex });
+  const targets = dailyTargets({ kcalTarget: snap.kcalTarget, proteinG: snap.protein.grams, sex: snap.profile.sex, stage: snap.lifeStage });
   const { amounts } = dayAmounts(snap.day.food ?? []);
   const kcalLeft = snap.kcalTarget - snap.kcal;
   const list = suggestions({ foods: FOODS, amounts, targets, kcalLeft, prefs: snap.profile.foodPrefs, limit: 3 });
@@ -837,7 +838,14 @@ export function rhythmCard(ctx, snap) {
   const maxKcal = Math.max(1, ...slots.map((s) => s.kcal));
   const total = slots.reduce((a, s) => a + s.kcal, 0);
   const evening = slots.filter((s) => s.id === 'znacht' || s.id === 'spaet').reduce((a, s) => a + s.kcal, 0);
-  const patterns = cravingPatterns(ctx.state.days, ctx.date, snap.protein.grams);
+  const patterns = cravingPatterns(
+    ctx.state.days,
+    ctx.date,
+    snap.protein.grams,
+    snap.profile.sex === 'f' && snap.profile.cycleStatus === 'natuerlich' && snap.cycleStarts.length
+      ? (d) => isPremenstrual(d, snap.cycleStarts, snap.cycleLength)
+      : undefined,
+  );
   const okIds = new Set(ppm.slots.filter((s) => s.ok).map((s) => s.id));
   const mainIds = new Set(ppm.slots.map((s) => s.id));
 

@@ -428,7 +428,7 @@ export function weekReview(days, ctx) {
         id: 'w-steps',
         weight: 30,
         title: `Im Schnitt ${fmt(avg)} Schritte`,
-        tip: 'Mach Telefonate im Gehen und geh Baustellenwege zu Fuss. Das kostet keine Extrazeit.',
+        tip: 'Mach Telefonate im Gehen und geh kurze Wege zu Fuss. Das kostet keine Extrazeit.',
       });
   }
 

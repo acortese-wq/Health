@@ -121,7 +121,7 @@ export const EVIDENCE = [
     level: 'gut belegt',
     claim: 'Männer brauchen etwa 2.5 Liter Wasser pro Tag, rund 2 Liter davon aus Getränken.',
     detail:
-      'Der Rest stammt aus dem Essen. Bei Hitze, Sport und Schwitzen auf der Baustelle steigt der Bedarf deutlich. Die Farbe des Urins ist ein einfacher Alltagstest: hellgelb ist gut.',
+      'Der Rest stammt aus dem Essen. Bei Hitze, Sport und körperlicher Arbeit steigt der Bedarf deutlich. Die Farbe des Urins ist ein einfacher Alltagstest: hellgelb ist gut.',
     refs: ['EFSA NDA Panel, EFSA Journal 2010;8(3):1459'],
   },
   {

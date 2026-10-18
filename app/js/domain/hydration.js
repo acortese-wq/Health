@@ -39,7 +39,7 @@ export function waterPace({ ml, target, minutes, isToday }) {
 // Borghi 1996 (J Urol), Killer 2014 (PLoS One), Armstrong 2012 (J Nutr), Roussel 2011
 // (Diabetes Care), ACSM 2007 (Exercise and Fluid Replacement).
 export const FACTS = [
-  'Konzentration: Schon rund 2 % Flüssigkeitsverlust können Aufmerksamkeit und Leistung messbar senken, auf der Baustelle schnell erreicht.',
+  'Konzentration: Schon rund 2 % Flüssigkeitsverlust können Aufmerksamkeit und Leistung messbar senken, bei Hitze oder Sport schnell erreicht.',
   'Sattwerden: Ein grosses Glas Wasser vor dem Essen hilft beim Sattwerden. In einer Studie nahmen Personen damit in 12 Wochen etwas mehr ab.',
   'Null Kalorien: Ein halber Liter Süssgetränk hat rund 200 kcal, so viel wie dein 16-Uhr-Snack. Wasser hat 0 kcal.',
   'Gewicht langfristig: Wer Süssgetränke durch Wasser ersetzt, nimmt laut grossen Langzeitstudien über die Jahre weniger zu.',

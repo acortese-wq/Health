@@ -7,6 +7,9 @@ import { MICRO_KEYS } from './domain/micros.js';
 import { GROUP_KEYS } from './domain/foodgroups.js';
 import { TRIGGERS } from './domain/meals.js';
 
+import { CYCLE_OPTIONS } from './domain/cycle.js';
+
+const CYCLE_IDS = /** @type {string[]} */ (CYCLE_OPTIONS.map((c) => c[0]));
 const TRIGGER_IDS = /** @type {string[]} */ (TRIGGERS.map((t) => t[0]));
 
 export const STORAGE_KEY = 'gesundheitscockpit';
@@ -23,6 +26,7 @@ export const SCHEMA_VERSION = 1;
  *   fastingWindowH: number, eatStart: string,
  *   foodPrefs: import('./domain/micros.js').FoodPrefs,
  *   vitDSupplementUg: number, dietBreakUntil: string,
+ *   cycleStatus: import('./domain/cycle.js').CycleStatus, cycleLength: number, lastPeriodStart: string, shareCycle: boolean,
  *   caffeineHalfLifeH: number, caffeineCutoffH: number, caffeineMaxMg: number,
  *   caffeineStartCups: number, caffeineTargetCups: number, caffeineTaperStart: string,
  * }} Profile
@@ -38,7 +42,7 @@ export const SCHEMA_VERSION = 1;
  * @typedef {{ id: string, label: string, mg: number, time: string }} CaffeineEntry
  * @typedef {{
  *   weightKg?: number, food?: FoodEntry[], caffeine?: CaffeineEntry[],
- *   steps?: number, sleepH?: number, restingHr?: number, waterMl?: number, complete?: boolean,
+ *   steps?: number, sleepH?: number, restingHr?: number, waterMl?: number, complete?: boolean, period?: boolean,
  * }} Day
  * @typedef {{ id: string, name: string, kcal: number, protein: number, carbs?: number, fat?: number, sugar?: number, satFat?: number, fiber?: number, salt?: number }} FoodPreset
  * @typedef {{ id: string, label: string, mg: number }} CaffeinePreset
@@ -243,6 +247,12 @@ function sanitizeProfile(p) {
     sleepTargetH: num(p.sleepTargetH, 7.5),
     waterTargetMl: num(p.waterTargetMl, 2000),
     trainingMode: p.trainingMode === 'laufen' ? 'laufen' : 'kombi',
+    cycleStatus: CYCLE_IDS.includes(String(p.cycleStatus))
+      ? /** @type {import('./domain/cycle.js').CycleStatus} */ (p.cycleStatus)
+      : 'keine',
+    cycleLength: isNum(p.cycleLength) && p.cycleLength >= 21 && p.cycleLength <= 45 ? Math.round(p.cycleLength) : 28,
+    lastPeriodStart: typeof p.lastPeriodStart === 'string' && isISODate(p.lastPeriodStart) ? p.lastPeriodStart : '',
+    shareCycle: p.shareCycle === true,
     vitDSupplementUg: isNum(p.vitDSupplementUg) && p.vitDSupplementUg >= 0 && p.vitDSupplementUg <= 100 ? p.vitDSupplementUg : 0,
     dietBreakUntil: typeof p.dietBreakUntil === 'string' && isISODate(p.dietBreakUntil) ? p.dietBreakUntil : '',
     foodPrefs: {
@@ -276,6 +286,7 @@ function sanitizeDay(d) {
   if (isNum(d.restingHr) && d.restingHr > 20 && d.restingHr < 200) out.restingHr = d.restingHr;
   if (isNum(d.waterMl) && d.waterMl > 0 && d.waterMl <= 10000) out.waterMl = d.waterMl;
   if (d.complete === true) out.complete = true;
+  if (d.period === true) out.period = true;
   const time = (/** @type {unknown} */ v) => (typeof v === 'string' && /^\d{2}:\d{2}$/.test(v) ? v : '12:00');
   if (Array.isArray(d.food)) {
     out.food = d.food.flatMap((f) =>

@@ -10,6 +10,7 @@ import { dailyTargets, averageAmounts, NUTRIENTS } from '../domain/micros.js';
 import { addGroups } from '../domain/foodgroups.js';
 import { mealSlots, cravingPatterns, TRIGGERS } from '../domain/meals.js';
 import { LABS } from '../domain/clinical.js';
+import { CYCLE_OPTIONS } from '../domain/cycle.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 
@@ -50,7 +51,7 @@ export function viewReport(ctx) {
   const loggedDays = week.filter((d) => d.length).length || 1;
   const groups = addGroups(...week.flat().map((f) => f.groups));
   const per = (/** @type {keyof typeof groups} */ k) => fmt((groups[k] ?? 0) / loggedDays, 1);
-  const targets = dailyTargets({ kcalTarget: snap.kcalTarget, proteinG: snap.protein.grams, sex: p.sex });
+  const targets = dailyTargets({ kcalTarget: snap.kcalTarget, proteinG: snap.protein.grams, sex: p.sex, stage: snap.lifeStage });
   const nut = averageAmounts(week);
   const low = NUTRIENTS.filter((x) => x.kind === 'target' && x.ref && x.key !== 'vitK')
     .map((x) => ({ x, pct: (nut.amounts[x.key] ?? 0) / (targets[x.key] ?? 1) }))
@@ -194,6 +195,12 @@ export function viewReport(ctx) {
         tr('Koffein Ø 7 Tage', snap.caffeine7 ? `${fmt(snap.caffeine7.value)} mg` : '–'),
         p.vitDSupplementUg ? tr('Vitamin-D-Präparat', `${fmt(p.vitDSupplementUg, 1)} µg pro Tag`) : null,
         p.fastingWindowH ? tr('Essensfenster', `${p.fastingWindowH} h ab ${p.eatStart}`) : null,
+        p.sex === 'f' && p.shareCycle && p.cycleStatus !== 'keine'
+          ? tr(
+              'Zyklus',
+              `${CYCLE_OPTIONS.find((c) => c[0] === p.cycleStatus)?.[1] ?? ''}${snap.cycleStarts.length ? ` · Ø ${snap.cycleLength} Tage · letzte Periode ${fmtDate(snap.cycleStarts[snap.cycleStarts.length - 1])}` : ''}`,
+            )
+          : null,
       ]),
     ),
     latestLabs.length || snap.bpMean

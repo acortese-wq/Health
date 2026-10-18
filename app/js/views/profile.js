@@ -5,6 +5,7 @@ import { emptyState, exportCSV, exportJSON, importJSON } from '../store.js';
 import { demoState } from '../demo.js';
 import { isISODate } from '../domain/util.js';
 import { FASTING_OPTIONS, FASTING_CAUTION } from '../domain/fasting.js';
+import { CYCLE_OPTIONS } from '../domain/cycle.js';
 import { getAiSettings, saveAiSettings, listModels, PROVIDERS } from '../vision.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -133,6 +134,10 @@ function profileForm(ctx, p) {
     foodPrefs: { fisch: true, milch: true, fleisch: true, kantine: true },
     vitDSupplementUg: 0,
     dietBreakUntil: '',
+    cycleStatus: 'keine',
+    cycleLength: 28,
+    lastPeriodStart: '',
+    shareCycle: false,
     eatStart: '11:00',
     bedtime: '22:30',
     caffeineHalfLifeH: 5,
@@ -186,6 +191,12 @@ function profileForm(ctx, p) {
       waterTargetMl: need('p-water', 'Trinkziel (ml)', 1000, 5000, 2000),
       trainingMode: str(fd, 'p-training') === 'laufen' ? 'laufen' : 'kombi',
       bedtime: str(fd, 'p-bed') || '22:30',
+      cycleStatus: /** @type {import('../domain/cycle.js').CycleStatus} */ (
+        str(fd, 'p-sex') === 'f' && CYCLE_OPTIONS.some((c) => c[0] === str(fd, 'p-cycle')) ? str(fd, 'p-cycle') : 'keine'
+      ),
+      cycleLength: need('p-cyclelen', 'Zykluslänge (Tage)', 21, 45, 28),
+      lastPeriodStart: isISODate(str(fd, 'p-lastperiod')) ? str(fd, 'p-lastperiod') : '',
+      shareCycle: fd.get('p-sharecycle') === 'on',
       vitDSupplementUg: need('p-vitd', 'Vitamin-D-Präparat (µg)', 0, 100, 0),
       dietBreakUntil: isISODate(str(fd, 'p-dietbreak')) ? str(fd, 'p-dietbreak') : '',
       foodPrefs: {
@@ -235,15 +246,23 @@ function profileForm(ctx, p) {
       'div',
       { class: 'form-grid' },
       field({ id: 'p-name', label: 'Vorname', value: v.name }),
-      select({
-        id: 'p-sex',
-        label: 'Geschlecht (für Formeln)',
-        value: v.sex,
-        options: [
-          { value: 'm', label: 'männlich' },
-          { value: 'f', label: 'weiblich' },
-        ],
-      }),
+      (() => {
+        const el = select({
+          id: 'p-sex',
+          label: 'Geschlecht (für Formeln)',
+          value: v.sex,
+          options: [
+            { value: 'm', label: 'männlich' },
+            { value: 'f', label: 'weiblich' },
+          ],
+        });
+        // Zyklus-Abschnitt sofort ein- bzw. ausblenden
+        el.querySelector('select')?.addEventListener('change', (e) => {
+          const sec = document.getElementById('cycle-section');
+          if (sec) sec.hidden = /** @type {HTMLSelectElement} */ (e.target).value !== 'f';
+        });
+        return el;
+      })(),
       field({ id: 'p-birth', label: 'Geburtsdatum', type: 'date', value: v.birthDate, required: true }),
       field({ id: 'p-height', label: 'Grösse', inputmode: 'numeric', value: v.heightCm, suffix: 'cm', required: true }),
     ),
@@ -333,6 +352,44 @@ function profileForm(ctx, p) {
           h('span', {}, label),
         ),
       ),
+    ),
+    h(
+      'div',
+      { id: 'cycle-section', hidden: v.sex !== 'f' },
+      h('h3', {}, 'Zyklus und Lebensphase (freiwillig)'),
+      h(
+        'div',
+        { class: 'form-grid' },
+        select({
+          id: 'p-cycle',
+          label: 'Situation',
+          value: v.cycleStatus ?? 'keine',
+          options: CYCLE_OPTIONS.map(([value, label]) => ({ value, label })),
+          hint: 'Passt Kalorien (kein Defizit in Schwangerschaft und Stillzeit), Nährstoffziele und Hinweise an.',
+        }),
+        field({
+          id: 'p-cyclelen',
+          label: 'Übliche Zykluslänge',
+          inputmode: 'numeric',
+          value: v.cycleLength ?? 28,
+          suffix: 'Tage',
+          hint: 'Wird aus den eingetragenen Perioden laufend angepasst.',
+        }),
+        field({
+          id: 'p-lastperiod',
+          label: 'Letzte Periode begann am',
+          type: 'date',
+          value: v.lastPeriodStart ?? '',
+          hint: 'Optional, für den Start',
+        }),
+      ),
+      h(
+        'label',
+        { class: 'check' },
+        h('input', { type: 'checkbox', id: 'p-sharecycle', name: 'p-sharecycle', checked: Boolean(v.shareCycle) }),
+        h('span', {}, 'Zyklusangaben in den Bericht für die Ernährungsberatung aufnehmen'),
+      ),
+      h('p', { class: 'hint' }, 'Diese Angaben bleiben auf dem Gerät und werden nie an die KI gesendet.'),
     ),
     h('h3', {}, 'Ergänzung und Pausen'),
     h(

@@ -281,9 +281,9 @@ export function plannedSession(iso, mode = 'kombi') {
           0: { title: 'Langer Lauf', detail: '60–75 Min. locker', kind: 'run', runType: 'long' },
         }
       : {
-          1: { title: 'Kraft A', detail: '45 Min. Geschäfts-Gym', kind: 'strength', template: 'A' },
+          1: { title: 'Kraft A', detail: '45 Min. Gym oder zu Hause', kind: 'strength', template: 'A' },
           2: { title: 'Lauf locker', detail: `${RUN_TYPES.z2.label}, 40–50 Min.`, kind: 'run', runType: 'z2' },
-          4: { title: 'Kraft B', detail: '45 Min. Geschäfts-Gym', kind: 'strength', template: 'B' },
+          4: { title: 'Kraft B', detail: '45 Min. Gym oder zu Hause', kind: 'strength', template: 'B' },
           6: { title: 'Intervalle', detail: '4 × 4 Min. zügig, 3 Min. locker', kind: 'run', runType: 'interval' },
           0: { title: 'Langer Lauf', detail: '60–75 Min. locker', kind: 'run', runType: 'long' },
         };

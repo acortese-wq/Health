@@ -163,15 +163,20 @@ const NEGLIGIBLE_KCAL = 30;
 /**
  * Tagesziele für die Makros aus dem Kalorienziel: Protein aus dem Profil, Fett 30 % der
  * Energie (D-A-CH 30–35 %), Kohlenhydrate der Rest, gesättigte Fette < 10 % (WHO).
- * @param {{ kcalTarget: number, proteinG: number, sex: 'm' | 'f' }} p
+ * Lebensphase (nur Frauen): Schwangerschaft und Stillzeit nach D-A-CH (Folat 550/450 µg,
+ * Jod 230/260 µg, B12 4.5/5.5 µg) und DGE 2023 (Eisen 27/16 mg); ohne Menstruation Eisen 11 mg.
+ * @param {{ kcalTarget: number, proteinG: number, sex: 'm' | 'f', stage?: 'standard' | 'schwanger' | 'stillend' | 'ohne-menstruation' }} p
  * @returns {Partial<Record<NutrientKey, number>>}
  */
-export function dailyTargets({ kcalTarget, proteinG, sex }) {
+export function dailyTargets({ kcalTarget, proteinG, sex, stage = 'standard' }) {
   const fat = (kcalTarget * 0.3) / 9;
   const carbs = Math.max(0, (kcalTarget - proteinG * 4 - fat * 9) / 4);
   /** @type {Partial<Record<NutrientKey, number>>} */
   const t = { kcal: kcalTarget, protein: proteinG, fat, carbs, satFat: (kcalTarget * 0.1) / 9, ala: (kcalTarget * 0.005) / 9 };
   for (const n of NUTRIENTS) if (n.ref) t[n.key] = n.ref[sex];
+  if (sex === 'f' && stage === 'schwanger') Object.assign(t, { folate: 550, iodine: 230, b12: 4.5, iron: 27 });
+  if (sex === 'f' && stage === 'stillend') Object.assign(t, { folate: 450, iodine: 260, b12: 5.5, iron: 16 });
+  if (sex === 'f' && stage === 'ohne-menstruation') t.iron = 11;
   return t;
 }
 

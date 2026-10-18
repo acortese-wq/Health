@@ -1,5 +1,5 @@
 // @ts-check
-import { h, field, select, meter, badge, fmt, fmtSigned, num, str, nowTime } from '../ui/dom.js';
+import { h, field, select, meter, badge, fmt, fmtSigned, fmtDate, num, str, nowTime } from '../ui/dom.js';
 import { uid, extraNutrients, recentFoods } from '../store.js';
 import { FIBER_TARGET_G, SALT_LIMIT_G } from '../domain/foodvision.js';
 import { plannedSession } from '../domain/training.js';
@@ -11,6 +11,7 @@ import { foodSearchBlock, nutrientsCard, suggestCard, pyramidCard, rhythmCard } 
 import { scaleMicros } from '../domain/micros.js';
 import { scaleGroups } from '../domain/foodgroups.js';
 import { TRIGGERS, HUNGER } from '../domain/meals.js';
+import { PHASE_TIPS } from '../domain/cycle.js';
 import {
   eatingWindow,
   windowLabel,
@@ -41,6 +42,7 @@ export function viewToday(ctx) {
       'div',
       { class: 'grid-2' },
       weightCard(ctx, snap),
+      cycleCard(ctx, snap),
       fastingCard(ctx, snap),
       waterCard(ctx, snap),
       caffeineCard(ctx, snap),
@@ -740,6 +742,62 @@ function reminderBlock(ctx, target) {
 }
 
 /**
+ * Zyklus (nur bei weiblich mit natürlichem Zyklus oder hormoneller Verhütung): Periode
+ * eintragen, Zyklustag, geschätzte Phase und ein passender Hinweis.
+ * @param {Ctx} ctx
+ * @param {NonNullable<Ctx['snap']>} snap
+ */
+function cycleCard(ctx, snap) {
+  const st = snap.profile.cycleStatus;
+  if (snap.profile.sex !== 'f' || (st !== 'natuerlich' && st !== 'hormonell')) return null;
+  const natural = st === 'natuerlich';
+  const on = Boolean(snap.day.period);
+  const c = snap.cycle;
+  return h(
+    'section',
+    { class: 'card', 'aria-labelledby': 'cyc-h', id: 'cycle-card' },
+    h('h2', { id: 'cyc-h' }, 'Zyklus'),
+    c
+      ? h(
+          'p',
+          { id: 'cycle-day' },
+          h('strong', {}, `Tag ${c.day}`),
+          natural ? ` von ca. ${c.length} · ${c.label}` : ` seit der letzten Blutung`,
+        )
+      : h(
+          'p',
+          { class: 'small muted' },
+          natural ? 'Noch kein Periodenbeginn eingetragen.' : 'Blutungstage eintragen, wenn du sie festhalten willst.',
+        ),
+    c && natural ? h('p', { class: 'small muted' }, `Nächste Periode etwa am ${fmtDate(c.nextStart)} (Schätzung).`) : null,
+    c && natural ? h('p', { class: 'note info small', id: 'cycle-tip' }, PHASE_TIPS[c.phase]) : null,
+    h(
+      'button',
+      {
+        type: 'button',
+        class: on ? 'btn primary' : 'btn',
+        id: 'period-toggle',
+        'aria-pressed': String(on),
+        on: {
+          click: () =>
+            ctx.commit(
+              (s) => {
+                const d = { ...s.days[ctx.date] };
+                if (on) delete d.period;
+                else d.period = true;
+                s.days[ctx.date] = d;
+              },
+              on ? 'Periodentag entfernt' : natural ? 'Periodentag eingetragen' : 'Blutung eingetragen',
+            ),
+        },
+      },
+      on ? (natural ? '✓ Periode heute' : '✓ Blutung heute') : natural ? 'Periode heute' : 'Blutung heute',
+    ),
+    h('p', { class: 'hint' }, 'Bleibt auf dem Gerät, geht nicht an die KI. Schätzungen ersetzen keine Verhütung.'),
+  );
+}
+
+/**
  * Intervallfasten: Phase jetzt, Fastendauer der Nacht, Proteinplan im Fenster.
  * Nur sichtbar, wenn im Profil ein Essensfenster gewählt ist.
  * @param {Ctx} ctx
@@ -747,7 +805,8 @@ function reminderBlock(ctx, target) {
  */
 function fastingCard(ctx, snap) {
   const w = eatingWindow(snap.profile.eatStart, snap.profile.fastingWindowH);
-  if (!w) return null;
+  // In Schwangerschaft und Stillzeit kein Fasten
+  if (!w || snap.noDeficit) return null;
   const food = snap.day.food ?? [];
   const prevFood = ctx.state.days[addDays(ctx.date, -1)]?.food ?? [];
   const now = new Date();

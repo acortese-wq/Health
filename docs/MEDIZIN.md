@@ -100,6 +100,17 @@ PSA 50–69 nur nach Aufklärung · dT mit 25/45/65 · Gürtelrose und Grippe ab
 | SCOFF | 5 Fragen, ab 2 Ja Abklärung empfohlen; Antworten werden nicht gespeichert. | Morgan et al., BMJ 1999 |
 | Bericht | 4-Wochen-Zusammenfassung zum Drucken/PDF; Hinweis auf Kostenübernahme bei Adipositas. | KLV Art. 9b |
 
+## Zyklus und Lebensphase (Frauen)
+
+| Thema | Umsetzung | Quelle |
+| --- | --- | --- |
+| Phase | Periodenbeginn = erster eingetragener Periodentag; Länge = Median der letzten Abstände (21–45 Tage), sonst Profilwert. Eisprung ca. 14 Tage vor der nächsten Periode; «Tage vor der Periode» = letzte 6 Tage. Schätzung, keine Verhütung. | – |
+| Gewicht vor der Periode | Hinweis auf 0.5–2 kg Wasser; der robuste Trend (Theil-Sen, EMA) reagiert kaum auf diese Spitzen. | – |
+| Ausbleibende Periode | Warnung ab 90 Tagen ohne eingetragenen Beginn (natürlicher Zyklus), mit RED-S-Hinweis bei viel Training. Nicht bei hormoneller Verhütung. | Mountjoy et al., BJSM 2023 |
+| Schwangerschaft, Stillzeit | Kalorienziel = Erhaltung (kein Defizit), Intervallfasten aus. Folat 550/450 µg, Jod 230/260 µg, B12 4.5/5.5 µg (D-A-CH), Eisen 27/16 mg (DGE 2023). Hinweise zu Folsäure, Jod, Koffein ≤ 200 mg (EFSA), Lebensmittelsicherheit. | D-A-CH; DGE; EFSA |
+| Ohne Menstruation | Eisen 11 mg (DGE 2023). | DGE |
+| Datenschutz | Zyklusdaten bleiben auf dem Gerät, gehen nie an die KI; im Bericht nur mit ausdrücklicher Zustimmung. | – |
+
 ## Bewusste Grenzen
 
 - Die 7700 kcal/kg sind eine Näherung. Der adaptive Bedarf gleicht diesen Fehler aus, weil er auf der tatsächlichen Gewichtsentwicklung beruht.

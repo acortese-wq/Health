@@ -9,6 +9,7 @@ import { bmi, bmiClass, bpSeriesMean, bpCategory, whtr, waistRisk } from './doma
 import { coachHints } from './domain/coach.js';
 import { nutritionAdvice } from './domain/advice.js';
 import { plannedSession } from './domain/training.js';
+import { lifeStage, periodStarts, cycleLength, cycleInfo } from './domain/cycle.js';
 import { addDays, isNum, mean } from './domain/util.js';
 import { weightSeries } from './store.js';
 
@@ -45,7 +46,15 @@ export function snapshot(state, date) {
   const plan = planTarget({ sex: p.sex, tdee, bmr, weightKg, goalWeightKg: p.goalWeightKg, today: date, goalDate: p.goalDate });
   // Diätpause: Erhaltung (Gesamtumsatz) statt Defizit
   const dietBreak = Boolean(p.dietBreakUntil && p.dietBreakUntil >= date);
-  const kcalTarget = p.kcalOverride ?? (dietBreak ? Math.round(tdee / 10) * 10 : plan.kcal);
+  // Schwangerschaft und Stillzeit: kein Defizit, Erhaltung als Untergrenze
+  const stage = lifeStage(p.sex, p.cycleStatus);
+  const noDeficit = stage === 'schwanger' || stage === 'stillend';
+  const kcalTarget = p.kcalOverride ?? (dietBreak || noDeficit ? Math.round(tdee / 10) * 10 : plan.kcal);
+  // Zyklus (nur bei natürlichem Zyklus bzw. hormoneller Verhütung mit Blutung)
+  const tracksCycle = p.sex === 'f' && (p.cycleStatus === 'natuerlich' || p.cycleStatus === 'hormonell');
+  const starts = tracksCycle ? periodStarts(state.days, p.lastPeriodStart) : [];
+  const cLen = cycleLength(starts, p.cycleLength ?? 28);
+  const cycle = tracksCycle ? cycleInfo(date, starts, cLen, state.days) : null;
   const protein = proteinTarget({ weightKg, goalWeightKg: p.goalWeightKg, heightCm: p.heightCm, gPerKg: p.proteinPerKg });
 
   const day = state.days[date] ?? {};
@@ -150,10 +159,16 @@ export function snapshot(state, date) {
     days: state.days,
     vitDSupplementUg: p.vitDSupplementUg ?? 0,
     dietBreakUntil: p.dietBreakUntil ?? '',
+    cycle: {
+      status: p.sex === 'f' ? (p.cycleStatus ?? 'keine') : 'keine',
+      lastStart: starts.length ? starts[starts.length - 1] : '',
+      phase: cycle?.phase ?? null,
+      trainingHeavy: week.equivalent >= 150,
+    },
     startDate: p.startDate,
-    maintenance: plan.maintenance,
+    maintenance: plan.maintenance || noDeficit,
   });
   const order = { alert: 0, warn: 1, info: 2, ok: 3 };
   const hints = [...coachHints(snap), ...advice].sort((a, b) => order[a.severity] - order[b.severity]);
-  return { ...snap, dietBreak, hints };
+  return { ...snap, dietBreak, lifeStage: stage, noDeficit, cycle, cycleStarts: starts, cycleLength: cLen, hints };
 }

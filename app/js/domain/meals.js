@@ -109,9 +109,10 @@ function eveningShare(d) {
  * @param {Record<string, Day>} days
  * @param {string} date
  * @param {number} proteinTarget
+ * @param {(iso: string) => boolean} [premenstrual] nur bei natürlichem Zyklus
  */
-export function cravingPatterns(days, date, proteinTarget) {
-  /** @type {{ high: boolean, sleepShort: boolean | null, lowProteinEarly: boolean, skippedLunch: boolean, coffeeHigh: boolean }[]} */
+export function cravingPatterns(days, date, proteinTarget, premenstrual) {
+  /** @type {{ high: boolean, sleepShort: boolean | null, lowProteinEarly: boolean, skippedLunch: boolean, coffeeHigh: boolean, pms: boolean | null }[]} */
   const rows = [];
   for (let i = 1; i <= 28; i++) {
     const iso = addDays(date, -i);
@@ -130,15 +131,17 @@ export function cravingPatterns(days, date, proteinTarget) {
       lowProteinEarly: early.reduce((a, f) => a + f.protein, 0) < proteinTarget * 0.35,
       skippedLunch: lunch.reduce((a, f) => a + f.kcal, 0) < 300,
       coffeeHigh: (d.caffeine ?? []).reduce((a, c) => a + c.mg, 0) >= 400,
+      pms: premenstrual ? premenstrual(iso) : null,
     });
   }
   const highDays = rows.filter((r) => r.high).length;
   /** @type {[keyof typeof rows[number], string, string][]} */
   const factors = [
-    ['sleepShort', 'weniger als 6.5 h Schlaf', 'Schlaf'],
-    ['lowProteinEarly', `weniger als ${Math.round(proteinTarget * 0.35)} g Protein bis 15 Uhr`, 'Protein am Tag'],
-    ['skippedLunch', 'kaum Mittagessen', 'Mittagessen'],
-    ['coffeeHigh', 'mehr als 400 mg Koffein', 'Koffein'],
+    ['sleepShort', 'An Tagen mit weniger als 6.5 h Schlaf', 'Schlaf'],
+    ['lowProteinEarly', `An Tagen mit weniger als ${Math.round(proteinTarget * 0.35)} g Protein bis 15 Uhr`, 'Protein am Tag'],
+    ['skippedLunch', 'An Tagen mit kaum Mittagessen', 'Mittagessen'],
+    ['coffeeHigh', 'An Tagen mit mehr als 400 mg Koffein', 'Koffein'],
+    ['pms', 'In den Tagen vor der Periode', 'Zyklus'],
   ];
   /** @type {Insight[]} */
   const insights = [];
@@ -151,7 +154,7 @@ export function cravingPatterns(days, date, proteinTarget) {
     if (a - b >= 0.25) {
       insights.push({
         id: String(key),
-        text: `An Tagen mit ${label} hast du an ${withF.filter((r) => r.high).length} von ${withF.length} Tagen mehr als die Hälfte der Kalorien abends gegessen, sonst an ${withoutF.filter((r) => r.high).length} von ${withoutF.length}.`,
+        text: `${label} hast du an ${withF.filter((r) => r.high).length} von ${withF.length} Tagen mehr als die Hälfte der Kalorien abends gegessen, sonst an ${withoutF.filter((r) => r.high).length} von ${withoutF.length}.`,
         withRate: a,
         withoutRate: b,
         nWith: withF.length,
