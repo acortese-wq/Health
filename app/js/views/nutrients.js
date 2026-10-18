@@ -617,6 +617,9 @@ export function suggestCard(ctx, snap) {
     prefs: snap.profile.foodPrefs,
     dayGroups: addGroups(...(snap.day.food ?? []).map((f) => f.groups)),
     weekFish,
+    weekBeans: Array.from({ length: 7 }, (_, i) => ctx.state.days[addDays(ctx.date, -i)]?.food ?? [])
+      .flat()
+      .reduce((a, f) => a + (f.groups?.huelsen ?? 0) + (f.groups?.pflanzlProtein ?? 0), 0),
   });
   const slotLabel = { morgen: 'Morgenessen', mittag: 'Mittagessen', zvieri: 'Zvieri', abend: 'Znacht' }[slot];
   return h(

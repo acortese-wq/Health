@@ -111,6 +111,17 @@ PSA 50–69 nur nach Aufklärung · dT mit 25/45/65 · Gürtelrose und Grippe ab
 | Ohne Menstruation | Eisen 11 mg (DGE 2023). | DGE |
 | Datenschutz | Zyklusdaten bleiben auf dem Gerät, gehen nie an die KI; im Bericht nur mit ausdrücklicher Zustimmung. | – |
 
+## Blue Zones
+
+| Gewohnheit | Umsetzung | Quelle |
+| --- | --- | --- |
+| Natürlich bewegen | automatisch: Ø Schritte ≥ 8000 (sonst ≥ 150 Bewegungsminuten) | Paluch, Lancet Public Health 2022 |
+| Pflanzenbetont | automatisch: Ø ≥ 4 Portionen Gemüse/Früchte, ≤ 3 Portionen Fleisch pro Woche | SGE; Kohortenstudien |
+| Hülsenfrüchte | automatisch: ≥ 4 Portionen pro Woche (inkl. Tofu); Mahlzeiten-Vorschläge bevorzugen sie, wenn es weniger sind | Adv Nutr 2023 (PMID 36811595) |
+| 80-%-Regel, Sinn, Pausen, Familie, Umfeld, Zugehörigkeit | wöchentlich abhaken | Holt-Lunstad 2010; Alimujiang 2019; Christakis & Fowler 2007 |
+| Wein | bewusst nicht übernommen | Zhao, JAMA Netw Open 2023; Wood, Lancet 2018 |
+| Einordnung | Die Langlebigkeit der Regionen selbst ist umstritten (Altersangaben); der Check stützt sich auf die unabhängig belegten Gewohnheiten. | Buettner 2016; Newman 2019 (Preprint) |
+
 ## Bewusste Grenzen
 
 - Die 7700 kcal/kg sind eine Näherung. Der adaptive Bedarf gleicht diesen Fehler aus, weil er auf der tatsächlichen Gewichtsentwicklung beruht.

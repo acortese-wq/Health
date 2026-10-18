@@ -2141,3 +2141,19 @@ textarea {
 .contrib-val small {
   color: var(--muted);
 }
+
+/* Blue Zones */
+.bz-list .check small {
+  display: block;
+  color: var(--muted);
+}
+.bz-mark {
+  width: 20px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.bz-ok .bz-mark {
+  color: var(--ok);
+}

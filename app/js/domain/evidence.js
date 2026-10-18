@@ -356,4 +356,58 @@ export const EVIDENCE = [
       'Strukturierte Beratung mit Verhaltensansätzen wirkt besser als Abnehmen allein. In der Schweiz übernimmt die Grundversicherung Ernährungsberatung durch anerkannte Fachpersonen (SVDE) bei Adipositas auf ärztliche Verordnung (KLV Art. 9b). Die App erstellt dafür einen Bericht (Profil).',
     refs: ['Krankenpflege-Leistungsverordnung (KLV) Art. 9b', 'Williams LT et al., Healthcare (Basel) 2019;7:20'],
   },
+  {
+    id: 'blue-zones',
+    topic: 'Lebenserwartung',
+    level: 'unsicher',
+    claim: 'In den «Blue Zones» (Okinawa, Sardinien, Ikaria, Nicoya, Loma Linda) werden besonders viele Menschen 100 Jahre alt.',
+    detail:
+      'Die Altersangaben sind umstritten: Ein Demograf fand Hinweise auf fehlerhafte Geburtsregister und Rentenbetrug (Vorabveröffentlichungen 2019/2024, nicht begutachtet); die Blue-Zones-Forschenden halten ihre Validierung auf Dorfebene dagegen. Unabhängig davon sind die meisten Gewohnheiten der Regionen gut untersucht, deshalb nutzt die App sie als Wochen-Check unter «Gesundheit».',
+    refs: ['Buettner D, Skemp S, Am J Lifestyle Med 2016;10:318–321', 'Newman SJ, bioRxiv 2019 (Preprint)'],
+  },
+  {
+    id: 'legumes',
+    topic: 'Ernährung',
+    level: 'wahrscheinlich sinnvoll',
+    claim: 'Regelmässig Hülsenfrüchte zu essen geht mit einer etwas tieferen Sterblichkeit einher.',
+    detail:
+      'In einer Dosis-Wirkungs-Metaanalyse von Kohortenstudien war ein Mehr von 50 g pro Tag mit rund 6 % geringerer Gesamtsterblichkeit verbunden (Evidenz niedrig bis mittel, beobachtend). Hülsenfrüchte liefern zudem Protein, Ballaststoffe und sättigen gut.',
+    refs: ['Adv Nutr 2023, Dosis-Wirkungs-Metaanalyse (PMID 36811595)'],
+  },
+  {
+    id: 'social',
+    topic: 'Lebenserwartung',
+    level: 'gut belegt',
+    claim: 'Starke soziale Beziehungen erhöhen die Überlebenswahrscheinlichkeit deutlich.',
+    detail:
+      'In einer Metaanalyse von 148 Studien hatten Menschen mit starken sozialen Beziehungen eine um rund 50 % höhere Überlebenswahrscheinlichkeit, vergleichbar mit dem Effekt des Nichtrauchens.',
+    refs: ['Holt-Lunstad J et al., PLoS Med 2010;7:e1000316'],
+  },
+  {
+    id: 'purpose',
+    topic: 'Lebenserwartung',
+    level: 'wahrscheinlich sinnvoll',
+    claim: 'Ein starkes Gefühl von Lebenssinn geht mit geringerer Sterblichkeit einher.',
+    detail:
+      'In einer US-Kohorte von Menschen über 50 war ein hoher Lebenssinn mit deutlich geringerer Sterblichkeit verbunden, unabhängig von Einkommen und Bildung (beobachtend).',
+    refs: ['Alimujiang A et al., JAMA Netw Open 2019;2:e194270'],
+  },
+  {
+    id: 'steps',
+    topic: 'Training',
+    level: 'gut belegt',
+    claim: 'Mehr Schritte senken die Sterblichkeit, der Nutzen flacht bei 8000–10 000 Schritten ab (unter 60 Jahren).',
+    detail:
+      'Eine Metaanalyse von 15 Kohorten fand den grössten Nutzen beim Schritt von wenig zu mittlerer Aktivität; ab 60 Jahren lag die Schwelle bei 6000–8000 Schritten.',
+    refs: ['Paluch AE et al., Lancet Public Health 2022;7:e219–e228'],
+  },
+  {
+    id: 'alcohol',
+    topic: 'Lebenserwartung',
+    level: 'unbelegt',
+    claim: '«Ein Glas Wein am Tag verlängert das Leben.»',
+    detail:
+      'Frühere Studien verglichen oft mit ehemaligen Trinkern, die aus Krankheitsgründen aufgehört hatten. Sorgfältigere Auswertungen zeigen keinen Schutz durch moderates Trinken. Kein Alkohol bleibt die gesündeste Wahl; die App übernimmt diese Blue-Zones-Gewohnheit deshalb nicht.',
+    refs: ['Zhao J et al., JAMA Netw Open 2023;6:e236185', 'Wood AM et al., Lancet 2018;391:1513–1523'],
+  },
 ];

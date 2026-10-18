@@ -157,3 +157,20 @@ test('Ernährung: Gegessenes zuoberst ohne Scrollen; Nährstoffe und Pyramide an
   await page.locator('#pyr-milch summary').click();
   await expect(page.locator('#pyr-milch .contrib')).toContainText('Skyr');
 });
+
+test('Blue Zones: Wochen-Check mit automatischen und abhakbaren Gewohnheiten', async ({ page }) => {
+  await page.goto('/');
+  await page.click('#load-demo');
+  await page.goto('/#gesundheit');
+  const card = page.locator('#bluezone-card');
+  await expect(card).toContainText('Natürlich bewegen');
+  await expect(page.locator('#bz-move')).toContainText('automatisch gemessen');
+  const before = await page.locator('#bz-score').textContent();
+  await page.check('#bz-check-purpose');
+  await expect(page.locator('#bz-score')).not.toHaveText(before ?? '');
+  await page.reload();
+  await expect(page.locator('#bz-check-purpose')).toBeChecked();
+  await page.locator('#bluezone-card summary').click();
+  await expect(card).toContainText('umstritten');
+  await expect(card).toContainText('Kein Alkohol');
+});

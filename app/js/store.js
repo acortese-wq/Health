@@ -8,6 +8,9 @@ import { GROUP_KEYS } from './domain/foodgroups.js';
 import { TRIGGERS } from './domain/meals.js';
 
 import { CYCLE_OPTIONS } from './domain/cycle.js';
+import { BLUE_ITEMS } from './domain/bluezones.js';
+
+const BLUE_IDS = BLUE_ITEMS.filter((i) => i.kind === 'self').map((i) => i.id);
 
 const CYCLE_IDS = /** @type {string[]} */ (CYCLE_OPTIONS.map((c) => c[0]));
 const TRIGGER_IDS = /** @type {string[]} */ (TRIGGERS.map((t) => t[0]));
@@ -60,6 +63,7 @@ export const SCHEMA_VERSION = 1;
  *   presets: { food: FoodPreset[], caffeine: CaffeinePreset[] },
  *   stopBang: Record<string, boolean>,
  *   prevention: Record<string, string>,
+ *   blueZones: Record<string, string[]>,
  *   lastBackup?: string,
  *   demo?: boolean,
  * }} State
@@ -102,6 +106,7 @@ export function emptyState() {
     presets: { food: defaultFoodPresets(), caffeine: defaultCaffeinePresets() },
     stopBang: {},
     prevention: {},
+    blueZones: {},
   };
 }
 
@@ -214,6 +219,11 @@ export function sanitize(raw) {
   }
   if (isObj(raw.stopBang)) {
     for (const [k, v] of Object.entries(raw.stopBang)) if (typeof v === 'boolean') s.stopBang[k] = v;
+  }
+  if (isObj(raw.blueZones)) {
+    for (const [k, v] of Object.entries(raw.blueZones)) {
+      if (isISODate(k) && Array.isArray(v)) s.blueZones[k] = v.filter((x) => typeof x === 'string' && BLUE_IDS.includes(x));
+    }
   }
   if (isObj(raw.prevention)) {
     for (const [k, v] of Object.entries(raw.prevention)) if (typeof v === 'string' && isISODate(v)) s.prevention[k] = v;

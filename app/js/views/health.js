@@ -14,7 +14,9 @@ import {
   whtr,
 } from '../domain/clinical.js';
 import { ageOn } from '../domain/energy.js';
-import { addDays } from '../domain/util.js';
+import { addDays, weekStart } from '../domain/util.js';
+import { BLUE_ITEMS, blueZoneWeek } from '../domain/bluezones.js';
+import { addGroups } from '../domain/foodgroups.js';
 import { motivationCard } from './motivation.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -33,6 +35,7 @@ export function viewHealth(ctx) {
       'Die App ordnet deine Werte nach publizierten Leitlinien ein. Sie stellt keine Diagnose. Auffällige Werte gehören in die hausärztliche Sprechstunde.',
     ),
     motivationCard(ctx),
+    blueZoneCard(ctx),
     h('div', { class: 'grid-2' }, bpCard(ctx), bodyCard(ctx)),
     labCard(ctx),
     h('div', { class: 'grid-2' }, stopBangCard(ctx), preventionCard(ctx)),
@@ -548,5 +551,86 @@ function scoffCard(ctx) {
           'Zwei oder mehr Ja-Antworten können auf ein gestörtes Essverhalten hinweisen. Sprich mit deiner Hausärztin oder deinem Hausarzt; Fachstellen für Essstörungen können ebenfalls weiterhelfen. Pausiere in dieser Zeit das genaue Kalorienzählen.',
         )
       : null,
+  );
+}
+
+/**
+ * Blue Zones: 9 Gewohnheiten der Langlebigen, messbare automatisch, übrige pro Woche abhaken.
+ * @param {Ctx} ctx
+ */
+function blueZoneCard(ctx) {
+  const snap = /** @type {NonNullable<Ctx['snap']>} */ (ctx.snap);
+  const wk = weekStart(ctx.today);
+  const checks = ctx.state.blueZones[wk] ?? [];
+  const week = Array.from({ length: 7 }, (_, i) => ctx.state.days[addDays(ctx.today, -i)]?.food ?? []);
+  const withGroups = week.filter((d) => d.some((f) => f.groups && Object.keys(f.groups).length)).length;
+  const g = addGroups(...week.flat().map((f) => f.groups));
+  const r = blueZoneWeek({
+    steps7: snap.steps7?.value ?? null,
+    weekEquivalent: snap.week.equivalent ?? 0,
+    fvPerDay: withGroups ? ((g.gemuese ?? 0) + (g.frucht ?? 0)) / withGroups : null,
+    meatWeek: (g.fleisch ?? 0) + (g.wurst ?? 0),
+    beansWeek: (g.huelsen ?? 0) + (g.pflanzlProtein ?? 0),
+    checks,
+  });
+  return h(
+    'section',
+    { class: 'card', 'aria-labelledby': 'bz-h', id: 'bluezone-card' },
+    h('h2', { id: 'bz-h' }, 'Blue Zones: Gewohnheiten der Langlebigen'),
+    h('p', {}, h('strong', { id: 'bz-score' }, `${r.score} von ${r.total}`), ' diese Woche'),
+    h(
+      'ul',
+      { class: 'checklist bz-list' },
+      ...r.items.map((it) =>
+        h(
+          'li',
+          { id: `bz-${it.id}`, class: it.ok ? 'bz-ok' : '' },
+          it.kind === 'auto'
+            ? h(
+                'div',
+                { class: 'check' },
+                h('span', { class: 'bz-mark', 'aria-hidden': 'true' }, it.ok ? '✓' : '○'),
+                h('span', {}, h('strong', {}, it.title), h('small', {}, `${it.detail} · automatisch gemessen`), h('small', {}, it.text)),
+              )
+            : h(
+                'label',
+                { class: 'check' },
+                h('input', {
+                  type: 'checkbox',
+                  id: `bz-check-${it.id}`,
+                  checked: it.ok,
+                  on: {
+                    change: (e) => {
+                      const v = /** @type {HTMLInputElement} */ (e.target).checked;
+                      ctx.commit((st) => {
+                        const cur = new Set(st.blueZones[wk] ?? []);
+                        if (v) cur.add(it.id);
+                        else cur.delete(it.id);
+                        st.blueZones[wk] = [...cur];
+                      });
+                    },
+                  },
+                }),
+                h('span', {}, h('strong', {}, it.title), h('small', {}, it.text)),
+              ),
+        ),
+      ),
+    ),
+    h(
+      'details',
+      {},
+      h('summary', {}, 'Wie gut ist das belegt?'),
+      h(
+        'p',
+        { class: 'small' },
+        'Ob die Blue-Zones-Regionen tatsächlich so viele Hundertjährige haben, ist wissenschaftlich umstritten (Zweifel an alten Geburtsregistern). Die einzelnen Gewohnheiten sind aber unabhängig davon gut untersucht:',
+      ),
+      h('ul', { class: 'small' }, ...BLUE_ITEMS.map((it) => h('li', {}, `${it.title}: ${it.evidence}`))),
+      h(
+        'p',
+        { class: 'small' },
+        '«Ein Glas Wein am Tag» (Teil der ursprünglichen Liste) übernimmt die App bewusst nicht: Neuere Auswertungen zeigen keinen Schutz durch moderates Trinken. Kein Alkohol ist die gesündeste Wahl.',
+      ),
+    ),
   );
 }

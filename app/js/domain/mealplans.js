@@ -167,6 +167,64 @@ export const MEAL_TEMPLATES = [
     ],
   },
   {
+    id: 'minestrone',
+    name: 'Minestrone mit Bohnen und Parmesan, dazu Ruchbrot',
+    slots: ['mittag', 'abend'],
+    parts: [
+      ['kidneybohnen', 150],
+      ['tomate', 150],
+      ['rueebli', 80],
+      ['lauch', 80],
+      ['zucchetti', 100],
+      ['kartoffeln', 100],
+      ['olivenoel', 10],
+      ['parmesan', 20],
+      ['ruchbrot', 50],
+    ],
+    note: 'Blue Zones (Sardinien): Bohnen und Gemüse als tägliche Basis.',
+  },
+  {
+    id: 'ikaria',
+    name: 'Kichererbsen-Spinat-Eintopf mit Tomaten und Feta',
+    slots: ['mittag', 'abend'],
+    parts: [
+      ['kichererbsen', 150],
+      ['spinat', 150],
+      ['tomate', 150],
+      ['zwiebel', 50],
+      ['olivenoel', 10],
+      ['feta', 60],
+      ['ruchbrot', 50],
+    ],
+    note: 'Blue Zones (Ikaria): Hülsenfrüchte, Gemüse, Olivenöl.',
+  },
+  {
+    id: 'okinawa',
+    name: 'Süsskartoffel mit Tofu, Edamame und Broccoli',
+    slots: ['mittag', 'abend'],
+    parts: [
+      ['suesskartoffel', 200],
+      ['tofu', 150],
+      ['edamame', 60],
+      ['broccoli', 150],
+      ['rapsoel', 5],
+    ],
+    note: 'Blue Zones (Okinawa): Süsskartoffel, Soja und viel Gemüse.',
+  },
+  {
+    id: 'nicoya',
+    name: 'Reis mit Bohnen, Ei und Peperoni (Gallo Pinto)',
+    slots: ['morgen', 'mittag', 'abend'],
+    parts: [
+      ['vollreis', 150],
+      ['kidneybohnen', 150],
+      ['ei', 120],
+      ['peperoni-rot', 100],
+      ['rapsoel', 5],
+    ],
+    note: 'Blue Zones (Nicoya): Bohnen, Mais/Reis und Kürbis als Grundlage.',
+  },
+  {
     id: 'quark-apfel',
     name: 'Magerquark mit Apfel',
     slots: ['zvieri'],
@@ -269,11 +327,11 @@ export function mealEntry(t) {
  * @param {{
  *   slot: Slot, kcalLeft: number, proteinLeft: number, amounts: import('./micros.js').Amounts,
  *   targets: Partial<Record<import('./micros.js').NutrientKey, number>>, prefs: import('./micros.js').FoodPrefs,
- *   dayGroups: import('./foodgroups.js').Groups, weekFish: number, limit?: number,
+ *   dayGroups: import('./foodgroups.js').Groups, weekFish: number, weekBeans?: number, limit?: number,
  * }} p
  * @returns {MealSuggestion[]}
  */
-export function suggestMeals({ slot, kcalLeft, proteinLeft, amounts, targets, prefs, dayGroups, weekFish, limit = 2 }) {
+export function suggestMeals({ slot, kcalLeft, proteinLeft, amounts, targets, prefs, dayGroups, weekFish, weekBeans = 4, limit = 2 }) {
   const open = gaps(amounts, targets);
   const labels = Object.fromEntries(NUTRIENTS.map((n) => [n.key, n.label]));
   const want = Math.min(SLOT_KCAL[slot], Math.max(kcalLeft, 150));
@@ -315,6 +373,11 @@ export function suggestMeals({ slot, kcalLeft, proteinLeft, amounts, targets, pr
     if (veg > 0 && vegMissing > 0) {
       score += Math.min(veg, vegMissing) * 0.4;
       highlights.push(`${Math.round(veg * 10) / 10} Portionen Gemüse`);
+    }
+    // Blue Zones: Hülsenfrüchte fast täglich; wenn die Woche noch wenig hatte, bevorzugen
+    if ((e.groups.huelsen ?? 0) + (e.groups.pflanzlProtein ?? 0) > 0 && weekBeans < 4) {
+      score += 0.6;
+      highlights.push('Hülsenfrüchte (Blue Zones)');
     }
     if ((e.groups.fisch ?? 0) > 0 && weekFish < 1) {
       score += 0.8;

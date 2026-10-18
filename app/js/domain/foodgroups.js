@@ -198,7 +198,7 @@ export function pyramid({ today, week }) {
       label: 'Hülsenfrüchte',
       value: r1(g(wk, 'huelsen')),
       unit: 'Portionen',
-      target: 'regelmässig, mind. 1 pro Woche',
+      target: 'mind. 1 pro Woche; Blue Zones: fast täglich',
       status: g(wk, 'huelsen') >= 1 ? 'ok' : 'low',
     },
   ];
