@@ -54,6 +54,59 @@ export const EVIDENCE = [
     refs: [],
   },
   {
+    id: 'obesity-mortality',
+    topic: 'Lebenserwartung',
+    level: 'gut belegt',
+    claim: 'Ein BMI von 30–35 verkürzt das Leben im Mittel um 2–4 Jahre, ein BMI von 40–45 um 8–10 Jahre.',
+    detail:
+      'Das zeigt eine Auswertung von rund 900 000 Erwachsenen aus 57 Studien. Verglichen wurde mit einem BMI von 22.5–25. Die App leitet daraus deine Spanne ab. Es handelt sich um Beobachtungsdaten: Wie viel davon man durch spätere Abnahme zurückgewinnt, ist weniger genau belegt.',
+    refs: ['Prospective Studies Collaboration, Whitlock G et al., Lancet 2009;373:1083–1096'],
+  },
+  {
+    id: 'activity-years',
+    topic: 'Lebenserwartung',
+    level: 'gut belegt',
+    claim: 'Wer die WHO-Bewegungsempfehlung erfüllt, lebt im Mittel rund 3.4 Jahre länger als Inaktive.',
+    detail:
+      'Schon wenig Bewegung bringt etwa 1.8 Jahre. Beim Dreifachen der Empfehlung sind es rund 4.5 Jahre, danach flacht der Nutzen ab. Die Daten stammen aus sechs Kohorten mit über 650 000 Personen.',
+    refs: ['Moore SC et al., PLoS Med 2012;9:e1001335'],
+  },
+  {
+    id: 'lifestyle-years',
+    topic: 'Lebenserwartung',
+    level: 'gut belegt',
+    claim: 'Fünf gesunde Gewohnheiten bringen Männern ab 50 rund 12 zusätzliche Lebensjahre und mehr Jahre ohne chronische Krankheit.',
+    detail:
+      'Die fünf Gewohnheiten: nicht rauchen, Normalgewicht, mindestens 30 Minuten Bewegung pro Tag, mässiger Alkoholkonsum, ausgewogene Ernährung. Mit 4–5 dieser Gewohnheiten bleiben Männer im Mittel rund 7–8 Jahre länger frei von Diabetes, Herz-Kreislauf-Erkrankung und Krebs.',
+    refs: ['Li Y et al., Circulation 2018;138:345–355', 'Li Y et al., BMJ 2020;368:l6669'],
+  },
+  {
+    id: 'diabetes-prevention',
+    topic: 'Lebenserwartung',
+    level: 'gut belegt',
+    claim: '5–7 % Gewichtsabnahme plus 150 Minuten Bewegung pro Woche senken das Diabetesrisiko um 58 %.',
+    detail:
+      'Das zeigte eine randomisierte Studie mit Menschen mit Prädiabetes. Der Lebensstil wirkte dabei stärker als das Medikament Metformin.',
+    refs: ['Knowler WC et al. (DPP), N Engl J Med 2002;346:393–403'],
+  },
+  {
+    id: 'bp-weight',
+    topic: 'Lebenserwartung',
+    level: 'gut belegt',
+    claim: 'Pro Kilogramm Gewichtsverlust sinkt der Blutdruck im Mittel um etwa 1 mmHg.',
+    detail: 'Das ergab eine Metaanalyse randomisierter Studien. Bei 15 kg Abnahme kann das so viel ausmachen wie ein Blutdruckmedikament.',
+    refs: ['Neter JE et al., Hypertension 2003;42:878–884'],
+  },
+  {
+    id: 'cancer-weight',
+    topic: 'Lebenserwartung',
+    level: 'gut belegt',
+    claim: 'Übergewicht erhöht das Risiko für mindestens 13 Krebsarten.',
+    detail:
+      'Darunter sind Darm-, Nieren-, Speiseröhren-, Bauchspeicheldrüsen- und Leberkrebs. Die Bewertung stammt von der Internationalen Agentur für Krebsforschung (IARC).',
+    refs: ['Lauby-Secretan B et al., N Engl J Med 2016;375:794–798'],
+  },
+  {
     id: 'water',
     topic: 'Ernährung',
     level: 'gut belegt',

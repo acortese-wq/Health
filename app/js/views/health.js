@@ -15,6 +15,7 @@ import {
 } from '../domain/clinical.js';
 import { ageOn } from '../domain/energy.js';
 import { addDays } from '../domain/util.js';
+import { motivationCard } from './motivation.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 
@@ -31,6 +32,7 @@ export function viewHealth(ctx) {
       { class: 'lead' },
       'Die App ordnet deine Werte nach publizierten Leitlinien ein. Sie stellt keine Diagnose. Auffällige Werte gehören in die hausärztliche Sprechstunde.',
     ),
+    motivationCard(ctx),
     h('div', { class: 'grid-2' }, bpCard(ctx), bodyCard(ctx)),
     labCard(ctx),
     h('div', { class: 'grid-2' }, stopBangCard(ctx), preventionCard(ctx)),

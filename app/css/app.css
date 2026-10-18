@@ -1548,3 +1548,64 @@ details summary {
 textarea {
   resize: vertical;
 }
+
+/* Trink-Motivation */
+.water-pace {
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.pace-done {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.pace-ontrack {
+  background: var(--petrol-soft);
+}
+.pace-behind {
+  background: var(--warn-soft);
+}
+.pace-past {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.water-fact {
+  border-left: 3px solid var(--petrol);
+  padding-left: 10px;
+}
+
+/* Warum es sich lohnt */
+.life-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+}
+.life-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--petrol-soft);
+}
+.life-value {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: 2.2rem;
+  line-height: 1.1;
+  color: var(--petrol);
+  font-variant-numeric: tabular-nums;
+}
+.life-value small {
+  font-family: var(--f-body);
+  font-size: 1rem;
+  font-weight: 600;
+}
+.mot-details {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.mot-details[open] summary {
+  margin-bottom: 8px;
+}

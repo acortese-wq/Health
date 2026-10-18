@@ -4,6 +4,7 @@ import { uid, extraNutrients, recentFoods } from '../store.js';
 import { FIBER_TARGET_G, SALT_LIMIT_G } from '../domain/foodvision.js';
 import { plannedSession } from '../domain/training.js';
 import { photoBlock } from './photo.js';
+import { waterPace, waterFact } from '../domain/hydration.js';
 import { reviewCard } from './review.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -452,6 +453,8 @@ function waterCard(ctx, snap) {
       },
       delta > 0 ? `+${fmt(delta)} ml` : 'Korrigiert',
     );
+  const now = new Date();
+  const pace = waterPace({ ml, target, minutes: now.getHours() * 60 + now.getMinutes(), isToday: ctx.date === ctx.today });
   return h(
     'section',
     { class: 'card', 'aria-labelledby': 'water-h' },
@@ -486,11 +489,9 @@ function waterCard(ctx, snap) {
         h('small', {}, '−250 ml'),
       ),
     ),
+    pace ? h('p', { class: `water-pace pace-${pace.status}`, id: 'water-pace' }, pace.message) : null,
+    h('p', { class: 'water-fact small' }, waterFact(ctx.date)),
     snap.water7 ? h('p', { class: 'small muted' }, `7-Tage-Schnitt: ${fmt(snap.water7.value)} ml`) : null,
-    h(
-      'p',
-      { class: 'hint' },
-      'Kaffee und Tee zählen mit. Ein grosses Glas Wasser vor dem Essen hilft manchen beim Sattwerden. Bei Herz- oder Nierenerkrankungen gilt die ärztliche Trinkmenge.',
-    ),
+    h('p', { class: 'hint' }, 'Kaffee und Tee zählen mit. Bei Herz- oder Nierenerkrankungen gilt die ärztlich empfohlene Trinkmenge.'),
   );
 }

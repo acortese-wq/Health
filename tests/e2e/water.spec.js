@@ -22,3 +22,16 @@ test('Trinken: Glas und Flasche erfassen, korrigieren, bleibt nach Neuladen', as
   await expect(card).toContainText('1’250 / 2’000 ml');
   await expect(card).toContainText('5 Gläser');
 });
+
+test('Gesundheit: Lebenserwartung, Risiken und Nutzen von Bewegung', async ({ page }) => {
+  await page.goto('/');
+  await page.click('#load-demo');
+  await page.goto('/#gesundheit');
+  await expect(page.locator('#mot-h')).toHaveText('Warum es sich lohnt');
+  await expect(page.locator('#life-activity')).toContainText('Durch Bewegung bereits gewonnen');
+  await expect(page.locator('#life-weight')).toContainText('Jahre');
+  await page.locator('#risk-details summary').click();
+  await expect(page.locator('#risk-details')).toContainText('Typ-2-Diabetes');
+  await page.goto('/#heute');
+  await expect(page.locator('#water-pace')).toBeVisible();
+});
