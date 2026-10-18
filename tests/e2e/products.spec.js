@@ -94,7 +94,8 @@ test('Produktsuche: Server nicht erreichbar → verständliche Meldung mit Auswe
   await page.goto('/#ernaehrung');
   await page.fill('#food-search', 'Brot');
   await page.click('#off-search');
-  await expect(page.locator('#off-results')).toContainText('überlastet oder nicht erreichbar');
+  await expect(page.locator('#off-results')).toContainText('neuer Versuch 2 von 3');
+  await expect(page.locator('#off-results')).toContainText('überlastet oder nicht erreichbar', { timeout: 15000 });
   await expect(page.locator('#off-results')).toContainText('Schweizer Nährwertdatenbank');
 });
 
@@ -107,4 +108,27 @@ test('Produktsuche: Fehler von Open Food Facts verständlich anzeigen', async ({
   await page.fill('#food-search', 'Brot');
   await page.click('#off-search');
   await expect(page.locator('#off-results')).toContainText('Zu viele Suchen');
+});
+
+test('Produktsuche: App wiederholt selbst, wenn Open Food Facts zeitweise nicht antwortet', async ({ page }) => {
+  let calls = 0;
+  await page.route('https://world.openfoodfacts.org/cgi/search.pl**', (route) => route.abort('failed'));
+  await page.route('https://search.openfoodfacts.org/**', (route) => {
+    calls++;
+    if (calls === 1) return route.abort('failed');
+    return route.fulfill({
+      headers: { 'access-control-allow-origin': '*' },
+      json: { hits: [{ code: '7610000000002', product_name: 'Hüttenkäse', nutriments: { 'energy-kcal_100g': 95, proteins_100g: 12 } }] },
+    });
+  });
+  await page.goto('/');
+  await page.click('#load-demo');
+  await page.goto('/#ernaehrung');
+  await page.fill('#food-search', 'Hüttenkäse');
+  await page.click('#off-search');
+  await expect(page.locator('#off-0')).toContainText('Hüttenkäse', { timeout: 10000 });
+  // Zweite Suche kommt aus dem Zwischenspeicher, ohne neue Anfrage
+  await page.click('#off-search');
+  await expect(page.locator('#off-0')).toContainText('Hüttenkäse');
+  expect(calls).toBe(2);
 });

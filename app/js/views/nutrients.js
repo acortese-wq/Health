@@ -213,7 +213,9 @@ function productSearch(ctx, query) {
     offAbort = new AbortController();
     out.replaceChildren(h('p', { class: 'small muted' }, 'Suche bei Open Food Facts …'));
     try {
-      const list = await searchProducts(q, view.store, offAbort.signal);
+      const list = await searchProducts(q, view.store, offAbort.signal, (n, of) =>
+        out.replaceChildren(h('p', { class: 'small muted' }, `Open Food Facts antwortet langsam, neuer Versuch ${n} von ${of} …`)),
+      );
       out.replaceChildren(
         ...(list.length
           ? list

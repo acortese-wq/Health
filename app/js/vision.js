@@ -339,9 +339,64 @@ export async function lookupBarcode(barcode, signal) {
  * @param {string} query
  * @param {string} store
  * @param {AbortSignal} [signal]
+ * @param {(attempt: number, of: number) => void} [onRetry] Rückmeldung für die Anzeige
  * @returns {Promise<import('./domain/foodvision.js').Product[]>}
  */
-export async function searchProducts(query, store, signal) {
+export async function searchProducts(query, store, signal, onRetry) {
+  const key = `${store}|${query.trim().toLowerCase()}`;
+  const hit = searchCache.get(key);
+  if (hit && Date.now() - hit.at < 30 * 60 * 1000) return hit.list;
+  // Open Food Facts antwortet zeitweise nicht: automatisch bis zu 3 Durchgänge mit Pause,
+  // statt den Nutzer mehrmals tippen zu lassen. Bei «zu viele Suchen» nicht nachhaken.
+  let last = /** @type {Error} */ (offUnavailable());
+  for (let round = 0; round < 3; round++) {
+    if (round > 0) {
+      onRetry?.(round + 1, 3);
+      await wait(round * 2000, signal);
+    }
+    const r = await searchOnce(query, store, signal);
+    if (Array.isArray(r)) {
+      searchCache.set(key, { at: Date.now(), list: r });
+      return r;
+    }
+    last = r;
+    if (r.message.startsWith('Zu viele')) break;
+  }
+  throw last;
+}
+
+/**
+ * Ergebnisse der letzten Suchen (30 Minuten), spart Anfragen bei wiederholter Suche.
+ * @type {Map<string, { at: number, list: import('./domain/foodvision.js').Product[] }>}
+ */
+const searchCache = new Map();
+
+/**
+ * @param {number} ms
+ * @param {AbortSignal | undefined} signal
+ */
+function wait(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(resolve, ms);
+    signal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(t);
+        reject(new DOMException('Abgebrochen', 'AbortError'));
+      },
+      { once: true },
+    );
+  });
+}
+
+/**
+ * Ein Durchgang: neue Suche, dann klassische Suche. Gibt Produkte oder einen Fehler zurück.
+ * @param {string} query
+ * @param {string} store
+ * @param {AbortSignal | undefined} signal
+ * @returns {Promise<import('./domain/foodvision.js').Product[] | Error>}
+ */
+async function searchOnce(query, store, signal) {
   let limited = false;
   let answered = false;
   for (const [url, ms] of /** @type {const} */ ([
@@ -376,8 +431,8 @@ export async function searchProducts(query, store, signal) {
     return loaded.filter((p) => p !== null);
   }
   if (answered) return [];
-  if (limited) throw new Error('Zu viele Suchen in kurzer Zeit. Bitte eine Minute warten.');
-  throw offUnavailable();
+  if (limited) return new Error('Zu viele Suchen in kurzer Zeit. Bitte eine Minute warten.');
+  return offUnavailable();
 }
 
 /**
