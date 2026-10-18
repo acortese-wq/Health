@@ -9,6 +9,7 @@
 
 import { plannedSession } from './training.js';
 import { addDays, isNum, mean, timeToMinutes } from './util.js';
+import { eatingWindow, outsideWindow, windowLabel } from './fasting.js';
 
 /**
  * @typedef {{ id: string, title: string, tip: string, weight: number }} Improvement
@@ -19,7 +20,10 @@ import { addDays, isNum, mean, timeToMinutes } from './util.js';
  * }} Review
  * @typedef {{
  *   date: string,
- *   profile: { stepsTarget: number, sleepTargetH: number, waterTargetMl?: number, trainingMode?: import('./training.js').TrainingMode },
+ *   profile: {
+ *     stepsTarget: number, sleepTargetH: number, waterTargetMl?: number, trainingMode?: import('./training.js').TrainingMode,
+ *     fastingWindowH?: number, eatStart?: string,
+ *   },
  *   day: import('../store.js').Day,
  *   kcal: number, kcalTarget: number,
  *   proteinG: number, protein: { grams: number },
@@ -165,6 +169,26 @@ export function dayReview(s, { workouts, dayOver, streaks: st }) {
         title: `Protein: ${fmt(s.proteinG)} von ${fmt(s.protein.grams)} g`,
         tip: 'Verlege das Protein in die erste Tageshälfte: mittags 40–50 g (Fleisch, Fisch, Eier, Hülsenfrüchte) und um 16 Uhr 250 g Skyr oder Quark.',
       });
+    }
+    // Essensfenster (nur wenn gewählt)
+    const w = eatingWindow(s.profile.eatStart ?? '11:00', s.profile.fastingWindowH ?? 0);
+    if (w && dayOver) {
+      total++;
+      const off = outsideWindow(food, w);
+      if (!off.outside.length) {
+        met++;
+        wins.push(`Essensfenster eingehalten (${windowLabel(w)}).`);
+      } else {
+        const late = off.late.length > 0;
+        improve.push({
+          id: 'window',
+          weight: late ? 45 : 30,
+          title: `${off.outside.length} ${off.outside.length === 1 ? 'Mahlzeit' : 'Mahlzeiten'} ausserhalb des Fensters`,
+          tip: late
+            ? `Das Fenster schloss um ${windowLabel(w).split('–')[1]}. Mach die letzte Mahlzeit proteinreich und sättigend, danach Zähne putzen: ein klares Signal, dass die Küche zu ist.`
+            : `Vor ${windowLabel(w).split('–')[0]} gegessen. Kein Problem, wenn es dir guttut: Dann verschiebe das Fenster im Profil früher, statt dich durchzuquälen.`,
+        });
+      }
     }
   } else if (dayOver) {
     improve.push({

@@ -14,6 +14,7 @@ Navigation: fünf Hauptbereiche unten (mobil) bzw. links (Desktop), dazu **Wisse
 | Bereich         | Was die App macht |
 | --------------- | ----------------- |
 | **Heute**       | Antippbare Kennzahlen (Trendgewicht, Kalorien übrig, Protein, Plan), Schnellaktionen, Coach-Hinweise nach Dringlichkeit, Gewicht, **Trinkmenge** mit Erinnerungen, Koffein mit Restmenge beim Schlafengehen, Erholung (Schritte, Schlaf, Ruhepuls), Tagesrückblick |
+| **Intervallfasten** | Optional im Profil (12:12, 14:10, 16:8): Karte auf Heute mit Fastenzeit, Countdown, Proteinplan im Fenster, Markierung von Mahlzeiten ausserhalb, Einordnung im Tagesrückblick. Einträge bis 50 kcal (Milch im Kaffee) zählen nicht als Mahlzeit |
 | **Ernährung**   | **Mahlzeit fotografieren, beschreiben oder Packung scannen** (Claude oder GPT, Open Food Facts), Zuletzt gegessen, Schnellerfassung, Einträge direkt bearbeiten |
 | **Fortschritt** | Robuster Trend (Theil-Sen und exponentielle Glättung), Planlinie, Zwischenziele, Prognose, **adaptiver Energiebedarf** aus den eigenen Daten |
 | **Training**    | Laufplan (oder Lauf plus Kraft mit **doppelter Progression**), Wochenbilanz nach WHO, Garmin-CSV-Import, Lebenserwartung durch Bewegung |

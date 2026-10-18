@@ -30,10 +30,19 @@ export const EVIDENCE = [
     id: 'tre',
     topic: 'Ernährung',
     level: 'gut belegt',
-    claim: 'Intervallfasten und Dinner Cancelling wirken über weniger Kalorien, nicht über eine besondere Stoffwechselwirkung.',
+    claim: 'Intervallfasten (z. B. 16:8) wirkt über weniger Kalorien, nicht über eine besondere Stoffwechselwirkung.',
     detail:
-      'In randomisierten Studien war ein verkürztes Essfenster bei gleicher Kalorienmenge nicht wirksamer als eine normale Kalorienreduktion. Wer abends Heisshunger hat, sollte die Kalorien eher in die erste Tageshälfte verschieben.',
+      'In randomisierten Studien war ein Essensfenster bei gleicher Kalorienmenge nicht wirksamer als normale Kalorienreduktion. In einer 16:8-Studie ohne Kalorienvorgabe ging ein Teil des Gewichtsverlusts auf Muskulatur. Darum zeigt die App im Fenster einen Proteinplan. Sinnvoll ist das Fenster als Struktur, etwa gegen spätes Essen am Abend.',
     refs: ['Lowe DA et al., JAMA Intern Med 2020;180:1491–1499', 'Liu D et al., N Engl J Med 2022;386:1495–1504'],
+  },
+  {
+    id: 'etre',
+    topic: 'Ernährung',
+    level: 'unsicher',
+    claim: 'Ein frühes Essensfenster (z. B. bis 15 oder 17 Uhr) könnte Blutzucker und Blutdruck zusätzlich verbessern.',
+    detail:
+      'Kleine Studien fanden bei frühem Fenster eine bessere Insulinempfindlichkeit und einen tieferen Blutdruck, teils ohne Gewichtsverlust. Die Studien sind klein und kurz. Praktisch heisst das: Wenn du ein Fenster wählst, lieber früh enden als spät.',
+    refs: ['Sutton EF et al., Cell Metab 2018;27:1212–1221', 'Jamshed H et al., JAMA Intern Med 2022;182:953–962'],
   },
   {
     id: 'breakfast',

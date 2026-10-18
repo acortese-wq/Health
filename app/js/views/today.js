@@ -7,6 +7,17 @@ import { photoBlock } from './photo.js';
 import { healthPasteBlock } from './garmin.js';
 import { waterPace, waterFact, reminderTimes, buildReminderIcs } from '../domain/hydration.js';
 import { reviewCard } from './review.js';
+import {
+  eatingWindow,
+  windowLabel,
+  inWindow,
+  fastingStatus,
+  overnightFastH,
+  outsideWindow,
+  proteinPlan,
+  SMALL_KCAL,
+} from '../domain/fasting.js';
+import { addDays } from '../domain/util.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 
@@ -22,7 +33,15 @@ export function viewToday(ctx) {
     h('h1', { class: 'sr-only' }, 'Heute'),
     summary(ctx, snap),
     hints(snap),
-    h('div', { class: 'grid-2' }, weightCard(ctx, snap), waterCard(ctx, snap), caffeineCard(ctx, snap), recoveryCard(ctx, snap)),
+    h(
+      'div',
+      { class: 'grid-2' },
+      weightCard(ctx, snap),
+      fastingCard(ctx, snap),
+      waterCard(ctx, snap),
+      caffeineCard(ctx, snap),
+      recoveryCard(ctx, snap),
+    ),
     reviewCard(ctx),
   );
 }
@@ -647,6 +666,76 @@ function reminderBlock(ctx, target) {
   );
 }
 
+/**
+ * Intervallfasten: Phase jetzt, Fastendauer der Nacht, Proteinplan im Fenster.
+ * Nur sichtbar, wenn im Profil ein Essensfenster gewählt ist.
+ * @param {Ctx} ctx
+ * @param {NonNullable<Ctx['snap']>} snap
+ */
+function fastingCard(ctx, snap) {
+  const w = eatingWindow(snap.profile.eatStart, snap.profile.fastingWindowH);
+  if (!w) return null;
+  const food = snap.day.food ?? [];
+  const prevFood = ctx.state.days[addDays(ctx.date, -1)]?.food ?? [];
+  const now = new Date();
+  const isToday = ctx.date === ctx.today;
+  const status = isToday ? fastingStatus({ w, food, prevFood, nowMin: now.getHours() * 60 + now.getMinutes() }) : null;
+  const night = overnightFastH(prevFood, food);
+  const fastTarget = 24 - w.hours;
+  const off = outsideWindow(food, w);
+  const plan = proteinPlan(snap.protein.grams, w);
+  return h(
+    'section',
+    { class: 'card', 'aria-labelledby': 'fast-h', id: 'fasting-card' },
+    h('h2', { id: 'fast-h' }, `Essensfenster ${24 - w.hours}:${w.hours}`),
+    h('p', { class: 'small muted' }, `Heute ${windowLabel(w)}`),
+    status
+      ? h('p', { class: `fast-status fast-${status.phase}`, id: 'fast-status' }, h('strong', {}, status.title), h('br', {}), status.detail)
+      : null,
+    status?.progress !== null && status?.progress !== undefined
+      ? meter({ value: Math.round((status.sinceMin ?? 0) / 6) / 10, target: fastTarget, label: 'Fastenzeit', unit: 'h', over: 'good' })
+      : null,
+    h(
+      'dl',
+      { class: 'kv' },
+      night !== null
+        ? [
+            h('dt', {}, 'Letzte Nacht gefastet'),
+            h('dd', { id: 'fast-night' }, `${fmt(night, 1)} h`, night >= fastTarget ? ' ✓' : ` (Ziel ${fastTarget} h)`),
+          ]
+        : null,
+      off.outside.length
+        ? [
+            h('dt', {}, 'Ausserhalb des Fensters'),
+            h(
+              'dd',
+              { id: 'fast-outside' },
+              `${off.outside.length} ${off.outside.length === 1 ? 'Mahlzeit' : 'Mahlzeiten'}, ${fmt(off.kcal)} kcal`,
+            ),
+          ]
+        : null,
+    ),
+    h(
+      'p',
+      { class: 'small' },
+      `Proteinplan: ${plan.portions} Portionen à ca. ${plan.gramsEach} g, z. B. um ${plan.times.join(', ')}. So erreichst du dein Proteinziel und schützt die Muskeln.`,
+    ),
+    h(
+      'details',
+      {},
+      h('summary', {}, 'Was ist während des Fastens erlaubt?'),
+      h(
+        'ul',
+        { class: 'small' },
+        h('li', {}, 'Wasser, Mineralwasser, ungesüsster Tee, schwarzer Kaffee (Koffein-Grenze beachten).'),
+        h('li', {}, `Ein Schluck Milch im Kaffee ist unproblematisch. Einträge bis ${SMALL_KCAL} kcal zählt die App nicht als Mahlzeit.`),
+        h('li', {}, 'Lockere Läufe nüchtern sind kein Problem. Intervalle und lange Läufe besser im Fenster oder nach einer Mahlzeit.'),
+        h('li', {}, 'Am Ende zählt die Tagesbilanz: Wer im Fenster alles nachholt, nimmt nicht ab.'),
+      ),
+    ),
+  );
+}
+
 /** Eintrag, der gerade bearbeitet wird. */
 let editingFoodId = '';
 
@@ -659,6 +748,8 @@ function foodRow(ctx, f) {
   const remove = () =>
     ctx.commit((s) => void (s.days[ctx.date].food = (s.days[ctx.date].food ?? []).filter((x) => x.id !== f.id)), `${f.name} entfernt`);
   if (editingFoodId !== f.id) {
+    const w = ctx.snap ? eatingWindow(ctx.snap.profile.eatStart, ctx.snap.profile.fastingWindowH) : null;
+    const outside = w !== null && f.kcal > SMALL_KCAL && !inWindow(f.time, w);
     return h(
       'li',
       {},
@@ -668,6 +759,7 @@ function foodRow(ctx, f) {
         { class: 'entry-name' },
         f.name,
         f.source === 'foto' || f.source === 'text' ? h('small', { class: 'muted' }, ' · geschätzt') : null,
+        outside ? h('small', { class: 'fast-tag' }, ' · ausserhalb Fenster') : null,
       ),
       h('span', { class: 'entry-num' }, `${fmt(f.kcal)} kcal · ${fmt(f.protein)} g`),
       h(

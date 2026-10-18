@@ -43,6 +43,8 @@ const PAIRS = [
   ['ok', 'surface'],
   ['info', 'info-soft'],
   ['warn', 'warn-soft'],
+  ['warn', 'surface'],
+  ['ink', 'ok-soft'],
   ['alert', 'alert-soft'],
   ['alert', 'surface'],
   ['ink', 'warn-soft'],

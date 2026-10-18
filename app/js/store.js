@@ -15,6 +15,7 @@ export const SCHEMA_VERSION = 1;
  *   activity: string, proteinPerKg: number, kcalOverride: number | null,
  *   stepsTarget: number, sleepTargetH: number, waterTargetMl: number, bedtime: string,
  *   trainingMode: import('./domain/training.js').TrainingMode,
+ *   fastingWindowH: number, eatStart: string,
  *   caffeineHalfLifeH: number, caffeineCutoffH: number, caffeineMaxMg: number,
  *   caffeineStartCups: number, caffeineTargetCups: number, caffeineTaperStart: string,
  * }} Profile
@@ -232,6 +233,8 @@ function sanitizeProfile(p) {
     sleepTargetH: num(p.sleepTargetH, 7.5),
     waterTargetMl: num(p.waterTargetMl, 2000),
     trainingMode: p.trainingMode === 'laufen' ? 'laufen' : 'kombi',
+    fastingWindowH: [8, 10, 12].includes(/** @type {number} */ (p.fastingWindowH)) ? /** @type {number} */ (p.fastingWindowH) : 0,
+    eatStart: typeof p.eatStart === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(p.eatStart) ? p.eatStart : '11:00',
     bedtime: str(p.bedtime, '22:30'),
     caffeineHalfLifeH: num(p.caffeineHalfLifeH, 5),
     caffeineCutoffH: num(p.caffeineCutoffH, 8),

@@ -1820,3 +1820,21 @@ textarea {
 .health-paste {
   gap: 6px;
 }
+
+/* Intervallfasten */
+.fast-status {
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  font-size: 0.92rem;
+}
+.fast-fasting,
+.fast-closed {
+  background: var(--surface-2);
+}
+.fast-open {
+  background: var(--ok-soft);
+}
+.fast-tag {
+  color: var(--warn);
+  font-weight: 600;
+}

@@ -4,6 +4,7 @@ import { ACTIVITY_LEVELS } from '../domain/energy.js';
 import { emptyState, exportCSV, exportJSON, importJSON } from '../store.js';
 import { demoState } from '../demo.js';
 import { isISODate } from '../domain/util.js';
+import { FASTING_OPTIONS, FASTING_CAUTION } from '../domain/fasting.js';
 import { getAiSettings, saveAiSettings, listModels, PROVIDERS } from '../vision.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -110,6 +111,8 @@ function profileForm(ctx, p) {
     sleepTargetH: 7.5,
     waterTargetMl: 2000,
     trainingMode: 'kombi',
+    fastingWindowH: 0,
+    eatStart: '11:00',
     bedtime: '22:30',
     caffeineHalfLifeH: 5,
     caffeineCutoffH: 8,
@@ -162,6 +165,8 @@ function profileForm(ctx, p) {
       waterTargetMl: need('p-water', 'Trinkziel (ml)', 1000, 5000, 2000),
       trainingMode: str(fd, 'p-training') === 'laufen' ? 'laufen' : 'kombi',
       bedtime: str(fd, 'p-bed') || '22:30',
+      fastingWindowH: [8, 10, 12].includes(Number(str(fd, 'p-fasting'))) ? Number(str(fd, 'p-fasting')) : 0,
+      eatStart: /^\d{2}:\d{2}$/.test(str(fd, 'p-eatstart')) ? str(fd, 'p-eatstart') : '11:00',
       caffeineHalfLifeH: need('p-cafhl', 'Koffein-Halbwertszeit (h)', 2, 10, 5),
       caffeineCutoffH: need('p-cafcut', 'Koffein-Abstand zum Schlaf (h)', 4, 12, 8),
       caffeineMaxMg: need('p-cafmax', 'Koffein-Obergrenze (mg)', 0, 600, 400),
@@ -276,6 +281,26 @@ function profileForm(ctx, p) {
       }),
       field({ id: 'p-bed', label: 'Übliche Schlafenszeit', type: 'time', value: v.bedtime }),
     ),
+    h('h3', {}, 'Intervallfasten (optional)'),
+    h(
+      'div',
+      { class: 'form-grid' },
+      select({
+        id: 'p-fasting',
+        label: 'Essensfenster',
+        value: String(v.fastingWindowH ?? 0),
+        options: FASTING_OPTIONS.map((o) => ({ value: String(o.hours), label: o.label })),
+        hint: 'Wirkt über weniger Kalorien, nicht über einen Stoffwechseltrick. Sinnvoll, wenn dir feste Zeiten gegen spätes Essen helfen.',
+      }),
+      field({
+        id: 'p-eatstart',
+        label: 'Fenster beginnt um',
+        type: 'time',
+        value: v.eatStart ?? '11:00',
+        hint: 'Früh enden ist besser als spät: z. B. 11–19 Uhr statt 13–21 Uhr.',
+      }),
+    ),
+    h('p', { class: 'hint' }, FASTING_CAUTION),
     h('h3', {}, 'Koffein'),
     h(
       'div',
