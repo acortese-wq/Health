@@ -9,6 +9,7 @@ import { TRIGGERS } from './domain/meals.js';
 
 import { CYCLE_OPTIONS } from './domain/cycle.js';
 import { BLUE_ITEMS } from './domain/bluezones.js';
+import { createEntry } from './domain/entries.js';
 
 const BLUE_IDS = BLUE_ITEMS.filter((i) => i.kind === 'self').map((i) => i.id);
 
@@ -16,7 +17,10 @@ const CYCLE_IDS = /** @type {string[]} */ (CYCLE_OPTIONS.map((c) => c[0]));
 const TRIGGER_IDS = /** @type {string[]} */ (TRIGGERS.map((t) => t[0]));
 
 export const STORAGE_KEY = 'gesundheitscockpit';
-export const SCHEMA_VERSION = 1;
+// Schema 2 (2026-10): Mahlzeiten mit Zeitstempel «at», «repeatOf» (bewusst wiederholt),
+// «dupOf» (technische Kopie), «keep» (Doppelbuchung geprüft) und «proteinKnown».
+// Version-1-Daten werden unverändert übernommen; die neuen Felder sind optional.
+export const SCHEMA_VERSION = 2;
 
 /**
  * @typedef {'m' | 'f'} Sex
@@ -41,6 +45,7 @@ export const SCHEMA_VERSION = 1;
  *   micros?: import('./domain/micros.js').Amounts, microSrc?: 'db' | 'ki' | 'mix' | 'etikett',
  *   groups?: import('./domain/foodgroups.js').Groups,
  *   hunger?: 1 | 2 | 3, trigger?: import('./domain/meals.js').Trigger, nova?: number,
+ *   at?: string, repeatOf?: string, dupOf?: string, keep?: boolean, proteinKnown?: false,
  * }} FoodEntry
  * @typedef {{ id: string, label: string, mg: number, time: string }} CaffeineEntry
  * @typedef {{
@@ -138,8 +143,12 @@ export function sanitize(raw) {
   const s = emptyState();
   if (isObj(raw.profile)) s.profile = sanitizeProfile(raw.profile);
   if (isObj(raw.days)) {
-    for (const [date, d] of Object.entries(raw.days)) {
-      if (isISODate(date) && isObj(d)) s.days[date] = sanitizeDay(d);
+    // IDs müssen eindeutig sein; eine doppelte ID (z. B. doppelter Import) wird nicht gelöscht,
+    // sondern bekommt eine neue ID und wird als mögliche Doppelbuchung markiert.
+    /** @type {Set<string>} */
+    const seen = new Set();
+    for (const [date, d] of Object.entries(raw.days).sort(([a], [b]) => (a < b ? -1 : 1))) {
+      if (isISODate(date) && isObj(d)) s.days[date] = sanitizeDay(d, seen);
     }
   }
   /**
@@ -285,9 +294,10 @@ function sanitizeProfile(p) {
 
 /**
  * @param {Record<string, unknown>} d
+ * @param {Set<string>} seen bereits vergebene Mahlzeiten-IDs
  * @returns {Day}
  */
-function sanitizeDay(d) {
+function sanitizeDay(d, seen) {
   /** @type {Day} */
   const out = {};
   if (isNum(d.weightKg) && d.weightKg > 20 && d.weightKg < 400) out.weightKg = d.weightKg;
@@ -299,20 +309,16 @@ function sanitizeDay(d) {
   if (d.period === true) out.period = true;
   const time = (/** @type {unknown} */ v) => (typeof v === 'string' && /^\d{2}:\d{2}$/.test(v) ? v : '12:00');
   if (Array.isArray(d.food)) {
-    out.food = d.food.flatMap((f) =>
-      isObj(f) && typeof f.name === 'string' && isNum(f.kcal) && isNum(f.protein)
-        ? [
-            {
-              id: typeof f.id === 'string' ? f.id : uid(),
-              name: f.name,
-              kcal: f.kcal,
-              protein: f.protein,
-              time: time(f.time),
-              ...extraNutrients(f),
-            },
-          ]
-        : [],
-    );
+    out.food = d.food.flatMap((f) => {
+      if (!isObj(f) || typeof f.name !== 'string' || !isNum(f.kcal) || !isNum(f.protein)) return [];
+      const given = typeof f.id === 'string' && f.id ? f.id : '';
+      const id = given && !seen.has(given) ? given : uid();
+      seen.add(id);
+      /** @type {FoodEntry} */
+      const e = { id, name: f.name, kcal: f.kcal, protein: f.protein, time: time(f.time), ...extraNutrients(f), ...entryMeta(f) };
+      if (given && id !== given) e.dupOf = given;
+      return [e];
+    });
   }
   if (Array.isArray(d.caffeine)) {
     out.caffeine = d.caffeine.flatMap((c) =>
@@ -475,6 +481,40 @@ export function extraNutrients(f) {
       out.microSrc = f.microSrc === 'ki' || f.microSrc === 'mix' || f.microSrc === 'etikett' ? f.microSrc : 'db';
     }
   }
+  return out;
+}
+
+/**
+ * Mahlzeit an einem Tag anlegen (neue ID und Zeitstempel). Gibt null zurück, wenn es ein
+ * Doppeltipp war; dann bleibt der Zustand unverändert.
+ * @param {State} state
+ * @param {string} date
+ * @param {Omit<FoodEntry, 'id'>} fields
+ * @param {Date} [now]
+ * @returns {FoodEntry | null}
+ */
+export function addFood(state, date, fields, now = new Date()) {
+  const d = (state.days[date] = state.days[date] ?? {});
+  const list = d.food ?? [];
+  const e = createEntry(list, fields, { id: uid(), now });
+  if (!e) return null;
+  d.food = [...list, e];
+  return e;
+}
+
+/**
+ * Ereignis-Angaben einer Mahlzeit (Schema 2).
+ * @param {Record<string, unknown>} f
+ * @returns {Partial<FoodEntry>}
+ */
+function entryMeta(f) {
+  /** @type {Partial<FoodEntry>} */
+  const out = {};
+  if (typeof f.at === 'string' && !Number.isNaN(Date.parse(f.at))) out.at = f.at;
+  if (typeof f.repeatOf === 'string' && f.repeatOf) out.repeatOf = f.repeatOf;
+  if (typeof f.dupOf === 'string' && f.dupOf) out.dupOf = f.dupOf;
+  if (f.keep === true) out.keep = true;
+  if (f.proteinKnown === false) out.proteinKnown = false;
   return out;
 }
 

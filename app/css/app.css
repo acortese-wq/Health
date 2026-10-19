@@ -1014,6 +1014,19 @@ fieldset.ex legend {
   .entries li {
     grid-template-columns: auto minmax(0, 1fr) auto;
   }
+  /* Mahlzeiten: Aktionen in eigener Zeile, damit Name und Werte Platz haben */
+  .entries li.entry {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .entries li.entry > .entry-num {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .entries li.entry > .entry-actions {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-self: end;
+  }
   .entries li .entry-num,
   .entries li .badge {
     grid-column: 2;
@@ -2156,4 +2169,138 @@ textarea {
 }
 .bz-ok .bz-mark {
   color: var(--ok);
+}
+
+/* Mahlzeiten: erneut erfassen, Gruppen, Doppelbuchung */
+.repeat-btn {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--petrol);
+  border-radius: var(--r-sm);
+  background: var(--petrol-soft);
+  color: var(--petrol);
+  font: 600 0.9rem var(--f-body);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.repeat-btn:hover {
+  background: var(--petrol);
+  color: var(--petrol-ink);
+}
+.entries li.entry-group {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0 2px;
+  border-bottom: 0;
+  font: 600 0.78rem var(--f-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.entries li.suspect {
+  background: var(--warn-soft);
+}
+.dup-flag {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.82rem;
+  color: var(--warn);
+}
+.amount-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.edit-form .full {
+  grid-column: 1 / -1;
+}
+.day-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.day-status .badge {
+  cursor: help;
+}
+.quick-repeat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Dashboard «Heute» */
+.summary-small .stat-value {
+  font-size: 1.45rem;
+}
+.macro-facts {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 6px 16px;
+  font-size: 0.9rem;
+}
+.meter-over {
+  font-weight: 600;
+}
+.meter.over .meter-over {
+  color: var(--alert);
+}
+.meter.done .meter-over {
+  color: var(--ok);
+}
+.btn-sub {
+  display: block;
+  font-weight: 400;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+.quick-actions .btn {
+  flex-direction: column;
+  gap: 0;
+  padding: 6px 12px;
+  text-align: center;
+}
+
+/* Verlauf: Tageswerte */
+.chart .bar {
+  fill: var(--petrol);
+}
+.chart .bar-partial {
+  fill: var(--petrol);
+  fill-opacity: 0.4;
+}
+.chart .bar-missing {
+  fill: var(--muted);
+  fill-opacity: 0.35;
+}
+.legend .lg-bar::before,
+.legend .lg-bar-partial::before,
+.legend .lg-missing::before {
+  width: 10px;
+  height: 10px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--petrol);
+}
+.legend .lg-bar-partial::before {
+  opacity: 0.4;
+}
+.legend .lg-missing::before {
+  height: 3px;
+  background: var(--muted);
+  opacity: 0.5;
+}
+.hist-table table {
+  width: 100%;
+  font-size: 0.85rem;
+}
+.hist-table {
+  max-height: 360px;
+  overflow: auto;
 }

@@ -1,6 +1,7 @@
 // @ts-check
 import { h, badge, fmt, fmtDate, fmtSigned } from '../ui/dom.js';
-import { weightChart } from '../ui/chart.js';
+import { weightChart, barChart } from '../ui/chart.js';
+import { METRICS, series, seriesStats, firstDataDate } from '../domain/history.js';
 import { milestones } from '../domain/trend.js';
 import { addDays } from '../domain/util.js';
 import { KCAL_PER_KG } from '../domain/energy.js';
@@ -79,6 +80,7 @@ export function viewWeight(ctx) {
         h('li', { class: 'lg-goal' }, 'Ziel'),
       ),
     ),
+    historyCard(ctx, snap),
     h('div', { class: 'grid-2' }, progressCard(ctx, snap), energyCard(snap)),
     milestoneCard(ctx, snap, plan),
   );
@@ -267,4 +269,127 @@ function chartWidth() {
   const vw = document.documentElement.clientWidth || window.innerWidth;
   const content = Math.min(vw >= 960 ? vw - 200 : vw, 1180) - 32;
   return content - 38;
+}
+
+/** Verlauf der Tageswerte: Zeitraum und Kennzahl bleiben gewählt, solange die App offen ist. */
+const hist = { range: '7', metric: /** @type {import('../domain/history.js').MetricId} */ ('kcal') };
+
+const HIST_RANGES = [
+  { id: '7', label: '7 Tage', days: 7 },
+  { id: '30', label: '30 Tage', days: 30 },
+  { id: 'alle', label: 'Alles', days: 0 },
+];
+
+/**
+ * Tageswerte als Balken mit sichtbaren Lücken, Mittelwert und Tabelle.
+ * @param {Ctx} ctx
+ * @param {NonNullable<Ctx['snap']>} snap
+ */
+function historyCard(ctx, snap) {
+  const p = snap.profile;
+  const r = HIST_RANGES.find((x) => x.id === hist.range) ?? HIST_RANGES[0];
+  const from = r.days ? addDays(ctx.today, -(r.days - 1)) : firstDataDate(ctx.state, ctx.today);
+  const m = METRICS.find((x) => x.id === hist.metric) ?? METRICS[0];
+  const pts = series(ctx.state, m.id, from, ctx.today);
+  const st = seriesStats(pts, m.id);
+  /** @type {Record<string, number | null>} */
+  const targets = {
+    kcal: snap.kcalTarget,
+    protein: snap.protein.grams,
+    steps: p.stepsTarget,
+    sleep: p.sleepTargetH,
+    water: p.waterTargetMl / 1000,
+    training: null,
+  };
+  const seg = (
+    /** @type {string} */ aria,
+    /** @type {{ id: string, label: string }[]} */ items,
+    /** @type {string} */ current,
+    /** @type {(id: string) => void} */ set,
+    /** @type {string} */ prefix,
+  ) =>
+    h(
+      'div',
+      { class: 'segmented wrap', role: 'group', 'aria-label': aria },
+      ...items.map((x) =>
+        h(
+          'button',
+          {
+            type: 'button',
+            id: `${prefix}-${x.id}`,
+            'aria-pressed': String(x.id === current),
+            on: {
+              click: () => {
+                set(x.id);
+                ctx.go('fortschritt');
+              },
+            },
+          },
+          x.label,
+        ),
+      ),
+    );
+  const unit = m.unit;
+  const fmtV = (/** @type {number} */ v) => `${fmt(v, m.digits)}${unit ? ` ${unit}` : ''}`;
+  const hasPartial = pts.some((x) => x.partial && x.value !== null);
+  return h(
+    'section',
+    { class: 'card', 'aria-labelledby': 'hist-h', id: 'history-card' },
+    h(
+      'div',
+      { class: 'card-head' },
+      h('h2', { id: 'hist-h' }, 'Tageswerte'),
+      seg('Zeitraum', HIST_RANGES, hist.range, (id) => (hist.range = id), 'hist-range'),
+    ),
+    seg('Kennzahl', METRICS, hist.metric, (id) => (hist.metric = /** @type {any} */ (id)), 'hist-metric'),
+    h(
+      'p',
+      { class: 'small', id: 'hist-summary' },
+      st.mean !== null
+        ? [
+            h('strong', {}, `Ø ${fmtV(st.mean)}`),
+            m.id === 'kcal' || m.id === 'protein' ? ` über ${st.basis} abgeschlossene Tage` : ` über ${st.basis} erfasste Tage`,
+          ]
+        : 'Noch keine Werte in diesem Zeitraum',
+      ` · erfasst an ${st.recorded} von ${st.days} Tagen`,
+    ),
+    h(
+      'div',
+      { class: 'chart-wrap' },
+      barChart({ points: pts, target: targets[m.id], unit, digits: m.digits, label: m.label, width: chartWidth() }),
+    ),
+    h(
+      'ul',
+      { class: 'legend' },
+      h('li', { class: 'lg-bar' }, 'Tageswert'),
+      hasPartial ? h('li', { class: 'lg-bar-partial' }, 'vorläufig (Tag nicht abgeschlossen)') : null,
+      h('li', { class: 'lg-missing' }, 'nicht erfasst'),
+      targets[m.id] ? h('li', { class: 'lg-goal' }, `Ziel ${fmtV(/** @type {number} */ (targets[m.id]))}`) : null,
+    ),
+    h(
+      'details',
+      { class: 'hist-table' },
+      h('summary', {}, 'Als Tabelle'),
+      h(
+        'table',
+        {},
+        h('thead', {}, h('tr', {}, h('th', {}, 'Datum'), h('th', {}, m.label), h('th', {}, 'Status'))),
+        h(
+          'tbody',
+          {},
+          ...[...pts]
+            .reverse()
+            .map((x) =>
+              h(
+                'tr',
+                {},
+                h('td', {}, fmtDate(x.date)),
+                h('td', {}, x.value === null ? '–' : fmtV(x.value)),
+                h('td', {}, x.value === null ? 'nicht erfasst' : x.partial ? 'vorläufig' : 'erfasst'),
+              ),
+            ),
+        ),
+      ),
+    ),
+  );
 }

@@ -146,11 +146,25 @@ export function badge(severity, label) {
 
 /**
  * Fortschrittsbalken mit Beschriftung.
- * @param {{ value: number, target: number, label: string, unit: string, over?: 'bad' | 'good' }} o
+ * @param {{ value: number, target: number, label: string, unit: string, over?: 'bad' | 'good' | 'neutral' }} o
  */
 export function meter({ value, target, label, unit, over = 'bad' }) {
   const pct = target > 0 ? Math.min(value / target, 1.25) : 0;
-  const state = value > target ? (over === 'bad' ? 'over' : 'done') : value >= target * 0.9 ? 'near' : '';
+  // 'neutral': Richtwert (z. B. Kohlenhydrate) – erst über 10 % als Überschreitung markieren
+  const state =
+    over === 'neutral'
+      ? value > target * 1.1
+        ? 'over'
+        : value >= target * 0.9
+          ? 'near'
+          : ''
+      : value > target
+        ? over === 'bad'
+          ? 'over'
+          : 'done'
+        : value >= target * 0.9
+          ? 'near'
+          : '';
   // Breite über CSSOM setzen: Inline-style-Attribute blockiert die Content-Security-Policy.
   const fill = h('div', { class: 'meter-fill' });
   fill.style.width = `${(Math.min(pct, 1) * 100).toFixed(1)}%`;
@@ -161,7 +175,14 @@ export function meter({ value, target, label, unit, over = 'bad' }) {
       'div',
       { class: 'meter-head' },
       h('span', { class: 'meter-label' }, label),
-      h('span', { class: 'meter-value' }, h('strong', {}, fmt(value)), ` / ${fmt(target)} ${unit}`),
+      h(
+        'span',
+        { class: 'meter-value' },
+        h('strong', {}, fmt(value)),
+        ` / ${fmt(target)} ${unit}`,
+        // Überschreitung bleibt sichtbar, auch wenn der Balken voll ist
+        value > target && target > 0 ? h('small', { class: 'meter-over' }, ` · ${fmt(value - target)} ${unit} darüber`) : null,
+      ),
     ),
     h(
       'div',

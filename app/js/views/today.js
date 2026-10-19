@@ -1,6 +1,8 @@
 // @ts-check
 import { h, field, select, meter, badge, fmt, fmtSigned, fmtDate, num, str, nowTime } from '../ui/dom.js';
-import { uid, extraNutrients, recentFoods } from '../store.js';
+import { uid, extraNutrients, recentFoods, addFood } from '../store.js';
+import { repeatEntry, scaleEntry, possibleDuplicates, dayStatus, foodQuality } from '../domain/entries.js';
+import { dailyTargets } from '../domain/micros.js';
 import { FIBER_TARGET_G, SALT_LIMIT_G } from '../domain/foodvision.js';
 import { plannedSession } from '../domain/training.js';
 import { photoBlock } from './photo.js';
@@ -8,7 +10,6 @@ import { healthPasteBlock } from './garmin.js';
 import { waterPace, waterFact, reminderTimes, buildReminderIcs } from '../domain/hydration.js';
 import { reviewCard } from './review.js';
 import { foodSearchBlock, nutrientsCard, suggestCard, pyramidCard, rhythmCard } from './nutrients.js';
-import { scaleMicros } from '../domain/micros.js';
 import { scaleGroups } from '../domain/foodgroups.js';
 import { TRIGGERS, HUNGER } from '../domain/meals.js';
 import { PHASE_TIPS } from '../domain/cycle.js';
@@ -22,7 +23,7 @@ import {
   proteinPlan,
   SMALL_KCAL,
 } from '../domain/fasting.js';
-import { addDays } from '../domain/util.js';
+import { addDays, isNum } from '../domain/util.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 
@@ -71,49 +72,239 @@ export function viewNutrition(ctx) {
 }
 
 /**
+ * Kopfbereich «Heute»: Tagesstatus, wichtigste Kennzahlen, Makros, Schnellaktionen.
+ * Fehlende Werte heissen «Noch nicht erfasst», nie 0.
  * @param {Ctx} ctx
  * @param {NonNullable<Ctx['snap']>} snap
  */
 function summary(ctx, snap) {
   const perWeek = snap.slope ? snap.slope.slopeKgPerDay * 7 : null;
+  const food = snap.day.food ?? [];
   const kcalLeft = snap.kcalTarget - snap.kcal;
   const nextTraining = plannedSession(ctx.date, snap.profile.trainingMode);
   const toGoal = snap.weightKg - snap.profile.goalWeightKg;
+  const p = snap.profile;
+  const d = snap.day;
+  const NA = 'Noch nicht erfasst';
+  const runs = ctx.state.workouts.filter((w) => w.date === ctx.date);
+  const runMin = runs.reduce((a, w) => a + (w.kind === 'run' ? w.minutes : 0), 0);
+  const trainingDone = runs.length
+    ? runs.map((w) => (w.kind === 'run' ? `Lauf ${fmt(w.minutes)} min` : `Kraft ${w.template}`)).join(', ')
+    : '';
   return h(
     'div',
     { class: 'stack-sm' },
+    statusList(ctx, snap),
+    quickActions(ctx),
     h(
       'section',
       { class: 'summary', 'aria-label': 'Tagesübersicht' },
       stat(
         'Trendgewicht',
-        snap.slope ? fmt(snap.slope.levelKg, 1) : snap.avg7 ? fmt(snap.avg7.kg, 1) : '–',
+        snap.slope ? fmt(snap.slope.levelKg, 1) : snap.avg7 ? fmt(snap.avg7.kg, 1) : fmt(p.startWeightKg, 1),
         'kg',
         [
-          perWeek !== null ? `${fmtSigned(perWeek, 2)} kg/Woche` : 'Trend ab 7 Messungen',
+          perWeek !== null
+            ? `${fmtSigned(perWeek, 2)} kg/Woche`
+            : snap.series.length
+              ? 'Trend ab 7 Messungen'
+              : 'Startgewicht, noch keine Messung',
           toGoal > 0 ? `noch ${fmt(toGoal, 1)} kg bis Ziel` : 'Ziel erreicht',
         ].join(' · '),
         '',
         '#fortschritt',
       ),
-      stat('Kalorien übrig', fmt(kcalLeft), 'kcal', `Ziel ${fmt(snap.kcalTarget)} kcal`, kcalLeft < 0 ? 'neg' : '', '#ernaehrung'),
+      stat(
+        kcalLeft < 0 ? 'Über dem Ziel' : 'Kalorien übrig',
+        fmt(Math.abs(kcalLeft)),
+        'kcal',
+        `${food.length ? `${fmt(snap.kcal)} gegessen · ` : 'Noch nichts erfasst · '}Ziel ${fmt(snap.kcalTarget)} kcal`,
+        kcalLeft < 0 ? 'neg' : '',
+        '#ernaehrung',
+      ),
       stat(
         'Protein',
-        fmt(snap.proteinG),
-        'g',
-        `Ziel ${fmt(snap.protein.grams)} g`,
+        food.length ? fmt(snap.proteinG) : '–',
+        food.length ? 'g' : '',
+        `${food.length ? '' : `${NA} · `}Ziel ${fmt(snap.protein.grams)} g`,
         snap.proteinG >= snap.protein.grams ? 'pos' : '',
         '#ernaehrung',
       ),
-      stat(ctx.date === ctx.today ? 'Heute geplant' : 'Geplant', nextTraining.title, '', nextTraining.detail, '', '#training'),
+      stat(
+        trainingDone ? 'Training heute' : ctx.date === ctx.today ? 'Heute geplant' : 'Geplant',
+        trainingDone || nextTraining.title,
+        '',
+        trainingDone ? (runMin ? `${fmt(runMin)} min Laufen` : 'erfasst') : nextTraining.detail,
+        trainingDone ? 'pos' : '',
+        '#training',
+      ),
     ),
     h(
-      'div',
-      { class: 'quick-actions' },
-      h('a', { href: '#ernaehrung', class: 'btn primary', id: 'cta-meal' }, '+ Mahlzeit erfassen'),
-      h('a', { href: '#training', class: 'btn', id: 'cta-run' }, '+ Training erfassen'),
+      'section',
+      { class: 'summary summary-small', 'aria-label': 'Aktivität und Erholung' },
+      stat(
+        'Gewicht heute',
+        isNum(d.weightKg) ? fmt(/** @type {number} */ (d.weightKg), 1) : '–',
+        isNum(d.weightKg) ? 'kg' : '',
+        isNum(d.weightKg) ? 'morgens gemessen' : NA,
+        '',
+      ),
+      stat(
+        'Schritte',
+        isNum(d.steps) ? fmt(/** @type {number} */ (d.steps)) : '–',
+        '',
+        `${isNum(d.steps) ? '' : `${NA} · `}Ziel ${fmt(p.stepsTarget)}`,
+        isNum(d.steps) && /** @type {number} */ (d.steps) >= p.stepsTarget ? 'pos' : '',
+      ),
+      stat(
+        'Schlaf',
+        isNum(d.sleepH) ? fmt(/** @type {number} */ (d.sleepH), 1) : '–',
+        isNum(d.sleepH) ? 'h' : '',
+        `${isNum(d.sleepH) ? '' : `${NA} · `}Ziel ${fmt(p.sleepTargetH, 1)} h`,
+        isNum(d.sleepH) && /** @type {number} */ (d.sleepH) >= p.sleepTargetH ? 'pos' : '',
+      ),
+      stat(
+        'Wasser',
+        isNum(d.waterMl) ? fmt(/** @type {number} */ (d.waterMl) / 1000, 1) : '–',
+        isNum(d.waterMl) ? 'l' : '',
+        `${isNum(d.waterMl) ? '' : `${NA} · `}Ziel ${fmt(p.waterTargetMl / 1000, 1)} l`,
+        isNum(d.waterMl) && /** @type {number} */ (d.waterMl) >= p.waterTargetMl ? 'pos' : '',
+      ),
     ),
+    macroCard(snap),
   );
+}
+
+/**
+ * Tagesstatus als Plaketten (Regeln in domain/entries.js).
+ * @param {Ctx} ctx
+ * @param {NonNullable<Ctx['snap']>} snap
+ */
+export function statusList(ctx, snap) {
+  const st = dayStatus({
+    food: snap.day.food ?? [],
+    complete: Boolean(snap.day.complete),
+    isToday: ctx.date === ctx.today,
+    kcalTarget: snap.kcalTarget,
+  });
+  return h(
+    'ul',
+    { class: 'day-status', id: 'day-status', 'aria-label': 'Status des Tages' },
+    ...st.items.map((i) => h('li', { title: i.detail, 'data-status': i.id }, badge(i.tone, i.label))),
+  );
+}
+
+/**
+ * Kalorien und Makros mit Ziel. Kohlenhydrate und Fett nur aus Einträgen, für die sie
+ * bekannt sind; dann als Untergrenze gekennzeichnet.
+ * @param {NonNullable<Ctx['snap']>} snap
+ */
+function macroCard(snap) {
+  const food = snap.day.food ?? [];
+  const t = dailyTargets({ kcalTarget: snap.kcalTarget, proteinG: snap.protein.grams, sex: snap.profile.sex, stage: snap.lifeStage });
+  const q = foodQuality(food);
+  const sum = (/** @type {'carbs' | 'fat' | 'fiber' | 'sugar' | 'satFat' | 'salt'} */ k) => {
+    const known = food.filter((f) => typeof f[k] === 'number');
+    return { value: known.reduce((a, f) => a + /** @type {number} */ (f[k]), 0), known: known.length, all: food.length };
+  };
+  const carbs = sum('carbs');
+  const fat = sum('fat');
+  const partial = (/** @type {{ known: number, all: number }} */ x) =>
+    x.all && x.known < x.all ? ` (aus ${x.known} von ${x.all} Einträgen)` : '';
+  const fromMacros = snap.proteinG * 4 + carbs.value * 4 + fat.value * 9;
+  /** @param {string} label @param {'fiber' | 'sugar' | 'satFat' | 'salt'} k @param {string} ref @param {number} digits */
+  const small = (label, k, ref, digits) => {
+    const x = sum(k);
+    return h(
+      'li',
+      {},
+      h('span', { class: 'muted' }, label),
+      ' ',
+      x.known
+        ? h('strong', {}, `${fmt(x.value, /** @type {0 | 1} */ (digits))} g`)
+        : h('span', { class: 'muted' }, food.length ? 'unbekannt' : '–'),
+      h('small', { class: 'muted' }, ` ${ref}${partial(x)}`),
+    );
+  };
+  return h(
+    'section',
+    { class: 'card', 'aria-labelledby': 'macro-h', id: 'macro-card' },
+    h('h2', { id: 'macro-h' }, 'Energie und Makros'),
+    meter({ value: snap.kcal, target: snap.kcalTarget, label: 'Energie', unit: 'kcal' }),
+    meter({ value: snap.proteinG, target: snap.protein.grams, label: 'Protein', unit: 'g', over: 'good' }),
+    meter({ value: carbs.value, target: t.carbs ?? 0, label: `Kohlenhydrate${partial(carbs)}`, unit: 'g', over: 'neutral' }),
+    meter({ value: fat.value, target: t.fat ?? 0, label: `Fett${partial(fat)}`, unit: 'g', over: 'neutral' }),
+    h(
+      'ul',
+      { class: 'macro-facts', id: 'macro-facts' },
+      small('Ballaststoffe', 'fiber', `Ziel ${FIBER_TARGET_G} g`, 0),
+      small('Zucker', 'sugar', 'gesamt', 0),
+      small('Gesättigte Fette', 'satFat', `max. ${fmt(t.satFat ?? 0)} g`, 0),
+      small('Salz', 'salt', `max. ${SALT_LIMIT_G} g`, 1),
+    ),
+    food.length && q.noMacros
+      ? h(
+          'p',
+          { class: 'hint', id: 'macro-partial' },
+          `${q.noMacros} von ${q.entries} Einträgen ohne vollständige Makros: Die Summen sind Untergrenzen.`,
+        )
+      : null,
+    food.length && !q.noMacros && Math.abs(fromMacros - snap.kcal) > Math.max(60, snap.kcal * 0.08)
+      ? h(
+          'p',
+          { class: 'hint' },
+          `Aus Protein, Kohlenhydraten und Fett ergeben sich ${fmt(fromMacros)} kcal statt ${fmt(snap.kcal)} kcal. Abweichungen entstehen durch Rundung, Ballaststoffe (≈ 2 kcal/g), Alkohol und unterschiedliche Berechnungsmethoden der Quellen.`,
+        )
+      : null,
+  );
+}
+
+/**
+ * Häufige Aktionen mit einem Tipp.
+ * @param {Ctx} ctx
+ */
+function quickActions(ctx) {
+  const last = lastEntry(ctx);
+  const water = () =>
+    ctx.commit((s) => {
+      const d = { ...s.days[ctx.date] };
+      d.waterMl = Math.min(10000, (d.waterMl ?? 0) + 250);
+      s.days[ctx.date] = d;
+    }, '+250 ml Wasser');
+  const jump = (/** @type {string} */ id) => () => {
+    const el = document.getElementById(id);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el?.focus({ preventScroll: true });
+  };
+  return h(
+    'div',
+    { class: 'quick-actions' },
+    h('a', { href: '#ernaehrung', class: 'btn primary', id: 'cta-meal' }, '+ Mahlzeit erfassen'),
+    last
+      ? h(
+          'button',
+          {
+            type: 'button',
+            class: 'btn',
+            id: 'cta-repeat',
+            title: `${last.name}: ${last.grams ? `${fmt(last.grams)} g, ` : ''}${fmt(last.kcal)} kcal`,
+            on: { click: () => repeat(ctx, last) },
+          },
+          `↻ ${shortName(last.name)} nochmal`,
+          h('small', { class: 'btn-sub' }, `${last.grams ? `${fmt(last.grams)} g · ` : ''}${fmt(last.kcal)} kcal`),
+        )
+      : h('a', { href: '#training', class: 'btn', id: 'cta-run' }, '+ Training erfassen'),
+    h('button', { type: 'button', class: 'btn', id: 'cta-water', on: { click: water } }, '+ Glas Wasser'),
+    h('button', { type: 'button', class: 'btn', id: 'cta-weight', on: { click: jump('weight') } }, 'Gewicht eintragen'),
+    h('button', { type: 'button', class: 'btn', id: 'cta-sleep', on: { click: jump('sleep') } }, 'Schlaf und Schritte'),
+    last ? h('a', { href: '#training', class: 'btn', id: 'cta-run' }, '+ Training erfassen') : null,
+  );
+}
+
+/** Name ohne Mengenangabe, gekürzt für Knöpfe. @param {string} name */
+function shortName(name) {
+  const n = name.replace(/ \(\d.*\)$|, \d+ (g|ml)$/, '');
+  return n.length > 22 ? `${n.slice(0, 21)}…` : n;
 }
 
 /**
@@ -226,12 +417,20 @@ function weightCard(ctx, snap) {
  */
 function nutritionCard(ctx, snap) {
   const food = snap.day.food ?? [];
-  /** @param {{ name: string, kcal: number, protein: number }} f */
+  /** Vorlage oder freie Eingabe erfassen. @param {{ name: string, kcal: number, protein: number, proteinKnown?: false }} f */
   const add = (f) =>
     ctx.commit((s) => {
-      const d = (s.days[ctx.date] = s.days[ctx.date] ?? {});
       const { grams: _g, source: _s, ...nutrients } = extraNutrients(/** @type {Record<string, unknown>} */ (f));
-      d.food = [...(d.food ?? []), { id: uid(), name: f.name, kcal: f.kcal, protein: f.protein, time: nowTime(), ...nutrients }];
+      return (
+        addFood(s, ctx.date, {
+          name: f.name,
+          kcal: f.kcal,
+          protein: f.protein,
+          time: entryTimeFor(ctx),
+          ...nutrients,
+          ...(f.proteinKnown === false ? { proteinKnown: false } : {}),
+        }) !== null
+      );
     }, `${f.name} erfasst`);
   const recent = recentFoods(ctx.state, ctx.date, 6);
   const fiber = food.reduce((a, f) => a + (f.fiber ?? 0), 0);
@@ -248,10 +447,17 @@ function nutritionCard(ctx, snap) {
           const fd = new FormData(/** @type {HTMLFormElement} */ (e.target));
           const name = str(fd, 'food-name') || 'Mahlzeit';
           const kcal = num(fd, 'food-kcal');
-          const protein = num(fd, 'food-protein') ?? 0;
+          const proteinIn = num(fd, 'food-protein');
+          const protein = proteinIn ?? 0;
           if (kcal === null || kcal < 0 || kcal > 5000) return ctx.toast('Bitte Kalorien zwischen 0 und 5000 eingeben.', 'error');
           if (protein < 0 || protein > 300) return ctx.toast('Protein muss zwischen 0 und 300 g liegen.', 'error');
-          add({ name, kcal: Math.round(kcal), protein: Math.round(protein) });
+          // Leeres Proteinfeld heisst «unbekannt», nicht 0 g
+          add({
+            name,
+            kcal: Math.round(kcal),
+            protein: Math.round(protein * 10) / 10,
+            ...(proteinIn === null ? { proteinKnown: false } : {}),
+          });
         },
       },
     },
@@ -294,6 +500,7 @@ function nutritionCard(ctx, snap) {
         '+ Erfassen',
       ),
     ),
+    statusList(ctx, snap),
     meter({ value: snap.kcal, target: snap.kcalTarget, label: 'Energie', unit: 'kcal' }),
     meter({ value: snap.proteinG, target: snap.protein.grams, label: 'Protein', unit: 'g', over: 'good' }),
     hasMicro
@@ -304,13 +511,7 @@ function nutritionCard(ctx, snap) {
           h('span', { class: salt > SALT_LIMIT_G ? 'over' : '' }, `Salz ${fmt(salt, 1)} / max. ${SALT_LIMIT_G} g`),
         )
       : null,
-    food.length
-      ? h(
-          'ul',
-          { class: 'entries', id: 'food-entries' },
-          ...[...food].sort((x, y) => (x.time < y.time ? -1 : x.time > y.time ? 1 : 0)).map((f) => foodRow(ctx, f)),
-        )
-      : h('p', { class: 'muted small' }, 'Noch nichts erfasst.'),
+    food.length ? entryList(ctx, food) : h('p', { class: 'muted small' }, 'Noch nichts erfasst.'),
     h(
       'label',
       { class: 'check' },
@@ -376,7 +577,7 @@ function nutritionCard(ctx, snap) {
             ...recent.map((f, i) =>
               h(
                 'button',
-                { type: 'button', class: 'chip', id: `recent-${i}`, on: { click: () => add(f) } },
+                { type: 'button', class: 'chip', id: `recent-${i}`, on: { click: () => repeat(ctx, f) } },
                 f.name,
                 h('small', {}, `${fmt(f.kcal)} kcal · ${fmt(f.protein)} g`),
               ),
@@ -870,31 +1071,144 @@ function fastingCard(ctx, snap) {
 
 /** Eintrag, der gerade bearbeitet wird. */
 let editingFoodId = '';
+/** Eintrag, für den gerade eine andere Menge erneut erfasst wird. */
+let amountFoodId = '';
 
 /**
- * Eine Mahlzeit: anzeigen oder direkt in der Liste bearbeiten (ohne Dialog).
+ * Uhrzeit für einen neuen Eintrag: heute die aktuelle Zeit, an einem früheren Tag Mittag
+ * bzw. die Zeit des Originals.
+ * @param {Ctx} ctx
+ * @param {string} [fallback]
+ */
+function entryTimeFor(ctx, fallback = '12:00') {
+  return ctx.date === ctx.today ? nowTime() : fallback;
+}
+
+/**
+ * Eine weitere Portion desselben Lebensmittels erfassen (neuer Eintrag, neue ID).
  * @param {Ctx} ctx
  * @param {import('../store.js').FoodEntry} f
+ * @param {number} [factor] Menge im Verhältnis zum Original
  */
-function foodRow(ctx, f) {
+export function repeat(ctx, f, factor = 1) {
+  const fields = scaleEntry(repeatEntry(f, entryTimeFor(ctx, f.time)), factor);
+  const amount = fields.grams ? `${fmt(fields.grams)} g, ` : '';
+  amountFoodId = '';
+  return ctx.commit(
+    (s) => addFood(s, ctx.date, fields) !== null,
+    `${f.name.replace(/ \(\d.*\)$|, \d+ (g|ml)$/, '')} erneut erfasst (${amount}${fmt(fields.kcal)} kcal)`,
+  );
+}
+
+/**
+ * Zuletzt erfasster Eintrag: zuerst des angezeigten Tages, sonst der jüngste frühere.
+ * @param {Ctx} ctx
+ * @returns {import('../store.js').FoodEntry | null}
+ */
+export function lastEntry(ctx) {
+  const today = [...(ctx.state.days[ctx.date]?.food ?? [])].sort(byMoment);
+  if (today.length) return today[today.length - 1];
+  return recentFoods(ctx.state, ctx.date, 1)[0] ?? null;
+}
+
+/**
+ * Chronologisch, bei gleicher Uhrzeit nach Erfassungszeitpunkt.
+ * @param {import('../store.js').FoodEntry} a
+ * @param {import('../store.js').FoodEntry} b
+ */
+function byMoment(a, b) {
+  return a.time < b.time ? -1 : a.time > b.time ? 1 : (a.at ?? '').localeCompare(b.at ?? '');
+}
+
+/** Mahlzeiten nach Tageszeit. */
+const MEAL_GROUPS = /** @type {const} */ ([
+  ['10:30', 'Frühstück'],
+  ['14:30', 'Mittagessen'],
+  ['17:30', 'Zwischenmahlzeit'],
+  ['24:00', 'Abendessen'],
+]);
+
+/**
+ * Liste der Einträge, chronologisch und nach Mahlzeit gruppiert.
+ * @param {Ctx} ctx
+ * @param {import('../store.js').FoodEntry[]} food
+ */
+function entryList(ctx, food) {
+  const dups = possibleDuplicates(food);
+  const sorted = [...food].sort(byMoment);
+  const groupOf = (/** @type {string} */ t) => MEAL_GROUPS.find(([until]) => t < until)?.[1] ?? 'Abendessen';
+  const multi = new Set(sorted.map((f) => groupOf(f.time))).size > 1;
+  /** @type {HTMLElement[]} */
+  const rows = [];
+  let last = '';
+  for (const f of sorted) {
+    const g = groupOf(f.time);
+    if (multi && g !== last) {
+      const kcal = sorted.filter((x) => groupOf(x.time) === g).reduce((a, x) => a + x.kcal, 0);
+      rows.push(h('li', { class: 'entry-group' }, h('span', {}, g), h('span', { class: 'entry-num' }, `${fmt(kcal)} kcal`)));
+      last = g;
+    }
+    rows.push(foodRow(ctx, f, dups.has(f.id)));
+  }
+  return h('ul', { class: 'entries', id: 'food-entries' }, ...rows);
+}
+
+/**
+ * Eine Mahlzeit: anzeigen, erneut erfassen, Menge ändern, bearbeiten oder löschen.
+ * @param {Ctx} ctx
+ * @param {import('../store.js').FoodEntry} f
+ * @param {boolean} [suspect] mögliche Doppelbuchung
+ */
+function foodRow(ctx, f, suspect = false) {
   const remove = () =>
     ctx.commit((s) => void (s.days[ctx.date].food = (s.days[ctx.date].food ?? []).filter((x) => x.id !== f.id)), `${f.name} entfernt`);
+  if (amountFoodId === f.id) return amountRow(ctx, f);
   if (editingFoodId !== f.id) {
     const w = ctx.snap ? eatingWindow(ctx.snap.profile.eatStart, ctx.snap.profile.fastingWindowH) : null;
     const outside = w !== null && f.kcal > SMALL_KCAL && !inWindow(f.time, w);
+    const proteinText = f.proteinKnown === false ? '? g Protein' : `${fmt(f.protein, f.protein % 1 ? 1 : 0)} g Protein`;
     return h(
       'li',
-      {},
+      { class: suspect ? 'entry suspect' : 'entry', 'data-id': f.id },
       h('span', { class: 'entry-time' }, f.time),
       h(
         'span',
         { class: 'entry-name' },
         f.name,
         f.source === 'foto' || f.source === 'text' ? h('small', { class: 'muted' }, ' · geschätzt') : null,
+        f.carbs === undefined || f.fat === undefined || f.proteinKnown === false
+          ? h('small', { class: 'muted', title: 'Kohlenhydrate, Fett oder Protein unbekannt' }, ' · Nährwerte unvollständig')
+          : null,
         outside ? h('small', { class: 'fast-tag' }, ' · ausserhalb Fenster') : null,
         f.trigger ? h('small', { class: 'muted' }, ` · ${TRIGGERS.find((t) => t[0] === f.trigger)?.[1] ?? ''}`) : null,
+        suspect
+          ? h(
+              'span',
+              { class: 'dup-flag', role: 'note' },
+              'Mögliche Doppelbuchung: gleicher Eintrag kurz hintereinander. ',
+              h(
+                'button',
+                {
+                  type: 'button',
+                  class: 'link-btn',
+                  'aria-label': `${f.name} behalten, keine Doppelbuchung`,
+                  on: {
+                    click: () =>
+                      ctx.commit((s) => {
+                        const e = (s.days[ctx.date].food ?? []).find((x) => x.id === f.id);
+                        if (!e) return false;
+                        e.keep = true;
+                        delete e.dupOf;
+                        return true;
+                      }, 'Beide Einträge bleiben'),
+                  },
+                },
+                'Beide behalten',
+              ),
+            )
+          : null,
       ),
-      h('span', { class: 'entry-num' }, `${fmt(f.kcal)} kcal · ${fmt(f.protein)} g`),
+      h('span', { class: 'entry-num' }, `${f.grams ? `${fmt(f.grams)} g · ` : ''}${fmt(f.kcal)} kcal · ${proteinText}`),
       h(
         'span',
         { class: 'entry-actions' },
@@ -902,21 +1216,57 @@ function foodRow(ctx, f) {
           'button',
           {
             type: 'button',
+            class: 'repeat-btn',
+            'aria-label': `${f.name} erneut erfassen`,
+            title: 'Gleiche Portion nochmals erfassen',
+            on: { click: () => repeat(ctx, f) },
+          },
+          h('span', { 'aria-hidden': 'true' }, '↻'),
+          ' Nochmal',
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'icon-btn',
+            'aria-label': `${f.name} mit anderer Menge erneut erfassen`,
+            title: 'Andere Menge erfassen',
+            on: {
+              click: () => {
+                amountFoodId = f.id;
+                editingFoodId = '';
+                ctx.go('ernaehrung');
+              },
+            },
+          },
+          '±',
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
             class: 'icon-btn',
             'aria-label': `${f.name} bearbeiten`,
+            title: 'Bearbeiten',
             on: {
               click: () => {
                 editingFoodId = f.id;
+                amountFoodId = '';
                 ctx.go('ernaehrung');
               },
             },
           },
           '✎',
         ),
-        h('button', { type: 'button', class: 'icon-btn', 'aria-label': `${f.name} entfernen`, on: { click: remove } }, '×'),
+        h(
+          'button',
+          { type: 'button', class: 'icon-btn', 'aria-label': `${f.name} entfernen`, title: 'Löschen', on: { click: remove } },
+          '×',
+        ),
       ),
     );
   }
+  const unknownProtein = f.proteinKnown === false;
   return h(
     'li',
     { class: 'editing' },
@@ -930,30 +1280,37 @@ function foodRow(ctx, f) {
             const fd = new FormData(/** @type {HTMLFormElement} */ (e.target));
             const kcal = num(fd, 'edit-kcal');
             const protein = num(fd, 'edit-protein');
+            const grams = f.grams ? num(fd, 'edit-grams') : null;
             const time = str(fd, 'edit-time');
             if (kcal === null || kcal < 0 || kcal > 5000) return ctx.toast('Bitte Kalorien zwischen 0 und 5000 eingeben.', 'error');
-            if (protein === null || protein < 0 || protein > 300) return ctx.toast('Protein muss zwischen 0 und 300 g liegen.', 'error');
+            if (protein !== null && (protein < 0 || protein > 300)) return ctx.toast('Protein muss zwischen 0 und 300 g liegen.', 'error');
+            if (protein === null && !unknownProtein) return ctx.toast('Bitte Protein angeben (0 ist erlaubt).', 'error');
+            if (f.grams && (grams === null || grams <= 0 || grams > 5000))
+              return ctx.toast('Bitte eine Menge zwischen 1 und 5000 g eingeben.', 'error');
             editingFoodId = '';
-            // Weitere Nährwerte im gleichen Verhältnis wie die Kalorien anpassen, damit die Summen stimmig bleiben.
-            const factor = f.kcal > 0 ? kcal / f.kcal : 1;
             ctx.commit((s) => {
               const list = s.days[ctx.date].food ?? [];
               const i = list.findIndex((x) => x.id === f.id);
-              if (i < 0) return;
+              if (i < 0) return false;
+              // Menge geändert → alle Nährwerte im gleichen Verhältnis; sonst Kalorien als Massstab
+              const gramsChanged = f.grams && grams !== null && Math.round(grams) !== f.grams;
+              const factor = gramsChanged
+                ? /** @type {number} */ (grams) / /** @type {number} */ (f.grams)
+                : f.kcal > 0
+                  ? kcal / f.kcal
+                  : 1;
               /** @type {import('../store.js').FoodEntry} */
-              const next = {
-                ...list[i],
-                name: str(fd, 'edit-name') || f.name,
-                kcal: Math.round(kcal),
-                protein: Math.round(protein),
-                time: /^\d{2}:\d{2}$/.test(time) ? time : f.time,
-              };
-              for (const k of /** @type {const} */ (['carbs', 'fat', 'sugar', 'satFat', 'fiber', 'salt'])) {
-                const v = list[i][k];
-                if (v !== undefined) next[k] = Math.round(v * factor * 10) / 10;
+              const next = { ...scaleEntry(list[i], factor), id: f.id };
+              if (gramsChanged) next.grams = Math.round(/** @type {number} */ (grams));
+              if (!gramsChanged) next.kcal = Math.round(kcal);
+              // Explizit geändertes Protein gilt; unverändertes wird mitskaliert
+              const proteinTouched = protein !== null && (unknownProtein || Math.abs(protein - f.protein) > 0.05);
+              if (proteinTouched) {
+                next.protein = Math.round(/** @type {number} */ (protein) * 10) / 10;
+                delete next.proteinKnown;
               }
-              if (list[i].micros) next.micros = scaleMicros(list[i].micros, factor);
-              if (list[i].groups) next.groups = scaleGroups(list[i].groups, factor);
+              next.name = str(fd, 'edit-name') || next.name;
+              next.time = /^\d{2}:\d{2}$/.test(time) ? time : f.time;
               const hunger = Number(str(fd, 'edit-hunger'));
               if (hunger === 1 || hunger === 2 || hunger === 3) next.hunger = hunger;
               else delete next.hunger;
@@ -961,6 +1318,7 @@ function foodRow(ctx, f) {
               if (trig) next.trigger = trig[0];
               else delete next.trigger;
               list[i] = next;
+              return true;
             }, 'Eintrag geändert');
           },
         },
@@ -977,6 +1335,14 @@ function foodRow(ctx, f) {
         h('label', { for: 'edit-time' }, 'Zeit'),
         h('input', { id: 'edit-time', name: 'edit-time', type: 'time', value: f.time }),
       ),
+      f.grams
+        ? h(
+            'div',
+            { class: 'field' },
+            h('label', { for: 'edit-grams' }, 'Menge g'),
+            h('input', { id: 'edit-grams', name: 'edit-grams', inputmode: 'decimal', value: String(f.grams) }),
+          )
+        : null,
       h(
         'div',
         { class: 'field' },
@@ -987,7 +1353,13 @@ function foodRow(ctx, f) {
         'div',
         { class: 'field' },
         h('label', { for: 'edit-protein' }, 'Protein g'),
-        h('input', { id: 'edit-protein', name: 'edit-protein', inputmode: 'numeric', value: String(f.protein) }),
+        h('input', {
+          id: 'edit-protein',
+          name: 'edit-protein',
+          inputmode: 'decimal',
+          value: unknownProtein ? '' : String(f.protein),
+          placeholder: unknownProtein ? 'unbekannt' : '',
+        }),
       ),
       select({
         id: 'edit-hunger',
@@ -1001,6 +1373,13 @@ function foodRow(ctx, f) {
         value: f.trigger ?? '',
         options: [{ value: '', label: '–' }, ...TRIGGERS.map(([v, l]) => ({ value: v, label: l }))],
       }),
+      f.grams
+        ? h(
+            'p',
+            { class: 'hint full' },
+            'Neue Menge passt alle Nährwerte an. Ohne Mengenänderung passen sich die Nährwerte den Kalorien an.',
+          )
+        : null,
       h(
         'div',
         { class: 'btn-row' },
@@ -1020,6 +1399,109 @@ function foodRow(ctx, f) {
           'Abbrechen',
         ),
         h('button', { type: 'button', class: 'btn danger-outline', on: { click: remove } }, 'Löschen'),
+      ),
+    ),
+  );
+}
+
+/** Portionsfaktoren für «andere Menge». */
+const FACTORS = /** @type {const} */ ([
+  [0.5, '½'],
+  [0.75, '¾'],
+  [1, '1×'],
+  [1.5, '1½'],
+  [2, '2×'],
+]);
+
+/**
+ * Gleiches Lebensmittel mit anderer Menge erneut erfassen (der bestehende Eintrag bleibt).
+ * @param {Ctx} ctx
+ * @param {import('../store.js').FoodEntry} f
+ */
+function amountRow(ctx, f) {
+  const preview = h('p', { class: 'small', id: 'amount-preview', 'aria-live': 'polite' });
+  let factor = 1;
+  const show = () => {
+    const x = scaleEntry(f, factor);
+    preview.textContent = `Neue Portion: ${x.grams ? `${fmt(x.grams)} g · ` : ''}${fmt(x.kcal)} kcal · ${fmt(x.protein, 1)} g Protein`;
+  };
+  show();
+  const gramsInput = f.grams
+    ? h('input', {
+        id: 'amount-grams',
+        name: 'amount-grams',
+        inputmode: 'decimal',
+        value: String(f.grams),
+        'aria-label': 'Menge in Gramm',
+        on: {
+          input: (e) => {
+            const g = Number(/** @type {HTMLInputElement} */ (e.target).value.replace(',', '.'));
+            if (g > 0 && /** @type {number} */ (f.grams) > 0) factor = g / /** @type {number} */ (f.grams);
+            show();
+          },
+        },
+      })
+    : null;
+  return h(
+    'li',
+    { class: 'editing' },
+    h(
+      'form',
+      {
+        class: 'amount-form',
+        on: {
+          submit: (e) => {
+            e.preventDefault();
+            if (!(factor > 0 && factor <= 20)) return ctx.toast('Bitte eine gültige Menge wählen.', 'error');
+            repeat(ctx, f, factor);
+          },
+        },
+      },
+      h('p', { class: 'small' }, h('strong', {}, f.name), ' nochmals erfassen, mit dieser Menge:'),
+      h(
+        'div',
+        { class: 'segmented wrap', role: 'group', 'aria-label': 'Portion' },
+        ...FACTORS.map(([v, label]) =>
+          h(
+            'button',
+            {
+              type: 'button',
+              id: `amount-${String(v).replace('.', '-')}`,
+              'aria-pressed': String(v === 1),
+              on: {
+                click: (e) => {
+                  factor = v;
+                  const btn = /** @type {HTMLElement} */ (e.currentTarget);
+                  btn.parentElement?.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+                  if (gramsInput && f.grams) /** @type {HTMLInputElement} */ (gramsInput).value = String(Math.round(f.grams * v));
+                  show();
+                },
+              },
+            },
+            label,
+          ),
+        ),
+      ),
+      gramsInput ? h('div', { class: 'with-suffix' }, gramsInput, h('span', { class: 'suffix' }, 'g')) : null,
+      preview,
+      h(
+        'div',
+        { class: 'btn-row' },
+        h('button', { type: 'submit', class: 'btn primary', id: 'amount-save' }, 'Erfassen'),
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'btn',
+            on: {
+              click: () => {
+                amountFoodId = '';
+                ctx.go('ernaehrung');
+              },
+            },
+          },
+          'Abbrechen',
+        ),
       ),
     ),
   );

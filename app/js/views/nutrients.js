@@ -3,7 +3,7 @@
 // (Tag oder 7-Tage-Schnitt), Vorschläge für die nächste Mahlzeit und Lebensmittelsuche.
 
 import { h, s, fmt, fmtDate, nowTime } from '../ui/dom.js';
-import { uid } from '../store.js';
+import { addFood as addFoodEntry } from '../store.js';
 import { FOODS, FOOD_SOURCE } from '../data/foods.js';
 import {
   NUTRIENTS,
@@ -53,12 +53,9 @@ let offAbort = null;
 function addProduct(ctx, p, grams) {
   const v = productPortion(p, grams);
   const name = `${p.name}${p.brand ? ` (${p.brand})` : ''}, ${Math.round(grams)} ${p.unit}`;
-  ctx.commit((st) => {
-    const d = (st.days[ctx.date] = st.days[ctx.date] ?? {});
-    d.food = [
-      ...(d.food ?? []),
-      {
-        id: uid(),
+  ctx.commit(
+    (st) =>
+      addFoodEntry(st, ctx.date, {
         time: nowTime(),
         name,
         kcal: v.kcal,
@@ -73,9 +70,9 @@ function addProduct(ctx, p, grams) {
         grams: Math.round(grams),
         ...(p.nova ? { nova: p.nova } : {}),
         source: 'barcode',
-      },
-    ];
-  }, `${p.name} erfasst`);
+      }) !== null,
+    `${p.name} erfasst`,
+  );
 }
 
 /**
@@ -86,10 +83,7 @@ function addProduct(ctx, p, grams) {
  */
 function addFood(ctx, food, grams) {
   const e = entryFromFood(food, grams);
-  ctx.commit((st) => {
-    const d = (st.days[ctx.date] = st.days[ctx.date] ?? {});
-    d.food = [...(d.food ?? []), { id: uid(), time: nowTime(), ...e }];
-  }, `${e.name} erfasst`);
+  ctx.commit((st) => addFoodEntry(st, ctx.date, { time: nowTime(), ...e }) !== null, `${e.name} erfasst`);
 }
 
 /**
@@ -655,10 +649,7 @@ export function suggestCard(ctx, snap) {
                     on: {
                       click: () => {
                         const { tags: _t, ...e } = m.entry;
-                        ctx.commit((st) => {
-                          const d = (st.days[ctx.date] = st.days[ctx.date] ?? {});
-                          d.food = [...(d.food ?? []), { id: uid(), time: nowTime(), ...e }];
-                        }, `${m.template.name} erfasst`);
+                        ctx.commit((st) => addFoodEntry(st, ctx.date, { time: nowTime(), ...e }) !== null, `${m.template.name} erfasst`);
                       },
                     },
                   },

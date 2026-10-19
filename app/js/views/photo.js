@@ -3,7 +3,7 @@
 // Barcode) → prüfen, Mengen anpassen → übernehmen.
 
 import { h, badge, fmt, num, str, nowTime } from '../ui/dom.js';
-import { uid } from '../store.js';
+import { uid, addFood } from '../store.js';
 import { totals, macrosConsistent, isHighProtein, scaleItem, productPortion, isValidGtin } from '../domain/foodvision.js';
 import { scaleMicros } from '../domain/micros.js';
 import { activeProvider, analyzeMeal, detectBarcode, lookupBarcode, prepareImage, readLabel, PROVIDERS } from '../vision.js';
@@ -188,28 +188,25 @@ function save(ctx, e) {
   const micros = v.micros && Object.keys(v.micros).length ? { micros: v.micros, microSrc: v.microSrc ?? 'ki' } : {};
   reset();
   ctx.commit((s) => {
-    const d = (s.days[date] = s.days[date] ?? {});
-    d.food = [
-      ...(d.food ?? []),
-      {
-        id: uid(),
-        name: e.name,
-        kcal: Math.round(v.kcal),
-        protein: Math.round(v.protein),
-        time: nowTime(),
-        ...nutrients,
-        ...micros,
-        ...(v.groups && Object.keys(v.groups).length ? { groups: v.groups } : {}),
-        ...(v.nova ? { nova: v.nova } : {}),
-        ...(e.grams ? { grams: e.grams } : {}),
-        source: e.source,
-      },
-    ];
+    const added = addFood(s, date, {
+      name: e.name,
+      kcal: Math.round(v.kcal),
+      protein: Math.round(v.protein),
+      time: nowTime(),
+      ...nutrients,
+      ...micros,
+      ...(v.groups && Object.keys(v.groups).length ? { groups: v.groups } : {}),
+      ...(v.nova ? { nova: v.nova } : {}),
+      ...(e.grams ? { grams: e.grams } : {}),
+      source: e.source,
+    });
+    if (!added) return false;
     if (e.asPreset)
       s.presets.food = [
         ...s.presets.food,
         { id: uid(), name: e.name, kcal: Math.round(v.kcal), protein: Math.round(v.protein), ...nutrients },
       ];
+    return true;
   }, `${e.name} erfasst`);
 }
 

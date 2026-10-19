@@ -115,3 +115,88 @@ export function weightChart({ from, to, points, trend, plan, goalKg, width = 640
     last ? s('circle', { class: 'trend-end', cx: x(last.date), cy: y(last.kg), r: 5 }) : null,
   );
 }
+
+/**
+ * Tageswerte als Balken. Fehlende Tage bleiben leer (kleine Markierung auf der Grundlinie),
+ * vorläufige Tage sind heller. Optional eine gestrichelte Ziellinie.
+ * @param {{
+ *   points: { date: string, value: number | null, partial: boolean }[],
+ *   target?: number | null, unit: string, digits?: 0 | 1, label: string, width?: number,
+ * }} o
+ * @returns {SVGElement}
+ */
+export function barChart({ points, target = null, unit, digits = 0, label, width = 640 }) {
+  const W = Math.round(Math.min(Math.max(width, 280), 1100));
+  const H = Math.round(Math.min(Math.max(W * 0.38, 200), 300));
+  const m = { top: 22, right: 16, bottom: 30, left: 48 };
+  const iw = W - m.left - m.right;
+  const ih = H - m.top - m.bottom;
+  const vals = points.map((p) => p.value).filter((v) => v !== null);
+  const max = Math.max(1, .../** @type {number[]} */ (vals), target ?? 0);
+  const yT = niceTicks(0, max, 4);
+  const y = (/** @type {number} */ v) => m.top + ih - (v / yT.hi) * ih;
+  const slot = iw / Math.max(1, points.length);
+  // 2px Abstand zwischen Balken, bei vielen Tagen schmaler
+  const bw = Math.max(1, Math.min(28, slot - (slot > 6 ? 2 : 0.5)));
+  const x = (/** @type {number} */ i) => m.left + i * slot + (slot - bw) / 2;
+  const r = Math.min(4, bw / 2);
+  // Datumsmarken: so viele, wie ohne Überlappung passen (ca. 64 px je Marke), der letzte Tag immer
+  const step = Math.max(1, Math.ceil(points.length / Math.max(2, Math.floor(iw / 64))));
+  const xIdx = points.map((_, i) => i).filter((i) => (points.length - 1 - i) % step === 0);
+  const fmtV = (/** @type {number} */ v) => `${fmt(v, digits)}${unit ? ` ${unit}` : ''}`;
+  const missing = points.filter((p) => p.value === null).length;
+  /** Balken mit gerundeten Ecken oben, flach auf der Grundlinie. */
+  const bar = (/** @type {number} */ i, /** @type {number} */ v) => {
+    const x0 = x(i);
+    const y0 = y(0);
+    const y1 = Math.min(y(v), y0 - 0.5);
+    const rr = Math.min(r, (y0 - y1) / 2);
+    return `M${x0},${y0}V${y1 + rr}Q${x0},${y1} ${x0 + rr},${y1}H${x0 + bw - rr}Q${x0 + bw},${y1} ${x0 + bw},${y1 + rr}V${y0}Z`;
+  };
+  return s(
+    'svg',
+    {
+      viewBox: `0 0 ${W} ${H}`,
+      class: 'chart bar-chart',
+      role: 'img',
+      'aria-label': `${label} vom ${fmtDate(points[0].date)} bis ${fmtDate(points[points.length - 1].date)}: ${vals.length} von ${points.length} Tagen erfasst${missing ? `, ${missing} Tage ohne Wert` : ''}.`,
+    },
+    s('text', { class: 'axis-unit', x: m.left - 8, y: 12, 'text-anchor': 'end' }, unit),
+    s('g', { class: 'grid' }, ...yT.ticks.map((t) => s('line', { x1: m.left, x2: W - m.right, y1: y(t), y2: y(t) }))),
+    s(
+      'g',
+      { class: 'axis' },
+      ...yT.ticks.map((t) => s('text', { x: m.left - 8, y: y(t) + 4, 'text-anchor': 'end' }, fmt(t, yT.step < 1 ? 1 : 0))),
+      ...xIdx.map((i, k) =>
+        s(
+          'text',
+          {
+            x: x(i) + bw / 2,
+            y: H - 8,
+            'text-anchor': xIdx.length > 1 && k === 0 && i === 0 ? 'start' : i === points.length - 1 && xIdx.length > 2 ? 'end' : 'middle',
+          },
+          fmtDate(points[i].date, 'dm'),
+        ),
+      ),
+    ),
+    s(
+      'g',
+      { class: 'bars' },
+      ...points.map((p, i) =>
+        p.value === null
+          ? s(
+              'rect',
+              { class: 'bar-missing', x: x(i), y: y(0) - 3, width: bw, height: 3 },
+              s('title', {}, `${fmtDate(p.date)}: nicht erfasst`),
+            )
+          : s(
+              'path',
+              { class: p.partial ? 'bar bar-partial' : 'bar', d: bar(i, p.value) },
+              s('title', {}, `${fmtDate(p.date)}: ${fmtV(p.value)}${p.partial ? ' (vorläufig, Tag nicht abgeschlossen)' : ''}`),
+            ),
+      ),
+    ),
+    // Ziellinie ohne Beschriftung im Diagramm (würde Balken überdecken); der Wert steht in der Legende
+    target ? s('line', { class: 'goal-line', x1: m.left, x2: W - m.right, y1: y(target), y2: y(target) }) : null,
+  );
+}

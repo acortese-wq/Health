@@ -34,9 +34,10 @@ export function snapshot(state, date) {
   const bmr = bmrMifflin({ sex: p.sex, weightKg, heightCm: p.heightCm, age });
   const tdeeFormula = formulaTdee({ sex: p.sex, weightKg, heightCm: p.heightCm, age, activity: p.activity });
 
-  // Adaptiver Bedarf aus den vollständig erfassten Tagen der letzten 21 Tage.
+  // Adaptiver Bedarf aus den vollständig erfassten Tagen der 21 Tage davor. Der Tag selbst
+  // zählt nicht mit, sonst würde jede Mahlzeit das Ziel desselben Tages verschieben.
   const intakes = [];
-  for (let i = 0; i < 21; i++) {
+  for (let i = 1; i <= 21; i++) {
     const d = state.days[addDays(date, -i)];
     if (d?.complete && d.food?.length) intakes.push(d.food.reduce((a, f) => a + f.kcal, 0));
   }

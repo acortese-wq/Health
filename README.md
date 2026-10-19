@@ -29,6 +29,16 @@ Jede Änderung lässt sich 5 Sekunden lang über «Rückgängig» zurücknehmen.
 
 Die Methodik und alle Grenzwerte mit Quellen stehen in [docs/MEDIZIN.md](docs/MEDIZIN.md).
 
+### Schnell erfassen und wiederholen
+
+- **↻ Nochmal** bei jedem Eintrag erfasst dieselbe Portion mit einem Tipp erneut (neuer Eintrag, gleiche Menge und
+  Nährwertquelle). Drei Äpfel = dreimal tippen; alle Portionen zählen.
+- **±** erfasst dasselbe Lebensmittel mit anderer Menge (½, ¾, 1½, 2× oder Gramm), **✎** ändert den Eintrag selbst
+  (Menge, Zeit, Werte), **×** löscht nur diesen Eintrag. Jede Änderung lässt sich 5 Sekunden rückgängig machen.
+- Auf «Heute» wiederholt **«↻ … nochmal»** das zuletzt erfasste Lebensmittel.
+- Ein Doppeltipp legt nichts doppelt an. Gleiche Einträge kurz hintereinander werden als «Mögliche Doppelbuchung»
+  markiert (nie automatisch gelöscht). Regeln und Tagesstatus: [docs/AUDIT.md](docs/AUDIT.md).
+
 ## Nutzung
 
 ### Auf dem Handy installieren

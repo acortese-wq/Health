@@ -23,7 +23,7 @@ import { viewProfile } from './views/profile.js';
  *   date: string,
  *   today: string,
  *   snap: Snapshot | null,
- *   commit: (mutate: (s: State) => void, message?: string) => void,
+ *   commit: (mutate: (s: State) => void | boolean, message?: string) => boolean,
  *   replace: (s: State, message?: string) => void,
  *   setDate: (d: string) => void,
  *   go: (route: string) => void,
@@ -116,9 +116,9 @@ function currentRoute() {
 /** @param {State} previous */
 function undoTo(previous) {
   state = previous;
-  persist();
+  const ok = persist();
   render();
-  toast('Rückgängig gemacht');
+  if (ok) toast('Rückgängig gemacht');
 }
 
 // Ungespeicherte Eingaben überstehen das Neuzeichnen (z. B. wenn zwischendurch Wasser
@@ -152,9 +152,19 @@ function dirtyInputs() {
   return out;
 }
 
+/** Letzter Speicherversuch fehlgeschlagen? Dann bleibt ein Hinweis sichtbar. */
+let unsaved = false;
+
+/** @returns {boolean} true, wenn dauerhaft gespeichert */
 function persist() {
-  if (!saveWithBackup(JSON.stringify(state), storage, toISODate()))
-    toast('Speichern nicht möglich. Bitte sofort unter Profil → Daten ein Backup herunterladen.', 'error');
+  const ok = saveWithBackup(JSON.stringify(state), storage, toISODate());
+  unsaved = !ok;
+  if (!ok)
+    toast(
+      'Nicht gespeichert: Der Speicher des Browsers ist voll oder gesperrt. Bitte sofort unter Profil → Daten ein Backup herunterladen.',
+      'error',
+    );
+  return ok;
 }
 
 function render() {
@@ -171,19 +181,22 @@ function render() {
     snap: state.profile ? snapshot(state, date) : null,
     commit(mutate, message) {
       const previous = structuredClone(state);
-      mutate(state);
-      persist();
+      // false = nichts geändert (z. B. Doppeltipp): nicht speichern, nichts melden
+      if (mutate(state) === false) return false;
+      const ok = persist();
       render();
-      if (message) toast(message, 'ok', () => undoTo(previous));
+      // Bei einem Speicherfehler keinen Erfolg melden; die Fehlermeldung bleibt stehen
+      if (ok && message) toast(message, 'ok', () => undoTo(previous));
+      return ok;
     },
     replace(next, message) {
       const previous = state;
       // Vor dem Ersetzen (Import, Löschen, Beispieldaten) den bisherigen Stand sichern
       if (storage && previous.profile && !previous.demo) backupSnapshot(storage, JSON.stringify(previous), today, 'vor Ersetzen');
       state = next;
-      persist();
+      const ok = persist();
       render();
-      if (message) toast(message, 'ok', () => undoTo(previous));
+      if (ok && message) toast(message, 'ok', () => undoTo(previous));
     },
     setDate(d) {
       date = d > today ? today : d;
@@ -254,6 +267,14 @@ function render() {
   if (loaded.error)
     banners.push(
       h('div', { class: 'banner banner-alert', role: 'alert' }, `Gespeicherte Daten konnten nicht gelesen werden: ${loaded.error}`),
+    );
+  if (unsaved)
+    banners.push(
+      h(
+        'div',
+        { class: 'banner banner-alert', role: 'alert', id: 'unsaved-banner' },
+        'Letzte Änderung nicht gespeichert. Sie ist nur bis zum Schliessen der App vorhanden. Bitte Profil → Daten → Backup herunterladen.',
+      ),
     );
   const dataDays = Object.keys(state.days).length;
   if (loaded.error && loaded.raw)
