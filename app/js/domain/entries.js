@@ -37,9 +37,14 @@ export function signature(e) {
 export function createEntry(list, fields, { id, now }) {
   const sig = signature(fields);
   const t = now.getTime();
-  // Nur dieselbe Aktion zählt als Doppeltipp: «Nochmal» direkt nach dem Erfassen ist gewollt
+  // Doppeltipp: gleicher Eintrag innerhalb von 0.6 s aus derselben Aktion. Nach dem Neuzeichnen
+  // liegt unter dem Finger oft der eben angelegte Eintrag; dessen «Nochmal» zählt deshalb mit.
   const tapTwice = list.some(
-    (x) => x.at && signature(x) === sig && x.repeatOf === fields.repeatOf && Math.abs(t - Date.parse(x.at)) < DOUBLE_TAP_MS,
+    (x) =>
+      x.at &&
+      signature(x) === sig &&
+      Math.abs(t - Date.parse(x.at)) < DOUBLE_TAP_MS &&
+      (x.repeatOf === fields.repeatOf || x.id === fields.repeatOf),
   );
   if (tapTwice) return null;
   return { ...fields, id, at: now.toISOString() };

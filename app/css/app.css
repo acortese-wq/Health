@@ -2172,20 +2172,9 @@ textarea {
 }
 
 /* Mahlzeiten: erneut erfassen, Gruppen, Doppelbuchung */
-.repeat-btn {
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--petrol);
-  border-radius: var(--r-sm);
-  background: var(--petrol-soft);
+.icon-btn.repeat-icon {
   color: var(--petrol);
-  font: 600 0.9rem var(--f-body);
-  white-space: nowrap;
-  cursor: pointer;
-}
-.repeat-btn:hover {
-  background: var(--petrol);
-  color: var(--petrol-ink);
+  font-weight: 700;
 }
 .entries li.entry-group {
   display: flex;
@@ -2303,4 +2292,39 @@ textarea {
 .hist-table {
   max-height: 360px;
   overflow: auto;
+}
+
+/* Gesundheit: einklappbare Bereiche */
+.fold-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+}
+.fold-summary::-webkit-details-marker {
+  display: none;
+}
+.fold-summary h2 {
+  margin: 0;
+  flex: 1;
+}
+.fold-summary::after {
+  content: '›';
+  font-size: 1.4rem;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+.fold[open] > .fold-summary::after {
+  transform: rotate(90deg);
+}
+.fold-body {
+  margin-top: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fold-summary::after {
+    transition: none;
+  }
 }

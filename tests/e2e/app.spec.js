@@ -105,6 +105,7 @@ test('Beispieldaten: alle Ansichten rendern ohne Fehler und ohne horizontales Sc
   await expect(page.locator('svg.chart .trend-line')).toBeVisible();
   await expect(page.locator('svg.chart .dots circle').first()).toBeAttached();
   await page.goto('/#gesundheit');
+  await page.locator('.fold-summary', { hasText: 'Laborwerte' }).click();
   await expect(page.getByText('eGFR (CKD-EPI 2021)')).toBeVisible();
   await expect(page.getByText('FIB-4 (Leberfibrose)')).toBeVisible();
   expect(errors).toEqual([]);
@@ -127,10 +128,17 @@ test('Krafttraining erfassen schlägt beim nächsten Mal die Progression vor', a
 test('Blutdruck: stark erhöhter Wert wird deutlich markiert', async ({ page }) => {
   await createProfile(page);
   await page.goto('/#gesundheit');
+  // Bereiche sind eingeklappt; der Status steht in der Kopfzeile
+  await expect(page.locator('#bp-sys')).toBeHidden();
+  await page.locator('.fold-summary', { hasText: 'Blutdruck' }).click();
   await page.fill('#bp-sys', '185');
   await page.fill('#bp-dia', '105');
   await page.click('#bp-save');
   await expect(page.locator('.callout .badge-alert')).toHaveText('Stark erhöht');
+  await expect(page.locator('.fold-summary', { hasText: 'Blutdruck' }).locator('.badge-alert')).toHaveText('Stark erhöht');
+  // Offener Bereich bleibt nach dem Neuladen offen
+  await page.reload();
+  await expect(page.locator('#bp-sys')).toBeVisible();
   await page.goto('/#heute');
   await expect(page.locator('.hint-item.sev-alert')).toContainText('Blutdruck');
 });

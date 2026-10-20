@@ -1129,13 +1129,14 @@ const MEAL_GROUPS = /** @type {const} */ ([
 ]);
 
 /**
- * Liste der Einträge, chronologisch und nach Mahlzeit gruppiert.
+ * Liste der Einträge, neueste zuerst und nach Mahlzeit gruppiert.
  * @param {Ctx} ctx
  * @param {import('../store.js').FoodEntry[]} food
  */
 function entryList(ctx, food) {
   const dups = possibleDuplicates(food);
-  const sorted = [...food].sort(byMoment);
+  // Neueste Mahlzeit oben (auch innerhalb der Gruppe)
+  const sorted = [...food].sort(byMoment).reverse();
   const groupOf = (/** @type {string} */ t) => MEAL_GROUPS.find(([until]) => t < until)?.[1] ?? 'Abendessen';
   const multi = new Set(sorted.map((f) => groupOf(f.time))).size > 1;
   /** @type {HTMLElement[]} */
@@ -1216,13 +1217,12 @@ function foodRow(ctx, f, suspect = false) {
           'button',
           {
             type: 'button',
-            class: 'repeat-btn',
+            class: 'icon-btn repeat-icon',
             'aria-label': `${f.name} erneut erfassen`,
             title: 'Gleiche Portion nochmals erfassen',
             on: { click: () => repeat(ctx, f) },
           },
-          h('span', { 'aria-hidden': 'true' }, '↻'),
-          ' Nochmal',
+          '↻',
         ),
         h(
           'button',

@@ -94,11 +94,15 @@ test('14: Doppeltipp innerhalb von 0.6 s erzeugt keinen zweiten Eintrag', () => 
   assert.equal(st.days['2026-10-19'].food?.length, 1);
   assert.ok(addFood(st, '2026-10-19', APPLE, new Date(1_000_000 + DOUBLE_TAP_MS + 400)));
   assert.equal(createEntry([], APPLE, { id: 'x', now: new Date(0) })?.id, 'x');
-  // «Nochmal» direkt nach dem Erfassen ist gewollt, ein zweiter Tipp auf «Nochmal» nicht
+  // Nach dem Neuzeichnen liegt der neue Eintrag unter dem Finger: auch dessen «Nochmal» innerhalb
+  // von 0.6 s ist ein Doppeltipp; danach ist jede Wiederholung gewollt
   const st2 = emptyState();
   const first = /** @type {import('../../app/js/store.js').FoodEntry} */ (addFood(st2, 'd', APPLE, new Date(5000)));
-  assert.ok(addFood(st2, 'd', repeatEntry(first, '08:00'), new Date(5200)));
-  assert.equal(addFood(st2, 'd', repeatEntry(first, '08:00'), new Date(5300)), null);
+  const rep = /** @type {import('../../app/js/store.js').FoodEntry} */ (addFood(st2, 'd', repeatEntry(first, '08:00'), new Date(6000)));
+  assert.ok(rep);
+  assert.equal(addFood(st2, 'd', repeatEntry(rep, '08:00'), new Date(6200)), null);
+  assert.equal(addFood(st2, 'd', repeatEntry(first, '08:00'), new Date(6300)), null);
+  assert.ok(addFood(st2, 'd', repeatEntry(rep, '08:00'), new Date(7000)));
 });
 
 test('4: Doppelt importierte ID wird erkannt und zur Prüfung markiert, nichts geht verloren', () => {

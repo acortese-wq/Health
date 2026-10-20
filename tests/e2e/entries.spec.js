@@ -34,6 +34,7 @@ test('1/2/8: Apfel dreimal am selben Tag – mit einem Tipp wiederholt, separat 
   await createProfile(page);
   await page.goto('/#ernaehrung');
   await addCustom(page, 'Apfel', '78', '0.5');
+  await page.waitForTimeout(700);
   const again = page.getByRole('button', { name: 'Apfel erneut erfassen' });
   await expect(again).toHaveCount(1);
   await again.click();
@@ -48,7 +49,10 @@ test('1/2/8: Apfel dreimal am selben Tag – mit einem Tipp wiederholt, separat 
   expect(food).toHaveLength(3);
   expect(new Set(food.map((/** @type {any} */ f) => f.id)).size).toBe(3);
   expect(food.reduce((/** @type {number} */ a, /** @type {any} */ f) => a + f.kcal, 0)).toBe(234);
-  expect(food.filter((/** @type {any} */ f) => f.repeatOf === food[0].id)).toHaveLength(2);
+  expect(food.filter((/** @type {any} */ f) => f.repeatOf)).toHaveLength(2);
+  // Neueste Mahlzeit steht oben
+  const times = await page.locator('#food-entries .entry .entry-time').allTextContents();
+  expect([...times].sort().reverse()).toEqual(times);
   // Keine Markierung als Doppelbuchung
   await expect(page.locator('.dup-flag')).toHaveCount(0);
   // Dashboard zählt mit
@@ -60,6 +64,7 @@ test('14: Doppelklick und Speicherfehler erzeugen keine unkontrollierten Doppelb
   await createProfile(page);
   await page.goto('/#ernaehrung');
   await addCustom(page, 'Joghurt', '120', '6');
+  await page.waitForTimeout(700);
   await page.getByRole('button', { name: 'Joghurt erneut erfassen' }).dblclick();
   await expect(page.getByRole('button', { name: 'Joghurt erneut erfassen' })).toHaveCount(2);
   expect(await stored(page)).toHaveLength(2);
@@ -119,8 +124,7 @@ test('5/6: Bearbeiten und Löschen rechnen Tag und Dashboard neu; andere Menge e
 
   // Bearbeiten: Menge 200 → 400 g verdoppelt alle Werte dieses Eintrags
   await page
-    .locator('#food-entries .entry')
-    .first()
+    .locator('#food-entries .entry', { hasText: '200 g' })
     .getByRole('button', { name: /bearbeiten/ })
     .click();
   await page.fill('#edit-grams', '400');
@@ -131,8 +135,7 @@ test('5/6: Bearbeiten und Löschen rechnen Tag und Dashboard neu; andere Menge e
 
   // Löschen: nur der gewählte Eintrag
   await page
-    .locator('#food-entries .entry')
-    .first()
+    .locator('#food-entries .entry', { hasText: '400 g' })
     .getByRole('button', { name: /entfernen/ })
     .click();
   await expect(page.locator('#food-entries .entry')).toHaveCount(1);
@@ -199,6 +202,7 @@ test('Schnellaktion: letztes Lebensmittel vom Dashboard aus erneut erfassen', as
   await createProfile(page);
   await page.goto('/#ernaehrung');
   await addCustom(page, 'Espresso mit Milch', '25', '1');
+  await page.waitForTimeout(700);
   await page.goto('/#heute');
   await expect(page.locator('#cta-repeat')).toContainText('Espresso mit Milch nochmal');
   await page.click('#cta-repeat');

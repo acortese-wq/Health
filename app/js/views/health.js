@@ -34,13 +34,75 @@ export function viewHealth(ctx) {
       { class: 'lead' },
       'Die App ordnet deine Werte nach publizierten Leitlinien ein. Sie stellt keine Diagnose. Auffällige Werte gehören in die hausärztliche Sprechstunde.',
     ),
-    motivationCard(ctx),
-    blueZoneCard(ctx),
-    h('div', { class: 'grid-2' }, bpCard(ctx), bodyCard(ctx)),
-    labCard(ctx),
-    h('div', { class: 'grid-2' }, stopBangCard(ctx), preventionCard(ctx)),
-    scoffCard(ctx),
+    h('p', { class: 'small muted' }, 'Bereiche antippen zum Öffnen. Die App merkt sich, welche offen sind.'),
+    fold('motivation', motivationCard(ctx)),
+    fold('bluezones', blueZoneCard(ctx)),
+    h('div', { class: 'grid-2' }, fold('bp', bpCard(ctx)), fold('body', bodyCard(ctx))),
+    fold('labs', labCard(ctx)),
+    h('div', { class: 'grid-2' }, fold('stopbang', stopBangCard(ctx)), fold('prevention', preventionCard(ctx))),
+    // SCOFF: sensibles Thema – Klappzustand nicht speichern, kein Ergebnis in der Übersicht
+    fold('scoff', scoffCard(ctx), false),
   );
+}
+
+/** Offene Bereiche, die nicht gespeichert werden (nur solange die App offen ist). */
+const sessionOpen = new Set();
+
+/** Geöffnete Bereiche (nur Bedienkomfort, pro Gerät). */
+const FOLD_KEY = 'gesundheitscockpit.offen';
+
+/** @returns {Set<string>} */
+function openFolds() {
+  try {
+    const v = JSON.parse(localStorage.getItem(FOLD_KEY) ?? '[]');
+    return new Set(Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Karte einklappbar machen: Die Überschrift wird zur Zeile zum Antippen, daneben der
+ * wichtigste Status (erste Plakette der Karte), der Inhalt erscheint beim Öffnen.
+ * @param {string} id
+ * @param {HTMLElement} section
+ * @param {boolean} [remember] Klappzustand merken
+ */
+function fold(id, section, remember = true) {
+  const head = section.querySelector('h2');
+  if (!head) return section;
+  const status = remember ? section.querySelector('.badge') : null;
+  const body = [...section.childNodes].filter((n) => n !== head);
+  const details = h(
+    'details',
+    {
+      class: 'fold',
+      open: remember ? openFolds().has(id) : sessionOpen.has(id),
+      on: {
+        toggle: (e) => {
+          if (!remember) {
+            if (/** @type {HTMLDetailsElement} */ (e.currentTarget).open) sessionOpen.add(id);
+            else sessionOpen.delete(id);
+            return;
+          }
+          const set = openFolds();
+          if (/** @type {HTMLDetailsElement} */ (e.currentTarget).open) set.add(id);
+          else set.delete(id);
+          try {
+            localStorage.setItem(FOLD_KEY, JSON.stringify([...set]));
+          } catch {
+            /* ohne Speicher bleibt nur der Zustand dieser Ansicht */
+          }
+        },
+      },
+    },
+    h('summary', { class: 'fold-summary' }, head, status ? h('span', { class: 'fold-status' }, status.cloneNode(true)) : null),
+    h('div', { class: 'fold-body stack-sm' }, ...body),
+  );
+  section.replaceChildren(details);
+  section.classList.add('folded');
+  if (!section.id) section.id = `fold-${id}`;
+  return section;
 }
 
 /** @param {Ctx} ctx */

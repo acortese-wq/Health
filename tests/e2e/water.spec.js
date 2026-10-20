@@ -32,6 +32,7 @@ test('Gesundheit: Lebenserwartung, Risiken und Nutzen von Bewegung', async ({ pa
   await page.click('#load-demo');
   await page.goto('/#gesundheit');
   await expect(page.locator('#mot-h')).toHaveText('Warum es sich lohnt');
+  await page.locator('.fold-summary', { hasText: 'Warum es sich lohnt' }).click();
   await expect(page.locator('#life-activity')).toContainText('Durch Bewegung bereits gewonnen');
   await expect(page.locator('#life-weight')).toContainText('Jahre');
   await page.locator('#risk-details summary').click();

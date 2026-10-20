@@ -114,6 +114,7 @@ test('Bericht für die Ernährungsberatung, SCOFF ohne Speicherung, Hand-Methode
   await expect(page.locator('#report-print')).toBeVisible();
   // SCOFF: Auswertung, aber nichts gespeichert
   await page.goto('/#gesundheit');
+  await page.locator('.fold-summary', { hasText: 'SCOFF' }).click();
   await page.check('#scoff-c');
   await page.check('#scoff-f2');
   await expect(page.locator('#scoff-result')).toContainText('Abklärung empfohlen');
@@ -163,6 +164,7 @@ test('Blue Zones: Wochen-Check mit automatischen und abhakbaren Gewohnheiten', a
   await page.click('#load-demo');
   await page.goto('/#gesundheit');
   const card = page.locator('#bluezone-card');
+  await card.locator('.fold-summary').click();
   await expect(card).toContainText('Natürlich bewegen');
   await expect(page.locator('#bz-move')).toContainText('automatisch gemessen');
   const before = await page.locator('#bz-score').textContent();
@@ -170,7 +172,7 @@ test('Blue Zones: Wochen-Check mit automatischen und abhakbaren Gewohnheiten', a
   await expect(page.locator('#bz-score')).not.toHaveText(before ?? '');
   await page.reload();
   await expect(page.locator('#bz-check-purpose')).toBeChecked();
-  await page.locator('#bluezone-card summary').click();
+  await page.locator('#bluezone-card .fold-body summary').click();
   await expect(card).toContainText('umstritten');
   await expect(card).toContainText('Kein Alkohol');
 });

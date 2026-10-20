@@ -18,7 +18,7 @@ Ausgangsstand: Git-Tag `audit-ausgangsstand`. Gemessen mit Playwright (Pixel 7 u
 | 10 | Kontraste nur geschätzt | mittel | Automatischer Test: 21 Farbpaare ≥ 4.5:1 hell und dunkel | erledigt, getestet |
 | 11 | Datenschutzhinweise verstreut | mittel | Abschnitt «Datenschutz und Hinweise» im Profil | erledigt |
 | 12 | Doppelte Überschrift «Ernährung» | niedrig | Karte heisst «Tagesbilanz» | erledigt |
-| 13 | «Gesundheit» mobil sehr lang (rund 6150 px) | mittel | Noch nicht umgebaut; Vorschlag: Abschnitte einklappbar, Labor als eigene Unterseite | offen |
+| 13 | «Gesundheit» mobil sehr lang (zuletzt 7598 px) | mittel | Bereiche einklappbar mit Status in der Kopfzeile, Zustand wird gemerkt (SCOFF ausgenommen): 1304 px | erledigt, getestet |
 
 ## Nicht automatisiert prüfbar
 

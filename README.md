@@ -31,7 +31,7 @@ Die Methodik und alle Grenzwerte mit Quellen stehen in [docs/MEDIZIN.md](docs/ME
 
 ### Schnell erfassen und wiederholen
 
-- **↻ Nochmal** bei jedem Eintrag erfasst dieselbe Portion mit einem Tipp erneut (neuer Eintrag, gleiche Menge und
+- **↻** bei jedem Eintrag erfasst dieselbe Portion mit einem Tipp erneut (neuer Eintrag, gleiche Menge und
   Nährwertquelle). Drei Äpfel = dreimal tippen; alle Portionen zählen.
 - **±** erfasst dasselbe Lebensmittel mit anderer Menge (½, ¾, 1½, 2× oder Gramm), **✎** ändert den Eintrag selbst
   (Menge, Zeit, Werte), **×** löscht nur diesen Eintrag. Jede Änderung lässt sich 5 Sekunden rückgängig machen.
