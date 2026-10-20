@@ -223,14 +223,20 @@ async function viaOpenAI(a, req) {
 
 /**
  * Mahlzeit per Foto oder Beschreibung schätzen.
- * @param {{ imageBase64?: string, description?: string, hint: string, kcalLeft: number | null, proteinLeft: number | null, signal?: AbortSignal }} p
+ * @param {{ imageBase64?: string, description?: string, hint: string, kcalLeft: number | null, proteinLeft: number | null, dayContext?: string, signal?: AbortSignal }} p
  */
 export async function analyzeMeal(p) {
   const raw = await requestJson({
     system: MEAL_SYSTEM_PROMPT,
     schema: MEAL_SCHEMA,
     schemaName: 'mahlzeit',
-    text: userPrompt({ hint: p.hint, description: p.description, kcalLeft: p.kcalLeft, proteinLeft: p.proteinLeft }),
+    text: userPrompt({
+      hint: p.hint,
+      description: p.description,
+      kcalLeft: p.kcalLeft,
+      proteinLeft: p.proteinLeft,
+      dayContext: p.dayContext,
+    }),
     imageBase64: p.imageBase64,
     signal: p.signal,
   });

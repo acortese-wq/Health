@@ -7,6 +7,7 @@ import { uid, addFood } from '../store.js';
 import { totals, macrosConsistent, isHighProtein, scaleItem, productPortion, isValidGtin } from '../domain/foodvision.js';
 import { scaleMicros } from '../domain/micros.js';
 import { activeProvider, analyzeMeal, detectBarcode, lookupBarcode, prepareImage, readLabel, PROVIDERS } from '../vision.js';
+import { pyramidTipsFor, pyramidTipList, dayContextFor } from './nutrients.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 /** @typedef {import('../domain/foodvision.js').MealEstimate} MealEstimate */
@@ -118,6 +119,7 @@ function estimate(ctx, snap) {
       hint: st.hint,
       kcalLeft: snap.kcalTarget - snap.kcal,
       proteinLeft: snap.protein.grams - snap.proteinG,
+      dayContext: dayContextFor(ctx, snap),
       signal,
     });
     Object.assign(st, { result, excluded: new Set(), factor: 1 });
@@ -543,8 +545,18 @@ function mealBody(ctx, snap, r) {
           h('ul', { class: 'assumptions' }, ...r.assumptions.map((a) => h('li', {}, a))),
         )
       : null,
-    r.tip ? h('p', { class: 'note info small' }, r.tip) : null,
+    r.tip ? h('p', { class: 'note info small', id: 'meal-tip' }, r.tip) : null,
     saveForm(ctx, r.dish, t, source),
+    h(
+      'details',
+      { class: 'pyr-after', id: 'pyr-after', open: true },
+      h('summary', {}, 'Nach dieser Mahlzeit: so erreichst du die Pyramide'),
+      pyramidTipList(ctx, pyramidTipsFor(ctx, snap, { kcal: t.kcal, protein: t.protein, groups: t.groups }), {
+        id: 'pyr-after-tips',
+        title: 'Passende Ergänzungen für den Rest des Tages',
+        add: false,
+      }),
+    ),
     h(
       'p',
       { class: 'hint' },

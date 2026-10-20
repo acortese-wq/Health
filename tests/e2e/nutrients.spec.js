@@ -18,7 +18,7 @@ test('Nährstoffe: Ring, Balken, 7 Tage, Vorschlag erfassen, Suche', async ({ pa
   await expect(page.locator('#nut-woche')).toHaveAttribute('aria-pressed', 'true');
 
   // Vorschlag direkt erfassen
-  const sug = page.locator('#suggest-card .suggestion:not(.meal)');
+  const sug = page.locator('#suggest-card .suggestion:not(.meal):not(.pyr-tip)');
   await expect(sug).toHaveCount(3);
   const name = (await sug.first().locator('strong').textContent())?.split(':')[0] ?? '';
   await page.click('#sug-add-0');

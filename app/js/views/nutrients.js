@@ -15,7 +15,9 @@ import {
   searchFoods,
   entryFromFood,
   contributions,
+  gaps,
 } from '../domain/micros.js';
+import { pyramidTips, dayContextText } from '../domain/pyramidtips.js';
 import { addDays } from '../domain/util.js';
 import { productPortion } from '../domain/foodvision.js';
 import { pyramid } from '../domain/foodgroups.js';
@@ -590,6 +592,85 @@ export function nutrientsCard(ctx, snap) {
 }
 
 /**
+ * Pyramiden-Tipps für den angezeigten Tag, optional als ob eine weitere Mahlzeit schon gegessen wäre.
+ * @param {Ctx} ctx
+ * @param {NonNullable<Ctx['snap']>} snap
+ * @param {{ kcal: number, protein: number, groups?: import('../domain/foodgroups.js').Groups } | null} [extra]
+ */
+export function pyramidTipsFor(ctx, snap, extra = null) {
+  const today = [...(snap.day.food ?? []), ...(extra ? [extra] : [])];
+  const week = Array.from({ length: 7 }, (_, i) => (i === 0 ? today : (ctx.state.days[addDays(ctx.date, -i)]?.food ?? [])));
+  const pyr = pyramid({ today, week });
+  return {
+    pyramid: pyr,
+    ...pyramidTips({
+      pyramid: pyr,
+      kcalLeft: snap.kcalTarget - snap.kcal - (extra?.kcal ?? 0),
+      proteinLeft: snap.protein.grams - snap.proteinG - (extra?.protein ?? 0),
+      prefs: snap.profile.foodPrefs,
+      foods: FOODS,
+      date: ctx.date,
+    }),
+  };
+}
+
+/**
+ * Kurztext für die KI: Gegessenes, offene Pyramidengruppen, Nährstofflücken (keine Zyklusdaten).
+ * @param {Ctx} ctx
+ * @param {NonNullable<Ctx['snap']>} snap
+ */
+export function dayContextFor(ctx, snap) {
+  const food = snap.day.food ?? [];
+  const targets = dailyTargets({ kcalTarget: snap.kcalTarget, proteinG: snap.protein.grams, sex: snap.profile.sex, stage: snap.lifeStage });
+  const { amounts } = dayAmounts(food);
+  return dayContextText({
+    names: food.map((f) => `${f.time} ${f.name}`),
+    pyramid: pyramidTipsFor(ctx, snap).pyramid,
+    gaps: gaps(amounts, targets)
+      .slice(0, 4)
+      .map((g) => NUTRIENTS.find((n) => n.key === g.key)?.label ?? g.key),
+  });
+}
+
+/**
+ * Liste der Pyramiden-Tipps.
+ * @param {Ctx} ctx
+ * @param {{ tips: import('../domain/pyramidtips.js').PyramidTip[], budgetSpent: boolean }} res
+ * @param {{ id: string, title: string, add?: boolean }} o
+ */
+export function pyramidTipList(ctx, res, { id, title, add = true }) {
+  if (!res.tips.length) return h('p', { class: 'small', id }, 'Die Lebensmittelpyramide ist für heute erfüllt. Weiter so!');
+  return h(
+    'div',
+    { class: 'stack-sm', id },
+    h('h3', { class: 'eyebrow' }, title),
+    res.budgetSpent
+      ? h('p', { class: 'small muted' }, 'Kalorienbudget ausgeschöpft: nur noch kalorienarme Ergänzungen, die satt machen.')
+      : null,
+    h(
+      'ul',
+      { class: 'suggestions' },
+      ...res.tips.map((t, i) =>
+        h(
+          'li',
+          { class: 'suggestion pyr-tip', id: `${id}-${i}` },
+          h('span', { class: 'eyebrow' }, `${t.label}: ${t.reason}`),
+          h('strong', {}, `${t.food.n} ${fmt(t.grams)} g`),
+          h('span', { class: 'small' }, `${fmt(t.kcal)} kcal${t.protein >= 5 ? ` · ${fmt(t.protein)} g Protein` : ''}`),
+          add
+            ? h(
+                'button',
+                { type: 'button', class: 'btn small-btn', id: `${id}-add-${i}`, on: { click: () => addFood(ctx, t.food, t.grams) } },
+                '+ Erfassen',
+              )
+            : null,
+        ),
+      ),
+    ),
+  );
+}
+
+/**
  * Vorschläge für das nächste Essen, passend zu den Lücken von heute.
  * @param {Ctx} ctx
  * @param {NonNullable<Ctx['snap']>} snap
@@ -693,6 +774,7 @@ export function suggestCard(ctx, snap) {
             ? 'Das Tagesbudget ist ausgeschöpft. Morgen geht es weiter.'
             : 'Heute sind alle wichtigen Nährstoffe gut gedeckt. Stark!',
         ),
+    pyramidTipList(ctx, pyramidTipsFor(ctx, snap), { id: 'pyr-tips', title: 'Für die Lebensmittelpyramide noch offen' }),
     h(
       'p',
       { class: 'hint' },

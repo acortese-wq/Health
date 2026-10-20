@@ -220,3 +220,15 @@ test('Verlauf: Tageswerte mit Lücken, umschaltbar', async ({ page }) => {
   await page.locator('#history-card summary').click();
   await expect(page.locator('#history-card table')).toBeVisible();
 });
+
+test('Pyramiden-Tipps: konkrete Ergänzungen mit Menge, direkt erfassbar', async ({ page }) => {
+  await createProfile(page);
+  await page.goto('/#ernaehrung');
+  await addCustom(page, 'Gipfeli', '250', '5');
+  const tips = page.locator('#pyr-tips');
+  await expect(tips).toContainText('Für die Lebensmittelpyramide noch offen');
+  await expect(tips.locator('li').first()).toContainText(' g');
+  const before = (await stored(page)).length;
+  await page.click('#pyr-tips-add-0');
+  expect(await stored(page)).toHaveLength(before + 1);
+});

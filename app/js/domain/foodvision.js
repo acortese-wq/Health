@@ -118,7 +118,11 @@ export const MEAL_SCHEMA = {
       description: 'Annahmen, die das Ergebnis stark beeinflussen (Öl, Sauce, Portionsgrösse, Zubereitung)',
     },
     confidence: { type: 'string', enum: ['hoch', 'mittel', 'niedrig'] },
-    tip: { type: 'string', description: 'Ein kurzer, konkreter Tipp passend zu den Zielen der Person, oder leer' },
+    tip: {
+      type: 'string',
+      description:
+        'Konkreter Vorschlag für die nächste Mahlzeit passend zum Tageskontext, höchstens 2 vollständige Sätze (max. 250 Zeichen), oder leer',
+    },
   },
 };
 
@@ -155,6 +159,10 @@ Vorgehen:
 - Erfinde nichts. Ist kein Essen erkennbar, setze is_food auf false; bei Unsicherheit confidence «niedrig».
 - Schreibe auf Deutsch (Schweizer Rechtschreibung, «ss» statt «ß»).
 
+Tipp (Feld tip):
+- Höchstens zwei vollständige Sätze, maximal 250 Zeichen, nie mitten im Satz aufhören.
+- Bezieh dich auf den Tageskontext (was schon gegessen wurde, offene Gruppen der Lebensmittelpyramide, Protein, Restbudget) und schlage eine konkrete nächste Mahlzeit oder Ergänzung mit Menge vor (z. B. «Zum Znacht 150 g Kabeljau mit 200 g Broccoli»).
+
 Mikronährstoffe:
 - Setze db_key auf den passenden Schlüssel aus der Lebensmittelliste unten, wenn der Bestandteil im Wesentlichen diesem Lebensmittel in gleicher Zubereitung entspricht (z. B. «Spaghetti, gekocht» → pasta). Für zusammengesetzte Saucen, Fertiggerichte oder Unpassendes leer lassen.
 - Schätze micros für jeden Bestandteil trotzdem (Menge für die angegebenen Gramm). Rechne mit Schweizer, nicht angereicherten Lebensmitteln.
@@ -174,11 +182,25 @@ export const LABEL_SYSTEM_PROMPT = `Du liest Nährwerttabellen und Barcodes von 
 - Produktname und Marke auf Deutsch bzw. wie auf der Packung.`;
 
 /**
+ * Text kürzen, ohne mitten im Satz abzubrechen: am letzten Satzende, sonst am Wortende mit «…».
+ * @param {string} text
+ * @param {number} max
+ */
+export function clipText(text, max) {
+  const t = text.trim().replace(/\s+/g, ' ');
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));
+  if (end > max * 0.4) return cut.slice(0, end + 1);
+  return `${cut.slice(0, cut.lastIndexOf(' ') > 0 ? cut.lastIndexOf(' ') : max).replace(/[,;:(\s]+$/, '')} …`;
+}
+
+/**
  * Nutzertext für die Mahlzeitenschätzung.
- * @param {{ hint: string, description?: string, proteinLeft: number | null, kcalLeft: number | null }} p
+ * @param {{ hint: string, description?: string, proteinLeft: number | null, kcalLeft: number | null, dayContext?: string }} p
  * @returns {string}
  */
-export function userPrompt({ hint, description = '', proteinLeft, kcalLeft }) {
+export function userPrompt({ hint, description = '', proteinLeft, kcalLeft, dayContext = '' }) {
   const lines = [description ? `Schätze diese Mahlzeit: «${description.trim().slice(0, 500)}»` : 'Schätze die Mahlzeit auf dem Foto.'];
   if (hint.trim()) lines.push(`Angabe der Person: «${hint.trim().slice(0, 300)}»`);
   if (kcalLeft !== null && proteinLeft !== null) {
@@ -186,6 +208,7 @@ export function userPrompt({ hint, description = '', proteinLeft, kcalLeft }) {
       `Kontext für den Tipp: Heute noch ca. ${Math.round(kcalLeft)} kcal und ${Math.round(proteinLeft)} g Protein bis zum Tagesziel. Ziel ist Fettabbau bei Muskelerhalt.`,
     );
   }
+  if (dayContext.trim()) lines.push(`Tageskontext: ${dayContext.trim().slice(0, 1500)}`);
   return lines.join('\n');
 }
 
@@ -289,7 +312,7 @@ export function parseEstimate(raw) {
           .slice(0, 6)
       : [],
     confidence,
-    tip: typeof r.tip === 'string' ? r.tip.trim().slice(0, 300) : '',
+    tip: typeof r.tip === 'string' ? clipText(r.tip, 600) : '',
   };
 }
 

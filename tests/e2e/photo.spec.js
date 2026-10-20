@@ -108,6 +108,13 @@ test('Foto → Gericht, Kalorien, Portion anpassen → übernehmen', async ({ pa
   expect(img.type).toBe('image');
   expect(img.source.media_type).toBe('image/jpeg');
   expect(img.source.data.length).toBeGreaterThan(100);
+  // Tageskontext für den Tipp wird mitgeschickt; Tipp und Pyramiden-Ergänzungen erscheinen vollständig
+  const prompt = body.messages[0].content.find((/** @type {any} */ c) => c.type === 'text').text;
+  expect(prompt).toContain('Tageskontext:');
+  expect(prompt).toContain('Lebensmittelpyramide noch offen');
+  await expect(page.locator('#meal-tip')).toHaveText('Heute Abend proteinreich ergänzen.');
+  await expect(page.locator('#pyr-after-tips li').first()).toBeVisible();
+  await expect(page.locator('#pyr-after-tips')).toContainText('Protein');
 
   // Apfelmus abwählen, halbe Portion
   await page.uncheck('#photo-item-1');

@@ -670,7 +670,7 @@ function visionCard(ctx) {
       h(
         'li',
         {},
-        'Das Foto wird verkleinert und direkt von diesem Gerät an den gewählten Anbieter gesendet, ohne Zwischenserver. Mitgeschickt wird nur dein restliches Tagesziel für den Tipp.',
+        'Das Foto wird verkleinert und direkt von diesem Gerät an den gewählten Anbieter gesendet, ohne Zwischenserver. Für den Tipp gehen zusätzlich dein restliches Tagesziel, die heute erfassten Mahlzeiten (Name und Uhrzeit), offene Gruppen der Lebensmittelpyramide und Nährstofflücken mit, aber kein Name, kein Gewicht und keine Zyklusdaten.',
       ),
       h('li', {}, 'Schlüssel bleiben nur auf diesem Gerät gespeichert und sind nie Teil eines Backups.'),
       h('li', {}, 'Setze beim Anbieter ein Ausgabenlimit für den Schlüssel, zum Beispiel 5 USD pro Monat.'),

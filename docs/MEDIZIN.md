@@ -100,6 +100,18 @@ PSA 50–69 nur nach Aufklärung · dT mit 25/45/65 · Gürtelrose und Grippe ab
 | SCOFF | 5 Fragen, ab 2 Ja Abklärung empfohlen; Antworten werden nicht gespeichert. | Morgan et al., BMJ 1999 |
 | Bericht | 4-Wochen-Zusammenfassung zum Drucken/PDF; Hinweis auf Kostenübernahme bei Adipositas. | KLV Art. 9b |
 
+### Pyramiden-Tipps
+
+Aus den heutigen Einträgen (und der Woche für Fisch und Hülsenfrüchte) berechnet die App, welche Gruppen der
+Schweizer Lebensmittelpyramide noch offen sind, und schlägt konkrete Lebensmittel mit Menge aus der Schweizer
+Nährwertdatenbank vor (`domain/pyramidtips.js`). Reihenfolge: Protein (≥ 20 g offen), Gemüse, Früchte, Milchprodukte,
+Hülsenfrüchte, Fisch, Getreide, Nüsse; jeweils die kalorienärmste passende Portion, Vorlieben werden beachtet.
+Ist das Kalorienbudget ausgeschöpft, nur noch Gemüse (≤ 60 kcal); bei knapper Überschreitung (bis 300 kcal) und
+≥ 30 g offenem Protein zusätzlich sehr mageres Protein bis 120 kcal, weil ein Proteinmangel im Defizit Muskelmasse
+kostet (Morton RW et al., Br J Sports Med 2018;52:376–384). Nach einer Foto- oder Textschätzung erscheinen die Tipps
+so berechnet, als wäre die Mahlzeit schon gegessen. Der KI-Tipp erhält dafür den Tageskontext (Mahlzeitennamen,
+offene Pyramidengruppen, Nährstofflücken; keine Personen- oder Zyklusdaten) und ist auf zwei Sätze begrenzt.
+
 ## Zyklus und Lebensphase (Frauen)
 
 | Thema | Umsetzung | Quelle |
