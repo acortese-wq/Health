@@ -67,5 +67,5 @@ test('Rezepte: Filter, Einkaufsmengen, Prinzipien mit Studienlage, Portion erfas
   await page.click('#recipe-add-quark-bowl');
   await expect(page.locator('#toast')).toContainText('erfasst');
   await page.goto('/#ernaehrung');
-  await expect(page.locator('#food-entries')).toContainText('Magerquark-Bowl');
+  await expect(page.locator('#food-entries')).toContainText('Quark mit Apfel und Zimt');
 });
