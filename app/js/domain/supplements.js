@@ -16,7 +16,7 @@ import { SUPPLEMENT_TEMPLATES } from '../data/supplements.js';
  * @typedef {{
  *   id: string, name: string, brand?: string, serving: string, perDay: number,
  *   nutrients: Partial<Record<NutrientKey, number>>, folicAcid?: number, nicotinamide?: boolean, suppMagnesium?: boolean,
- *   other: OtherIngredient[], unknown: string[], templateId?: string, source: string, checked?: string,
+ *   other: OtherIngredient[], unknown: string[], templateId?: string, templateRev?: number, source: string, checked?: string,
  *   active: boolean, createdAt: string,
  * }} Supplement
  * @typedef {{ id: string, sid: string, servings: number, time: string }} Intake
@@ -81,11 +81,32 @@ export function fromTemplate(templateId, { id, now }) {
     other: t.other.map((o) => ({ ...o })),
     unknown: [...t.unknown],
     templateId: t.id,
+    templateRev: t.rev,
     source: t.source,
     checked: t.checked,
     active: true,
     createdAt: now,
   };
+}
+
+/**
+ * Neuere Vorlage verfügbar (z. B. nach Abgleich mit der Packung)? Nur für unveränderte Produkte.
+ * @param {Supplement} s
+ */
+export function templateUpdate(s) {
+  const t = SUPPLEMENT_TEMPLATES.find((x) => x.id === s.templateId);
+  if (!t || (s.templateRev ?? 1) >= t.rev || s.source.includes('eigene Ergänzung')) return null;
+  return t;
+}
+
+/**
+ * Produkt auf die neue Vorlage bringen; Name, Aktiv-Status, ID und Einnahmen bleiben.
+ * @param {Supplement} s
+ * @returns {Supplement}
+ */
+export function applyTemplate(s) {
+  const fresh = s.templateId ? fromTemplate(s.templateId, { id: s.id, now: s.createdAt }) : null;
+  return fresh ? { ...fresh, active: s.active } : s;
 }
 
 /**
@@ -252,6 +273,7 @@ export function sanitizeSupplement(raw, { id, now, microKeys }) {
       : [],
     unknown: Array.isArray(x.unknown) ? x.unknown.filter((/** @type {any} */ u) => typeof u === 'string').slice(0, 20) : [],
     ...(typeof x.templateId === 'string' ? { templateId: x.templateId } : {}),
+    ...(num(x.templateRev, 1000) ? { templateRev: /** @type {number} */ (num(x.templateRev, 1000)) } : {}),
     source: typeof x.source === 'string' ? x.source.slice(0, 200) : 'eigene Angaben',
     ...(typeof x.checked === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.checked) ? { checked: x.checked } : {}),
     active: x.active !== false,

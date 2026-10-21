@@ -15,6 +15,8 @@ import {
   overlaps,
   UPPER_LIMITS,
   FOLIC_TO_DFE,
+  templateUpdate,
+  applyTemplate,
 } from '../domain/supplements.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -180,9 +182,35 @@ function productItem(ctx, s, targets) {
   const a = supplementAmounts(s, 1);
   const tpl = SUPPLEMENT_TEMPLATES.find((t) => t.id === s.templateId);
   if (view.editId === s.id) return h('li', { class: 'supp-item editing' }, editForm(ctx, s));
+  const upd = templateUpdate(s);
   return h(
     'li',
     { class: 'supp-item', id: `supp-${s.id}` },
+    upd
+      ? h(
+          'p',
+          { class: 'note warn small', id: `supp-upd-${s.id}` },
+          `Neue Werte verfügbar (${upd.source}). `,
+          h(
+            'button',
+            {
+              type: 'button',
+              class: 'btn small-btn',
+              id: `supp-upd-go-${s.id}`,
+              on: {
+                click: () =>
+                  ctx.commit((st) => {
+                    const i = st.supplements.findIndex((y) => y.id === s.id);
+                    if (i < 0) return false;
+                    st.supplements[i] = applyTemplate(st.supplements[i]);
+                    return true;
+                  }, `${s.name}: Werte aktualisiert`),
+              },
+            },
+            'Übernehmen',
+          ),
+        )
+      : null,
     h(
       'div',
       { class: 'supp-head' },

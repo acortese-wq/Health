@@ -52,10 +52,10 @@ test('Präparate: Vorlage hinzufügen, abhaken, Nährstoffe zählen mit, Warnung
   await expect(page.locator(`#supp-toggle-${mood.id}`)).toHaveText(/Heute eingenommen/);
   await expect(page.locator('#nutrients-card')).toContainText('Vitamin D');
 
-  // Supradyn: B6 unbekannt, Hinweis in der Detailansicht
+  // Supradyn: Packungswerte und Belege in der Detailansicht
   const supra = st.supplements.find((/** @type {any} */ s) => s.templateId === 'supradyn-pro-energy');
   await page.locator(`#supp-${supra.id} summary`).click();
-  await expect(page.locator(`#supp-${supra.id}`)).toContainText('Menge unbekannt');
+  await expect(page.locator(`#supp-${supra.id}`)).toContainText('Vitamin B6');
   await expect(page.locator(`#supp-${supra.id}`)).toContainText('Mangione');
 
   // Drittes, eigenes Produkt mit Folsäure: Summe über der Höchstmenge → deutliche Warnung
@@ -80,22 +80,38 @@ test('Präparate: Vorlage hinzufügen, abhaken, Nährstoffe zählen mit, Warnung
   expect(overflow).toBeLessThanOrEqual(1);
 });
 
-test('Präparat: fehlenden Wert von der Packung ergänzen', async ({ page }) => {
+test('Präparat: ältere Werte auf die Packung aktualisieren und von Hand ergänzen', async ({ page }) => {
   await createProfile(page);
   await page.goto('/#ernaehrung');
   await page.selectOption('#supp-template', 'supradyn-pro-energy');
   await page.click('#supp-add-go');
+  // Stand vor dem Packungsabgleich simulieren: B6 unbekannt, keine Vorlagen-Version
+  await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('gesundheitscockpit') ?? '{}');
+    const p = st.supplements[0];
+    delete p.templateRev;
+    delete p.nutrients.b6;
+    p.unknown = ['Vitamin B6'];
+    localStorage.setItem('gesundheitscockpit', JSON.stringify(st));
+  });
+  await page.reload();
   const s = (await stored(page)).supplements[0];
+  await page.click(`#supp-upd-go-${s.id}`);
+  await expect(page.locator(`#supp-upd-${s.id}`)).toHaveCount(0);
+  let after = (await stored(page)).supplements[0];
+  expect(after.nutrients.b6).toBe(4);
+  expect(after.unknown).toEqual([]);
+
+  // Eigene Ergänzung in einer leeren Zeile
   await page.locator(`#supp-${s.id} summary`).click();
   await page.click(`#supp-edit-${s.id}`);
   const form = page.locator(`#supp-editform-${s.id}`);
-  // Leere Zeile für das unbekannte B6 ist vorbelegt
-  const b6 = form.locator('select').filter({ has: page.locator('option[value="b6"]:checked') });
-  const name = await b6.getAttribute('name');
-  await form.locator(`input[name="${String(name).replace('key', 'val')}"]`).fill('2.1');
+  const last = form.locator('select').last();
+  const name = await last.getAttribute('name');
+  await last.selectOption('vitA');
+  await form.locator(`input[name="${String(name).replace('key', 'val')}"]`).fill('100');
   await page.click(`#supp-save-${s.id}`);
-  const after = (await stored(page)).supplements[0];
-  expect(after.nutrients.b6).toBe(2.1);
-  expect(after.unknown).toEqual([]);
+  after = (await stored(page)).supplements[0];
+  expect(after.nutrients.vitA).toBe(100);
   expect(after.source).toContain('eigene Ergänzung');
 });

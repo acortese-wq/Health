@@ -168,9 +168,10 @@ Erfassung unter «Ernährung › Nahrungsergänzung», Abhaken auf «Heute» (ei
 Gespeichert als `supplements` und pro Tag `supps` (Schema 4).
 
 - Vorlagen: Burgerstein Mood, Supradyn pro energy-complex, Vitamin D3 1000 IE, Magnesium 150 mg, Omega-3 500 mg.
-  Werte nach Hersteller- und Apothekenangaben (Stand 22.10.2026); vor Gebrauch mit der eigenen Packung abgleichen.
-  Nicht verlässlich gefundene Werte (Supradyn: Vitamin B6) stehen als «unbekannt» und zählen nicht; sie lassen sich
-  unter «Werte bearbeiten» von der Packung ergänzen. Mood: ein Shop nennt Zink 14 mg statt 4.8 mg (Hinweis im Produkt).
+  Mood und Supradyn nach Packungsangabe (Stand 21.10.2026): Mood pro 2 Kapseln B6 3.5 mg, B12 7 µg, Niacin 40 mg,
+  Folsäure 500 µg, Pantothensäure 15 mg, Vitamin D3 15 µg, Zink 5 mg, Safranextrakt 28 mg, Melissenextrakt 600 mg;
+  Supradyn pro Tablette u. a. B6 4.0 mg, Folsäure (B9) 430 µg, Eisen 8 mg. Unbekannte Werte zählen nicht und lassen sich
+  unter «Werte bearbeiten» ergänzen. Ändert sich eine Vorlage, bietet die App unveränderten Produkten «Übernehmen» an.
 - Präparate zählen in den Nährstoffsummen als eigene Quelle (0 kcal, Etikettwerte), verbessern aber nicht die
   «Abdeckung» der Ernährung. Folsäure zählt als Folat-Äquivalent (× 1.7). Beta-Carotin wird nicht als Vitamin A gezählt.
 - Höchstmengen (EFSA, Erwachsene): Vitamin D 100 µg, B6 12 mg, Folsäure 1000 µg (nur Präparate), Nicotinamid 900 mg

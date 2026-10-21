@@ -10,6 +10,8 @@ import {
   overlaps,
   sanitizeSupplement,
   FOLIC_TO_DFE,
+  templateUpdate,
+  applyTemplate,
 } from '../../app/js/domain/supplements.js';
 import { SUPPLEMENT_TEMPLATES } from '../../app/js/data/supplements.js';
 import { dayAmounts, MICRO_KEYS } from '../../app/js/domain/micros.js';
@@ -37,9 +39,25 @@ test('Mengen: Folsäure zählt als Folat-Äquivalent, Portionen skalieren', () =
   assert.equal(b.suppMagnesium, 160);
 });
 
-test('Unbekanntes B6 bei Supradyn zählt nicht (nicht als 0 und nicht geschätzt)', () => {
-  assert.ok(supra.unknown.includes('Vitamin B6'));
-  assert.equal(supplementAmounts(supra, 1).micros.b6, undefined);
+test('Packungswerte: Supradyn B6 4 mg, Mood Zink 5 mg; ältere Produkte bekommen ein Update-Angebot', () => {
+  assert.equal(supra.nutrients.b6, 4);
+  assert.deepEqual(supra.unknown, []);
+  assert.equal(mood.nutrients.zinc, 5);
+  const old = {
+    ...supra,
+    templateRev: undefined,
+    nutrients: { ...supra.nutrients, b6: undefined },
+    unknown: ['Vitamin B6'],
+    active: false,
+  };
+  assert.ok(templateUpdate(old));
+  const fresh = applyTemplate(old);
+  assert.equal(fresh.nutrients.b6, 4);
+  assert.equal(fresh.id, 's');
+  assert.equal(fresh.active, false);
+  assert.equal(templateUpdate(fresh), null);
+  // Von Hand ergänzte Produkte werden nicht überschrieben
+  assert.equal(templateUpdate({ ...old, source: 'x; eigene Ergänzung' }), null);
 });
 
 test('Pseudo-Einträge: 0 kcal, Etikettwerte, ändern die Abdeckung nicht', () => {
@@ -68,7 +86,7 @@ test('Mood + Supradyn: 930 µg Folsäure liegt nahe an der Höchstmenge, ein dri
     overlaps([mood, supra])
       .map((o) => o.key)
       .sort(),
-    ['b12', 'b5', 'folicAcid', 'niacin', 'vitD', 'zinc'],
+    ['b12', 'b5', 'b6', 'folicAcid', 'niacin', 'vitD', 'zinc'],
   );
 });
 

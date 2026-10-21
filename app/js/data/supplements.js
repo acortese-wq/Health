@@ -1,6 +1,6 @@
 // @ts-check
-// Vorlagen für Nahrungsergänzungsmittel. Werte pro Portion nach Hersteller- und
-// Apothekenangaben (Stand 22.10.2026); vor Gebrauch mit der eigenen Packung abgleichen, da
+// Vorlagen für Nahrungsergänzungsmittel. Werte pro Portion nach Packung bzw. Hersteller- und
+// Apothekenangaben (Stand 21.10.2026); vor Gebrauch mit der eigenen Packung abgleichen, da
 // Rezepturen wechseln. Werte, die nicht verlässlich gefunden wurden, stehen als «unbekannt»
 // und zählen nicht (nicht als 0).
 
@@ -8,7 +8,7 @@
  * @typedef {import('../domain/micros.js').NutrientKey} NutrientKey
  * @typedef {{ label: string, amount: number, unit: string }} OtherIngredient
  * @typedef {{
- *   id: string, name: string, brand: string, serving: string, perDay: number,
+ *   id: string, rev: number, name: string, brand: string, serving: string, perDay: number,
  *   nutrients: Partial<Record<NutrientKey, number>>, folicAcid?: number, nicotinamide?: boolean,
  *   preformedVitA?: number, suppMagnesium?: boolean,
  *   other: OtherIngredient[], unknown: string[], source: string, checked: string, notes: string[],
@@ -20,24 +20,24 @@
 export const SUPPLEMENT_TEMPLATES = [
   {
     id: 'burgerstein-mood',
+    rev: 2,
     name: 'Burgerstein Mood',
     brand: 'Burgerstein (Antistress AG)',
     serving: '2 Kapseln',
     perDay: 1,
-    nutrients: { b6: 3.5, niacin: 40, b5: 15, b12: 7, vitD: 15, zinc: 4.8 },
+    nutrients: { b6: 3.5, niacin: 40, b5: 15, b12: 7, vitD: 15, zinc: 5 },
     folicAcid: 500,
     nicotinamide: true,
     other: [
-      { label: 'Safranextrakt', amount: 28, unit: 'mg' },
-      { label: 'Melissenextrakt', amount: 600, unit: 'mg' },
+      { label: 'Safranextrakt (affron)', amount: 28, unit: 'mg' },
+      { label: 'davon Crocin und Safranal', amount: 1, unit: 'mg' },
+      { label: 'Melissenextrakt (Bluenesse)', amount: 600, unit: 'mg' },
+      { label: 'davon Rosmarinsäure', amount: 36, unit: 'mg' },
     ],
     unknown: [],
-    source: 'Herstellerangaben (burgerstein.at) und Schweizer Apotheken-Shops',
-    checked: '2026-10-22',
-    notes: [
-      'Zink: Ein Shop nennt 14 mg statt 4.8 mg pro Tagesportion; die übrigen Quellen 4.8 mg. Bitte auf der Packung prüfen.',
-      'Empfohlen: 2 Kapseln pro Tag, einmal oder verteilt.',
-    ],
+    source: 'Packungsangabe (Antistress AG, Rapperswil)',
+    checked: '2026-10-21',
+    notes: ['Empfohlen für Erwachsene: morgens und abends je 1 Kapsel.'],
     evidence: [
       {
         text: 'Safran: In kleinen, kurzen Studien linderte Safranextrakt (meist 30 mg/Tag) leichte bis mittlere depressive Symptome besser als Placebo. Die Studienqualität ist mässig; bei anhaltender Niedergeschlagenheit ärztlich abklären.',
@@ -55,6 +55,7 @@ export const SUPPLEMENT_TEMPLATES = [
   },
   {
     id: 'supradyn-pro-energy',
+    rev: 2,
     name: 'Supradyn pro energy-complex (Filmtablette)',
     brand: 'Bayer (Schweiz) AG',
     serving: '1 Filmtablette',
@@ -66,6 +67,7 @@ export const SUPPLEMENT_TEMPLATES = [
       vitD: 5,
       b1: 3.3,
       b2: 4,
+      b6: 4,
       niacin: 45,
       b5: 17,
       b12: 3,
@@ -86,11 +88,10 @@ export const SUPPLEMENT_TEMPLATES = [
       { label: 'Mangan', amount: 500, unit: 'µg' },
       { label: 'Molybdän', amount: 50, unit: 'µg' },
     ],
-    unknown: ['Vitamin B6'],
-    source: 'Schweizer Apotheken-Shops (Amavita, Coop Vitality, Zur Rose, Brack)',
-    checked: '2026-10-22',
+    unknown: [],
+    source: 'Packungsangabe (Bayer)',
+    checked: '2026-10-21',
     notes: [
-      'Vitamin B6 ist enthalten, die Menge wurde aber nicht verlässlich gefunden: bitte von der Packung ergänzen.',
       'Beta-Carotin zählt die App nicht als Vitamin A (Umrechnung bei Präparaten uneinheitlich).',
       'Empfohlen: 1 Tablette pro Tag; nicht zusätzlich zu anderen Multivitaminen.',
     ],
@@ -111,6 +112,7 @@ export const SUPPLEMENT_TEMPLATES = [
   },
   {
     id: 'vitamin-d3-1000',
+    rev: 1,
     name: 'Vitamin D3 1000 IE',
     brand: 'beliebig',
     serving: '1 Tablette oder Tropfen-Portion à 1000 IE',
@@ -119,7 +121,7 @@ export const SUPPLEMENT_TEMPLATES = [
     other: [],
     unknown: [],
     source: 'Definition: 1000 IE Vitamin D = 25 µg',
-    checked: '2026-10-22',
+    checked: '2026-10-21',
     notes: ['Das BAG empfiehlt Erwachsenen 15 µg (600 IE), ab 60 Jahren 20 µg (800 IE) täglich.'],
     evidence: [
       {
@@ -130,6 +132,7 @@ export const SUPPLEMENT_TEMPLATES = [
   },
   {
     id: 'magnesium-150',
+    rev: 1,
     name: 'Magnesium 150 mg',
     brand: 'beliebig',
     serving: '1 Portion à 150 mg',
@@ -139,7 +142,7 @@ export const SUPPLEMENT_TEMPLATES = [
     other: [],
     unknown: [],
     source: 'Menge laut Produktname',
-    checked: '2026-10-22',
+    checked: '2026-10-21',
     notes: ['Aus Präparaten höchstens 250 mg pro Tag (darüber häufig Durchfall).'],
     evidence: [
       {
@@ -150,6 +153,7 @@ export const SUPPLEMENT_TEMPLATES = [
   },
   {
     id: 'omega3-500',
+    rev: 1,
     name: 'Omega-3 Fischöl (500 mg EPA+DHA)',
     brand: 'beliebig',
     serving: '1 Kapsel mit 500 mg EPA+DHA',
@@ -158,7 +162,7 @@ export const SUPPLEMENT_TEMPLATES = [
     other: [],
     unknown: [],
     source: 'Menge laut Produktname',
-    checked: '2026-10-22',
+    checked: '2026-10-21',
     notes: ['Zweimal pro Woche fetter Fisch liefert ähnlich viel.'],
     evidence: [
       {
