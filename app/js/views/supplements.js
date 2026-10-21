@@ -60,6 +60,53 @@ function toggleIntake(ctx, s) {
 }
 
 /**
+ * Aktive Präparate, die am gewählten Tag noch nicht abgehakt sind.
+ * @param {Ctx} ctx
+ */
+export function pendingSupplements(ctx) {
+  return ctx.state.supplements.filter((s) => s.active && !takenToday(ctx, s.id));
+}
+
+/**
+ * Hinweis in der Nährstoffkarte: Präparate zählen erst, wenn sie abgehakt sind.
+ * @param {Ctx} ctx
+ */
+export function supplementPendingNote(ctx) {
+  const open = pendingSupplements(ctx);
+  if (!open.length) return null;
+  return h(
+    'div',
+    { class: 'note small', id: 'supp-pending' },
+    h(
+      'span',
+      {},
+      `Noch nicht abgehakt: ${open.map((s) => s.name).join(', ')}. Präparate zählen erst mit, wenn du sie als eingenommen markierst.`,
+    ),
+    h(
+      'button',
+      {
+        type: 'button',
+        class: 'btn primary small-btn',
+        id: 'supp-take-all',
+        on: {
+          click: () =>
+            ctx.commit(
+              (st) => {
+                const d = (st.days[ctx.date] = st.days[ctx.date] ?? {});
+                const time = ctx.date === ctx.today ? nowTime() : '08:00';
+                d.supps = [...(d.supps ?? []), ...open.map((s) => ({ id: uid(), sid: s.id, servings: s.perDay, time }))];
+                return true;
+              },
+              open.length === 1 ? `${open[0].name} eingenommen` : `${open.length} Präparate eingenommen`,
+            ),
+        },
+      },
+      open.length === 1 ? 'Eingenommen' : 'Alle eingenommen',
+    ),
+  );
+}
+
+/**
  * Schnell abhaken auf «Heute».
  * @param {Ctx} ctx
  */

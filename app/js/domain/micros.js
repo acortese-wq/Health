@@ -508,6 +508,8 @@ export function contributions(food, key) {
   const unknown = [];
   for (const f of food) {
     const v = entryValue(f, key);
+    // Präparate enthalten nur deklarierte Stoffe: fehlt einer, ist er nicht «unbekannt», sondern nicht drin
+    if (v === undefined && /** @type {{ supplement?: boolean }} */ (f).supplement) continue;
     if (v === undefined) unknown.push(f);
     else if (v > 0) items.push({ f, value: v });
   }

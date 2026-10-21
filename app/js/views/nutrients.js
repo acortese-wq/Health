@@ -28,7 +28,8 @@ import { suggestMeals, nextSlot, CANTEEN_TIPS } from '../domain/mealplans.js';
 import { addGroups } from '../domain/foodgroups.js';
 import { isPremenstrual } from '../domain/cycle.js';
 import { searchProducts } from '../vision.js';
-import { intakeEntries } from '../domain/supplements.js';
+import { intakeEntries, supplementAmounts } from '../domain/supplements.js';
+import { pendingSupplements, supplementPendingNote } from './supplements.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 /** @typedef {import('../domain/micros.js').NutrientDef} NutrientDef */
@@ -506,15 +507,24 @@ export function nutrientsCard(ctx, snap) {
       : today,
     week,
   };
+  // Nicht abgehakte Präparate im Drilldown nennen (zählen nicht)
+  const pending = week ? [] : pendingSupplements(ctx);
+  const pendingText = (/** @type {NutrientDef} */ n) =>
+    pending
+      .map((s) => ({ s, v: supplementAmounts(s, s.perDay).micros[n.key] }))
+      .filter((x) => x.v)
+      .map((x) => `${x.s.name} ${fmt(/** @type {number} */ (x.v), n.digits)} ${n.unit}`)
+      .join(', ');
   const rows = (/** @type {NutrientDef['group']} */ g) =>
-    NUTRIENTS.filter((n) => n.group === g).map((n) =>
-      nutrientRow(
-        n,
-        a[n.key] ?? 0,
-        targets[n.key],
-        n.key === 'vitD' && supp > 0 ? { ...src, extra: `Dazu Präparat ${fmt(supp, 1)} µg pro Tag.` } : src,
-      ),
-    );
+    NUTRIENTS.filter((n) => n.group === g).map((n) => {
+      const extra = [
+        n.key === 'vitD' && supp > 0 ? `Dazu Präparat aus dem Profil ${fmt(supp, 1)} µg pro Tag.` : '',
+        pendingText(n) ? `Noch nicht abgehakt (zählt nicht): ${pendingText(n)}.` : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
+      return nutrientRow(n, a[n.key] ?? 0, targets[n.key], extra ? { ...src, extra } : src);
+    });
   const reached = (/** @type {NutrientDef['group']} */ g) =>
     NUTRIENTS.filter((n) => n.group === g && n.kind === 'target' && n.ref && (a[n.key] ?? 0) >= (targets[n.key] ?? Infinity)).length;
   const total = (/** @type {NutrientDef['group']} */ g) => NUTRIENTS.filter((n) => n.group === g && n.kind === 'target' && n.ref).length;
@@ -552,7 +562,14 @@ export function nutrientsCard(ctx, snap) {
         ),
       ),
     ),
-    week ? h('p', { class: 'small muted' }, `Durchschnitt pro Tag über ${r.days} ${r.days === 1 ? 'Tag' : 'Tage'} mit Einträgen.`) : null,
+    week
+      ? h(
+          'p',
+          { class: 'small muted' },
+          `Durchschnitt pro Tag über ${r.days} ${r.days === 1 ? 'Tag' : 'Tage'} mit Einträgen. Abgehakte Präparate zählen an Tagen mit erfasstem Essen mit.`,
+        )
+      : null,
+    week ? null : supplementPendingNote(ctx),
     macroRing(a, r.macroKnown, targets),
     r.macroCoverage < 0.95
       ? h(

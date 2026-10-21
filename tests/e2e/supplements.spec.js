@@ -31,6 +31,21 @@ test('Präparate: Vorlage hinzufügen, abhaken, Nährstoffe zählen mit, Warnung
   await expect(page.locator('#supp-list > li')).toHaveCount(2);
   await expect(page.locator('#supp-overlap')).toContainText('Folsäure');
 
+  // Nicht abgehakt: zählt nicht, Hinweis und Nennung im Vitamin-D-Drilldown
+  await expect(page.locator('#supp-pending')).toContainText('Noch nicht abgehakt');
+  await expect(page.locator('#n-vitD')).toContainText('0.0');
+  await page.locator('#n-vitD').click();
+  await expect(page.locator('#nutrients-card')).toContainText('Noch nicht abgehakt (zählt nicht): Burgerstein Mood 15.0 µg');
+  // «Alle eingenommen» hakt beide ab, Vitamin D 15 + 5 µg zählt
+  await page.click('#supp-take-all');
+  await expect(page.locator('#supp-pending')).toHaveCount(0);
+  await expect(page.locator('#n-vitD')).toContainText('20.0');
+  await page.locator('#n-vitD').click();
+  await expect(page.locator('#nutrients-card')).toContainText('Burgerstein Mood (Präparat)');
+  // wieder zurücknehmen, damit der Ablauf unten mit dem Einzel-Abhaken prüft
+  for (const s of (await stored(page)).supplements) await page.click(`#supp-toggle-${s.id}`);
+  await expect(page.locator('#supp-pending')).toBeVisible();
+
   let st = await stored(page);
   expect(st.schema).toBe(4);
   const mood = st.supplements.find((/** @type {any} */ s) => s.templateId === 'burgerstein-mood');
