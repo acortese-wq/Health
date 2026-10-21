@@ -2637,3 +2637,45 @@ textarea {
   flex-wrap: wrap;
   gap: 4px 16px;
 }
+
+/* Nahrungsergänzung */
+.chip.chip-done {
+  border-color: var(--petrol);
+  background: var(--petrol-soft);
+}
+.supp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.supp-item {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  min-width: 0;
+}
+.supp-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.supp-title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.supp-details {
+  margin-top: 6px;
+}
+.supp-details table {
+  width: 100%;
+}
+.supp-details tr.unknown td {
+  color: var(--muted);
+  font-style: italic;
+}

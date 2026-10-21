@@ -416,7 +416,7 @@ function profileForm(ctx, p) {
         inputmode: 'decimal',
         value: v.vitDSupplementUg ?? 0,
         suffix: 'µg/Tag',
-        hint: '15 µg = 600 IE (Empfehlung BAG). Wird in den Nährstoffen mitgezählt.',
+        hint: '15 µg = 600 IE (Empfehlung BAG). Wird in den Nährstoffen mitgezählt. Präparate unter Ernährung › Nahrungsergänzung hier nicht nochmals eintragen.',
       }),
       field({
         id: 'p-dietbreak',

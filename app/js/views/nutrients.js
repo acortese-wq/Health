@@ -28,6 +28,7 @@ import { suggestMeals, nextSlot, CANTEEN_TIPS } from '../domain/mealplans.js';
 import { addGroups } from '../domain/foodgroups.js';
 import { isPremenstrual } from '../domain/cycle.js';
 import { searchProducts } from '../vision.js';
+import { intakeEntries } from '../domain/supplements.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 /** @typedef {import('../domain/micros.js').NutrientDef} NutrientDef */
@@ -484,19 +485,25 @@ function nutrientRow(n, value, target, src) {
 export function nutrientsCard(ctx, snap) {
   const targets = dailyTargets({ kcalTarget: snap.kcalTarget, proteinG: snap.protein.grams, sex: snap.profile.sex, stage: snap.lifeStage });
   const week = view.period === 'woche';
-  const days = Array.from({ length: 7 }, (_, i) => ctx.state.days[addDays(ctx.date, -i)]?.food ?? []);
-  const r = week ? averageAmounts(days) : { ...dayAmounts(snap.day.food ?? []), days: 1 };
+  // Präparate zählen als eigene Quelle mit (0 kcal, Etikettwerte, keine «Abdeckung»)
+  const withSupps = (/** @type {string} */ d) => {
+    const food = ctx.state.days[d]?.food ?? [];
+    const supps = intakeEntries(ctx.state.supplements, ctx.state.days[d]?.supps);
+    // Tage ohne Essen bleiben für den Durchschnitt leer
+    return week && !food.length ? [] : [...food, ...supps];
+  };
+  const days = Array.from({ length: 7 }, (_, i) => withSupps(addDays(ctx.date, -i)));
+  const today = withSupps(ctx.date);
+  const r = week ? averageAmounts(days) : { ...dayAmounts(today), days: 1 };
   const supp = snap.profile.vitDSupplementUg ?? 0;
   // Vitamin-D-Präparat aus dem Profil mitzählen
   const a = supp > 0 ? { ...r.amounts, vitD: (r.amounts.vitD ?? 0) + supp } : r.amounts;
-  const anyKi = (week ? days.flat() : (snap.day.food ?? [])).some((f) => f.microSrc === 'ki' || f.microSrc === 'mix');
+  const anyKi = (week ? days.flat() : today).some((f) => f.microSrc === 'ki' || f.microSrc === 'mix');
   /** @param {NutrientDef['group']} g */
   const src = {
     food: week
-      ? Array.from({ length: 7 }, (_, i) => addDays(ctx.date, -i)).flatMap((d) =>
-          (ctx.state.days[d]?.food ?? []).map((f) => ({ ...f, day: d })),
-        )
-      : (snap.day.food ?? []),
+      ? Array.from({ length: 7 }, (_, i) => addDays(ctx.date, -i)).flatMap((d) => withSupps(d).map((f) => ({ ...f, day: d })))
+      : today,
     week,
   };
   const rows = (/** @type {NutrientDef['group']} */ g) =>

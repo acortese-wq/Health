@@ -21,7 +21,7 @@ import {
   buildShoppingList,
   aggregateIngredients,
 } from '../../app/js/domain/planner.js';
-import { emptyState, sanitize, exportJSON, importJSON } from '../../app/js/store.js';
+import { emptyState, sanitize, exportJSON, importJSON, SCHEMA_VERSION } from '../../app/js/store.js';
 import { FOODS } from '../../app/js/data/foods.js';
 import { foodAmounts } from '../../app/js/domain/micros.js';
 
@@ -147,7 +147,7 @@ test('6: Wochenplan speichern und erneut laden (Schema 3, ältere Daten bleiben 
   const v2 = sanitize({ schema: 2, days: {} });
   assert.deepEqual(v2.mealPlan, {});
   assert.deepEqual(v2.recipes, []);
-  assert.equal(v2.schema, 3);
+  assert.equal(v2.schema, SCHEMA_VERSION);
 });
 
 test('8/9/10: Übernahme in die Ernährung – idempotent, bewusst nochmals möglich, Löschen hebt auf', () => {

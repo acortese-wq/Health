@@ -162,6 +162,27 @@ Jedes Prinzip ist mit Studienlage bewertet: hoch (Gemüse, Ballaststoffe, Eiweis
 mittel (Intervallfasten gleichwertig, fermentierte Lebensmittel, anti-entzündliches Muster, langsam essen),
 schwach (abends weniger Kohlenhydrate, Hafertage nur mit ärztlicher Begleitung bei Diabetes-Medikamenten).
 
+## Nahrungsergänzung
+
+Erfassung unter «Ernährung › Nahrungsergänzung», Abhaken auf «Heute» (ein Tipp, zweiter Tipp nimmt zurück).
+Gespeichert als `supplements` und pro Tag `supps` (Schema 4).
+
+- Vorlagen: Burgerstein Mood, Supradyn pro energy-complex, Vitamin D3 1000 IE, Magnesium 150 mg, Omega-3 500 mg.
+  Werte nach Hersteller- und Apothekenangaben (Stand 22.10.2026); vor Gebrauch mit der eigenen Packung abgleichen.
+  Nicht verlässlich gefundene Werte (Supradyn: Vitamin B6) stehen als «unbekannt» und zählen nicht; sie lassen sich
+  unter «Werte bearbeiten» von der Packung ergänzen. Mood: ein Shop nennt Zink 14 mg statt 4.8 mg (Hinweis im Produkt).
+- Präparate zählen in den Nährstoffsummen als eigene Quelle (0 kcal, Etikettwerte), verbessern aber nicht die
+  «Abdeckung» der Ernährung. Folsäure zählt als Folat-Äquivalent (× 1.7). Beta-Carotin wird nicht als Vitamin A gezählt.
+- Höchstmengen (EFSA, Erwachsene): Vitamin D 100 µg, B6 12 mg, Folsäure 1000 µg (nur Präparate), Nicotinamid 900 mg
+  (nur Präparate), Vitamin E 300 mg, Zink 25 mg, Selen 255 µg, Jod 600 µg, Calcium 2500 mg, Magnesium aus Präparaten
+  250 mg, Eisen 40 mg (Sicherheitsgrenze 2024). Warnung ab 80 %, deutlich bei Überschreitung; «gesamt» rechnet das
+  Essen dazu. Beim Hinzufügen wird die Summe aller aktiven Produkte geprüft (Rückfrage bei Überschreitung).
+- Doppelt enthaltene Wirkstoffe werden angezeigt (z. B. Mood + Supradyn: Folsäure 500 + 430 = 930 µg).
+- Vitamin D aktiver Präparate zählt für den Wintertipp; das Profilfeld «Vitamin-D-Präparat» nicht zusätzlich ausfüllen.
+- Einordnung: Multivitamine ohne Nutzen für Herz-Kreislauf, Krebs oder Sterblichkeit bei gut Ernährten (USPSTF 2022);
+  Safran mässig belegt bei leichter depressiver Verstimmung (Marx 2019); Eisen bei Männern meist unnötig; Vitamin K bei
+  Vitamin-K-Antagonisten und Präparate bei Antidepressiva ärztlich besprechen.
+
 ## Zyklus und Lebensphase (Frauen)
 
 | Thema | Umsetzung | Quelle |

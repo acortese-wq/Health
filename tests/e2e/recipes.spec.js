@@ -215,7 +215,7 @@ test('Eigenes Rezept mit Lebensmittelsuche, Stück-Umrechnung, Bearbeiten; Impor
   await expect(page.locator('#detail-title')).toHaveText('Spiegeleier mit Tomate und Brot');
   const st = await stored(page);
   expect(st.recipes).toHaveLength(1);
-  expect(st.schema).toBe(3);
+  expect(st.schema).toBe(4);
 
   // Import: gültig, ungültig, Duplikat, CSV-Referenz
   await page.click('#detail-back');

@@ -12,6 +12,7 @@ import { BLUE_ITEMS } from './domain/bluezones.js';
 import { createEntry } from './domain/entries.js';
 import { validateRecipe } from './domain/recipes.js';
 import { UNITS } from './domain/units.js';
+import { sanitizeSupplement } from './domain/supplements.js';
 
 const PLAN_SLOTS = ['morgen', 'mittag', 'abend', 'snack'];
 
@@ -27,7 +28,8 @@ export const STORAGE_KEY = 'gesundheitscockpit';
 // Schema 3 (2026-10): Rezepte («recipes», eigene und Referenzen), Favoriten, zuletzt verwendet,
 // Wochenplan («mealPlan»), Einkaufsliste («shopping»); Mahlzeiten mit «planId» und Quelle «rezept».
 // Ältere Daten erhalten leere Sammlungen; nichts wird umgeschrieben.
-export const SCHEMA_VERSION = 3;
+// Schema 4 (2026-10): Nahrungsergänzungsmittel («supplements») und Einnahmen pro Tag («supps»).
+export const SCHEMA_VERSION = 4;
 
 /**
  * @typedef {'m' | 'f'} Sex
@@ -58,6 +60,7 @@ export const SCHEMA_VERSION = 3;
  * @typedef {{
  *   weightKg?: number, food?: FoodEntry[], caffeine?: CaffeineEntry[],
  *   steps?: number, sleepH?: number, restingHr?: number, waterMl?: number, complete?: boolean, period?: boolean,
+ *   supps?: import('./domain/supplements.js').Intake[],
  * }} Day
  * @typedef {{ id: string, name: string, kcal: number, protein: number, carbs?: number, fat?: number, sugar?: number, satFat?: number, fiber?: number, salt?: number }} FoodPreset
  * @typedef {{ id: string, label: string, mg: number }} CaffeinePreset
@@ -80,6 +83,7 @@ export const SCHEMA_VERSION = 3;
  *   favorites: string[], recentRecipes: string[],
  *   mealPlan: import('./domain/planner.js').MealPlan,
  *   shopping: import('./domain/planner.js').ShoppingList | null,
+ *   supplements: import('./domain/supplements.js').Supplement[],
  *   lastBackup?: string,
  *   demo?: boolean,
  * }} State
@@ -128,6 +132,7 @@ export function emptyState() {
     recentRecipes: [],
     mealPlan: {},
     shopping: null,
+    supplements: [],
   };
 }
 
@@ -325,6 +330,17 @@ export function sanitize(raw) {
       ),
     };
   }
+  if (Array.isArray(raw.supplements)) {
+    const now = new Date().toISOString();
+    const ids = new Set();
+    for (const x of raw.supplements.slice(0, 100)) {
+      const sp = sanitizeSupplement(x, { id: uid, now, microKeys: MICRO_KEYS });
+      if (!sp) continue;
+      if (ids.has(sp.id)) sp.id = uid();
+      ids.add(sp.id);
+      s.supplements.push(sp);
+    }
+  }
   if (typeof raw.lastBackup === 'string' && isISODate(raw.lastBackup)) s.lastBackup = raw.lastBackup;
   if (raw.demo === true) s.demo = true;
   return s;
@@ -395,6 +411,21 @@ function sanitizeDay(d, seen) {
   if (isNum(d.waterMl) && d.waterMl > 0 && d.waterMl <= 10000) out.waterMl = d.waterMl;
   if (d.complete === true) out.complete = true;
   if (d.period === true) out.period = true;
+  if (Array.isArray(d.supps)) {
+    const supps = d.supps.flatMap((x) =>
+      isObj(x) && typeof x.sid === 'string' && isNum(x.servings) && x.servings > 0 && x.servings <= 20
+        ? [
+            {
+              id: typeof x.id === 'string' && x.id ? x.id : uid(),
+              sid: x.sid,
+              servings: x.servings,
+              time: typeof x.time === 'string' && /^\d{2}:\d{2}$/.test(x.time) ? x.time : '08:00',
+            },
+          ]
+        : [],
+    );
+    if (supps.length) out.supps = supps;
+  }
   const time = (/** @type {unknown} */ v) => (typeof v === 'string' && /^\d{2}:\d{2}$/.test(v) ? v : '12:00');
   if (Array.isArray(d.food)) {
     out.food = d.food.flatMap((f) => {

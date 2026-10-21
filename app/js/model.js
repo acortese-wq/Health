@@ -2,6 +2,7 @@
 // Abgeleitete Kennzahlen aus dem gespeicherten Zustand für ein Datum.
 
 import { ageOn, adaptiveTdee, bmrMifflin, formulaTdee, planTarget, proteinTarget } from './domain/energy.js';
+import { plannedTotals } from './domain/supplements.js';
 import { emaTrend, projectGoalDate, rolling7, trendSlope, planWeightOn } from './domain/trend.js';
 import { allowedCups, dayAssessment, taperPlan } from './domain/caffeine.js';
 import { weekSummary } from './domain/training.js';
@@ -158,7 +159,8 @@ export function snapshot(state, date) {
     sleep7: sleep7 && sleep7.n >= 4 ? sleep7.value : null,
     deficit7: kcal7 && kcal7.n >= 4 ? tdee - kcal7.value : null,
     days: state.days,
-    vitDSupplementUg: p.vitDSupplementUg ?? 0,
+    // Profilangabe plus aktive Präparate (Vitamin D bei üblicher Einnahme)
+    vitDSupplementUg: (p.vitDSupplementUg ?? 0) + (plannedTotals(state.supplements ?? []).vitD ?? 0),
     dietBreakUntil: p.dietBreakUntil ?? '',
     cycle: {
       status: p.sex === 'f' ? (p.cycleStatus ?? 'keine') : 'keine',

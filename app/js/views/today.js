@@ -20,6 +20,7 @@ import {
   emotionalCard,
 } from './nutrients.js';
 import { planTodayCard } from './planner.js';
+import { supplementCard, supplementTodayCard } from './supplements.js';
 import { scaleGroups } from '../domain/foodgroups.js';
 import { TRIGGERS, HUNGER } from '../domain/meals.js';
 import { PHASE_TIPS } from '../domain/cycle.js';
@@ -49,6 +50,7 @@ export function viewToday(ctx) {
     h('h1', { class: 'sr-only' }, 'Heute'),
     summary(ctx, snap),
     planTodayCard(ctx),
+    supplementTodayCard(ctx),
     hints(snap),
     h(
       'div',
@@ -81,6 +83,7 @@ export function viewNutrition(ctx) {
     rhythmCard(ctx, snap),
     pyramidCard(ctx, snap),
     nutrientsCard(ctx, snap),
+    supplementCard(ctx, snap),
   );
 }
 
