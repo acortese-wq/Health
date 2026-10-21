@@ -3,7 +3,7 @@ import { h, badge, fmt, fmtDate, fmtSigned } from '../ui/dom.js';
 import { weightChart, barChart } from '../ui/chart.js';
 import { METRICS, series, seriesStats, firstDataDate } from '../domain/history.js';
 import { milestones } from '../domain/trend.js';
-import { addDays } from '../domain/util.js';
+import { addDays, daysBetween } from '../domain/util.js';
 import { KCAL_PER_KG } from '../domain/energy.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -14,6 +14,11 @@ const RANGES = [
   { id: 'plan', label: 'Ganzer Plan', days: 0 },
 ];
 let range = '90';
+
+/** Zeitraum des Gewichtsdiagramms setzen (z. B. «plan» für die Vorführung). @param {string} id */
+export function setWeightRange(id) {
+  if (RANGES.some((r) => r.id === id)) range = id;
+}
 
 /** @param {Ctx} ctx */
 export function viewWeight(ctx) {
@@ -80,6 +85,7 @@ export function viewWeight(ctx) {
         h('li', { class: 'lg-goal' }, 'Ziel'),
       ),
     ),
+    balanceCard(ctx, snap),
     historyCard(ctx, snap),
     h('div', { class: 'grid-2' }, progressCard(ctx, snap), energyCard(snap)),
     milestoneCard(ctx, snap, plan),
@@ -391,5 +397,107 @@ function historyCard(ctx, snap) {
         ),
       ),
     ),
+  );
+}
+
+/**
+ * Vorher → nachher seit Start: nur Werte, die am Anfang und zuletzt gemessen wurden
+ * (mindestens 30 Tage auseinander).
+ * @param {Ctx} ctx
+ * @param {NonNullable<Ctx['snap']>} snap
+ */
+function balanceCard(ctx, snap) {
+  const p = snap.profile;
+  const s = ctx.state;
+  /** @type {{ label: string, from: number, to: number, unit: string, digits: 0 | 1, better: 'down' | 'up' }[]} */
+  const rows = [];
+  /** @param {{ date: string, v: number }[]} list */
+  const ends = (list) => {
+    const sorted = [...list].sort((a, b) => (a.date < b.date ? -1 : 1));
+    const a = sorted[0];
+    const b = sorted[sorted.length - 1];
+    return a && b && daysBetween(a.date, b.date) >= 30 ? { from: a.v, to: b.v } : null;
+  };
+  const days = Object.keys(s.days).sort();
+  const span = days.length ? daysBetween(days[0], ctx.today) : 0;
+  if (snap.series.length && daysBetween(p.startDate, ctx.today) >= 30)
+    rows.push({ label: 'Gewicht (Trend)', from: p.startWeightKg, to: snap.weightKg, unit: 'kg', digits: 1, better: 'down' });
+  const waist = ends(s.waist.map((w) => ({ date: w.date, v: w.cm })));
+  if (waist) rows.push({ label: 'Taille', ...waist, unit: 'cm', digits: 1, better: 'down' });
+  // Blutdruck: Mittel der ersten und der letzten Messwoche (Heimmessung)
+  const home = s.bp.filter((b) => b.setting === 'home').sort((a, b) => (a.date < b.date ? -1 : 1));
+  if (home.length >= 4 && daysBetween(home[0].date, home[home.length - 1].date) >= 30) {
+    const first = home.filter((b) => daysBetween(home[0].date, b.date) < 7);
+    const last = home.filter((b) => daysBetween(b.date, home[home.length - 1].date) < 7);
+    const avg = (/** @type {typeof home} */ l, /** @type {'sys' | 'dia'} */ k) => Math.round(l.reduce((a, b) => a + b[k], 0) / l.length);
+    rows.push({ label: 'Blutdruck systolisch', from: avg(first, 'sys'), to: avg(last, 'sys'), unit: 'mmHg', digits: 0, better: 'down' });
+    rows.push({ label: 'Blutdruck diastolisch', from: avg(first, 'dia'), to: avg(last, 'dia'), unit: 'mmHg', digits: 0, better: 'down' });
+  }
+  const vo2 = ends(s.vo2max.map((v) => ({ date: v.date, v: v.value })));
+  if (vo2) rows.push({ label: 'VO₂max', ...vo2, unit: 'ml/kg/min', digits: 0, better: 'up' });
+  for (const [key, label, unit, digits] of /** @type {const} */ ([
+    ['hba1c', 'HbA1c', '%', 1],
+    ['ldl', 'LDL-Cholesterin', 'mmol/l', 1],
+    ['tg', 'Triglyceride', 'mmol/l', 1],
+    ['alt', 'ALT (Leber)', 'U/l', 0],
+  ])) {
+    const l = ends(s.labs.filter((x) => x.key === key).map((x) => ({ date: x.date, v: x.value })));
+    if (l) rows.push({ label, ...l, unit, digits, better: 'down' });
+  }
+  // Ruhepuls und Schritte: erste gegen letzte 14 Tage
+  if (span >= 60) {
+    for (const [k, label, better] of /** @type {const} */ ([
+      ['restingHr', 'Ruhepuls', 'down'],
+      ['steps', 'Schritte pro Tag', 'up'],
+    ])) {
+      const first = days
+        .slice(0, 14)
+        .map((d) => s.days[d][k])
+        .filter((v) => typeof v === 'number');
+      const last = days
+        .slice(-14)
+        .map((d) => s.days[d][k])
+        .filter((v) => typeof v === 'number');
+      if (first.length >= 5 && last.length >= 5) {
+        const m = (/** @type {number[]} */ l) => l.reduce((a, v) => a + v, 0) / l.length;
+        rows.push({
+          label,
+          from: m(/** @type {number[]} */ (first)),
+          to: m(/** @type {number[]} */ (last)),
+          unit: k === 'steps' ? '' : '/min',
+          digits: 0,
+          better,
+        });
+      }
+    }
+  }
+  if (rows.length < 2) return null;
+  return h(
+    'section',
+    { class: 'card', 'aria-labelledby': 'bal-h', id: 'balance-card' },
+    h('h2', { id: 'bal-h' }, `Bilanz seit ${fmtDate(p.startDate)}`),
+    h(
+      'table',
+      { class: 'balance-table' },
+      h('thead', {}, h('tr', {}, h('th', {}, 'Wert'), h('th', {}, 'Start'), h('th', {}, 'Jetzt'), h('th', {}, 'Veränderung'))),
+      h(
+        'tbody',
+        {},
+        ...rows.map((r) => {
+          const d = r.to - r.from;
+          const good = r.better === 'down' ? d < 0 : d > 0;
+          const u = r.unit ? ` ${r.unit}` : '';
+          return h(
+            'tr',
+            {},
+            h('th', {}, r.label),
+            h('td', {}, `${fmt(r.from, r.digits)}${u}`),
+            h('td', {}, `${fmt(r.to, r.digits)}${u}`),
+            h('td', { class: Math.abs(d) < 10 ** -r.digits ? '' : good ? 'bal-good' : 'bal-bad' }, `${fmtSigned(d, r.digits)}${u}`),
+          );
+        }),
+      ),
+    ),
+    h('p', { class: 'hint' }, 'Erste gegen letzte Messung. Laborwerte und Blutdruck ordnet die Hausärztin bzw. der Hausarzt ein.'),
   );
 }

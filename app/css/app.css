@@ -2328,3 +2328,70 @@ textarea {
     transition: none;
   }
 }
+
+/* Verhaltens-Check */
+.behavior-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.behavior {
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border-left: 4px solid var(--info);
+  background: var(--surface-2);
+}
+.behavior.sev-alert {
+  border-left-color: var(--alert);
+}
+.behavior.sev-warn {
+  border-left-color: var(--warn);
+}
+.behavior-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.behavior p {
+  margin: 6px 0 0;
+}
+.behavior-examples {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.behavior-alt {
+  color: var(--ok);
+}
+.behavior-strengths {
+  margin: 0;
+  padding-left: 18px;
+}
+
+/* Bilanz seit Start */
+.balance-table {
+  width: 100%;
+  font-size: 0.9rem;
+  border-collapse: collapse;
+}
+.balance-table th,
+.balance-table td {
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.balance-table th:first-child {
+  text-align: left;
+}
+.bal-good {
+  color: var(--ok);
+  font-weight: 600;
+}
+.bal-bad {
+  color: var(--alert);
+  font-weight: 600;
+}

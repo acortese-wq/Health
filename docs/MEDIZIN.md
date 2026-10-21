@@ -112,6 +112,31 @@ kostet (Morton RW et al., Br J Sports Med 2018;52:376–384). Nach einer Foto- o
 so berechnet, als wäre die Mahlzeit schon gegessen. Der KI-Tipp erhält dafür den Tageskontext (Mahlzeitennamen,
 offene Pyramidengruppen, Nährstofflücken; keine Personen- oder Zyklusdaten) und ist auf zwei Sätze begrenzt.
 
+### Verhaltens-Check (14 Tage)
+
+`domain/behavior.js` wertet die letzten 14 Tage mit Mahlzeiten aus (heute erst nach dem Abschliessen, mindestens 4 Tage)
+und nennt pro Muster Beispiele, eine bessere Alternative und die Quelle:
+
+| Muster | Regel | Beleg |
+| ------ | ----- | ----- |
+| Kalorienfallen (Fast Food, Süssgetränke, Gebäck, Süsses, Alkohol, Wurst) | Namensmuster, Alternative mit Richtwert-kcal, Ersparnis | Hall KD, Cell Metab 2019; Malik VS, AJCN 2013; Traversy G, Curr Obes Rep 2015 |
+| Abends zu viel | > 45 % der Tagesenergie nach 17:30 an ≥ 50 % der Tage | Jakubowicz D, Obesity 2013; Ruddick-Collins LC, Cell Metab 2022 |
+| Spät gegessen | ≥ 150 kcal weniger als 2 h vor dem Schlafen an ≥ 3 Tagen | Gu C, JCEM 2020 |
+| Protein am Morgen | erste Mahlzeit < 20 g Protein an ≥ 60 % der Tage | Leidy HJ, AJCN 2013; Mamerow MM, J Nutr 2014 |
+| Wochenende | Sa/So ≥ 300 kcal über Werktagen | Racette SB, Obesity 2008 |
+| Ziel überschritten | > 200 kcal über Ziel an ≥ 4 Tagen | Hall KD, Lancet 2011 |
+| Gemüse/Früchte | < 3 Portionen im Schnitt | Ello-Martin JA, AJCN 2007 |
+
+Die Texte sagen ausdrücklich, dass für das Gewicht die Energiebilanz entscheidet; Zeitpunkt und Auswahl wirken vor allem
+über Hunger und Sättigung. Was gut läuft, wird ebenfalls genannt.
+
+### Vorführung «−17 kg in einem Jahr»
+
+`showcase.js` erzeugt ein erfundenes Jahr (Marco, 175 cm, 97 → 80 kg): anfangs schneller (Wasser/Glykogen), danach
+0.3–0.4 kg pro Woche, Diätpause nach 6 Monaten, Anstieg über Weihnachten, Krafttraining ab Woche 3, bessere Blutdruck-
+und Laborwerte. Die Vorführung läuft nur im Arbeitsspeicher: nichts wird gespeichert, Import und Löschen sind gesperrt,
+Beenden oder Neuladen bringt die eigenen Daten unverändert zurück.
+
 ## Zyklus und Lebensphase (Frauen)
 
 | Thema | Umsetzung | Quelle |

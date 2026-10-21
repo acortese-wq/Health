@@ -2,7 +2,7 @@
 // Nährstoffe nach dem Vorbild von MyFitnessPal: Makro-Ring, Balken mit «% vom Tagesbedarf»
 // (Tag oder 7-Tage-Schnitt), Vorschläge für die nächste Mahlzeit und Lebensmittelsuche.
 
-import { h, s, fmt, fmtDate, nowTime } from '../ui/dom.js';
+import { h, s, fmt, fmtDate, nowTime, badge } from '../ui/dom.js';
 import { addFood as addFoodEntry } from '../store.js';
 import { FOODS, FOOD_SOURCE } from '../data/foods.js';
 import {
@@ -18,6 +18,7 @@ import {
   gaps,
 } from '../domain/micros.js';
 import { pyramidTips, dayContextText } from '../domain/pyramidtips.js';
+import { behaviorCheck } from '../domain/behavior.js';
 import { addDays } from '../domain/util.js';
 import { productPortion } from '../domain/foodvision.js';
 import { pyramid } from '../domain/foodgroups.js';
@@ -1036,5 +1037,87 @@ export function rhythmCard(ctx, snap) {
         )
       : null,
     h('p', { class: 'hint' }, 'Zusammenhänge im eigenen Alltag, keine Beweise. Eine Ernährungsberatung kann sie mit dir vertiefen.'),
+  );
+}
+
+/**
+ * Verhaltens-Check: was in den letzten 14 Tagen besser ginge, mit Begründung aus Studien.
+ * @param {Ctx} ctx
+ * @param {NonNullable<Ctx['snap']>} snap
+ */
+export function behaviorCard(ctx, snap) {
+  const r = behaviorCheck({
+    days: ctx.state.days,
+    date: ctx.date,
+    kcalTarget: snap.kcalTarget,
+    proteinTarget: snap.protein.grams,
+    bedtime: snap.profile.bedtime,
+    fastingWindowH: snap.profile.fastingWindowH,
+  });
+  const label = { alert: 'Kritisch', warn: 'Verbessern', info: 'Tipp', ok: 'Gut' };
+  return h(
+    'section',
+    { class: 'card', 'aria-labelledby': 'beh-h', id: 'behavior-card' },
+    h('h2', { id: 'beh-h' }, 'Verhaltens-Check: letzte 14 Tage'),
+    !r.enough
+      ? h(
+          'p',
+          { class: 'small', id: 'beh-none' },
+          `Noch zu wenige Tage erfasst (${r.analysedDays} von mindestens 4). Ab vier Tagen mit Mahlzeiten wertet die App dein Essverhalten aus.`,
+        )
+      : [
+          r.findings.length
+            ? h(
+                'ul',
+                { class: 'behavior-list' },
+                ...r.findings.map((f) =>
+                  h(
+                    'li',
+                    { class: `behavior sev-${f.severity}`, id: `beh-${f.id}` },
+                    h('div', { class: 'behavior-head' }, badge(f.severity, label[f.severity]), h('strong', {}, f.title)),
+                    h('p', { class: 'small' }, f.text),
+                    f.examples.length
+                      ? h(
+                          'ul',
+                          { class: 'behavior-examples small' },
+                          ...f.examples.map((e) =>
+                            h(
+                              'li',
+                              {},
+                              [e.date ? fmtDate(e.date, 'dm') : '', e.time].filter(Boolean).join(' '),
+                              e.date || e.time ? ': ' : '',
+                              e.name,
+                              e.kcal ? ` (${/^\d+× /.test(e.name) ? 'je ' : ''}${fmt(e.kcal)} kcal)` : '',
+                              e.alt
+                                ? h(
+                                    'span',
+                                    { class: 'behavior-alt' },
+                                    ` → besser: ${e.alt}, ca. ${fmt(e.altKcal ?? 0)} kcal (${fmt(e.kcal - (e.altKcal ?? 0))} kcal weniger)`,
+                                  )
+                                : null,
+                            ),
+                          ),
+                        )
+                      : null,
+                    h('p', { class: 'small behavior-better' }, h('strong', {}, 'Besser: '), f.better),
+                    h('p', { class: 'hint' }, f.ref),
+                  ),
+                ),
+              )
+            : h('p', { class: 'small', id: 'beh-clean' }, 'Keine auffälligen Muster. Stark!'),
+          r.strengths.length
+            ? h(
+                'div',
+                { class: 'stack-sm' },
+                h('h3', { class: 'eyebrow' }, 'Das machst du gut'),
+                h('ul', { class: 'small behavior-strengths', id: 'beh-strengths' }, ...r.strengths.map((s) => h('li', {}, s))),
+              )
+            : null,
+          h(
+            'p',
+            { class: 'hint' },
+            `Ausgewertet: ${r.analysedDays} Tage mit Einträgen (heute erst nach dem Abschliessen). Fürs Gewicht entscheidet die Kalorienbilanz; Zeitpunkt und Lebensmittelwahl helfen vor allem, sie mit weniger Hunger einzuhalten. Alternativen und Kalorien sind Richtwerte.`,
+          ),
+        ],
   );
 }

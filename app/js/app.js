@@ -5,10 +5,11 @@ import { h, s } from './ui/dom.js';
 import { load, safeStorage, STORAGE_KEY } from './store.js';
 import { saveWithBackup, snapshot as backupSnapshot, preserveCorrupt, saveDraft, takeDraft } from './safety.js';
 import { snapshot } from './model.js';
+import { showcaseState } from './showcase.js';
 import { addDays, daysBetween, toISODate } from './domain/util.js';
 import { shouldNudge } from './domain/hydration.js';
 import { viewToday, viewNutrition } from './views/today.js';
-import { viewWeight } from './views/weight.js';
+import { viewWeight, setWeightRange } from './views/weight.js';
 import { viewTraining } from './views/training.js';
 import { viewHealth } from './views/health.js';
 import { viewKnowledge } from './views/knowledge.js';
@@ -29,6 +30,7 @@ import { viewProfile } from './views/profile.js';
  *   go: (route: string) => void,
  *   toast: (message: string, kind?: 'ok' | 'error') => void,
  *   persistent: boolean,
+ *   showcase: { active: boolean, start: () => void, end: () => void },
  * }} Ctx
  */
 
@@ -155,8 +157,15 @@ function dirtyInputs() {
 /** Letzter Speicherversuch fehlgeschlagen? Dann bleibt ein Hinweis sichtbar. */
 let unsaved = false;
 
+/**
+ * Vorführmodus: ein Beispieljahr nur im Arbeitsspeicher. Solange er läuft, wird nichts
+ * gespeichert; beim Beenden (oder Neuladen) sind die eigenen Daten unverändert zurück.
+ */
+let showcaseActive = false;
+
 /** @returns {boolean} true, wenn dauerhaft gespeichert */
 function persist() {
+  if (showcaseActive) return true;
   const ok = saveWithBackup(JSON.stringify(state), storage, toISODate());
   unsaved = !ok;
   if (!ok)
@@ -190,6 +199,7 @@ function render() {
       return ok;
     },
     replace(next, message) {
+      if (showcaseActive) return toast('Während der Vorführung nicht möglich. Bitte zuerst die Vorführung beenden.', 'error');
       const previous = state;
       // Vor dem Ersetzen (Import, Löschen, Beispieldaten) den bisherigen Stand sichern
       if (storage && previous.profile && !previous.demo) backupSnapshot(storage, JSON.stringify(previous), today, 'vor Ersetzen');
@@ -210,6 +220,29 @@ function render() {
     },
     toast,
     persistent: Boolean(storage),
+    showcase: {
+      active: showcaseActive,
+      start() {
+        showcaseActive = true;
+        state = showcaseState(today);
+        setWeightRange('plan');
+        date = today;
+        followToday = true;
+        discardDirty = true;
+        location.hash = 'fortschritt';
+        render();
+        window.scrollTo(0, 0);
+        toast('Vorführung gestartet. Deine eigenen Daten bleiben unverändert.');
+      },
+      end() {
+        showcaseActive = false;
+        state = load(storage).state;
+        discardDirty = true;
+        location.hash = state.profile ? 'heute' : 'profil';
+        render();
+        toast('Vorführung beendet. Deine Daten sind wieder da.');
+      },
+    },
   };
 
   const nav = h(
@@ -305,7 +338,21 @@ function render() {
       ),
     );
   }
-  if (state.demo) {
+  if (showcaseActive)
+    banners.push(
+      h(
+        'div',
+        { class: 'banner banner-info', role: 'status', id: 'showcase-banner' },
+        h('strong', {}, 'Vorführung: Beispiel −17 kg in einem Jahr. '),
+        'Alle Werte sind erfunden, nichts wird gespeichert. Deine eigenen Daten bleiben unverändert. ',
+        h(
+          'button',
+          { type: 'button', class: 'link-btn', id: 'showcase-end', on: { click: () => ctx.showcase.end() } },
+          'Vorführung beenden',
+        ),
+      ),
+    );
+  if (state.demo && !showcaseActive) {
     banners.push(
       h(
         'div',
@@ -409,6 +456,7 @@ window.addEventListener('pagehide', storeDraft);
 
 /** Halb ausgefüllte Felder sichern, falls das Telefon die App beendet. */
 function storeDraft() {
+  if (showcaseActive) return;
   /** @type {Record<string, string>} */
   const values = {};
   for (const el of root.querySelectorAll('input[id], textarea[id]')) {
@@ -421,7 +469,7 @@ function storeDraft() {
 
 // Änderungen aus einem anderen Fenster übernehmen statt sie später zu überschreiben.
 window.addEventListener('storage', (e) => {
-  if (e.key !== STORAGE_KEY || e.newValue === null) return;
+  if (e.key !== STORAGE_KEY || e.newValue === null || showcaseActive) return;
   const next = load(storage);
   if (next.error) return;
   state = next.state;

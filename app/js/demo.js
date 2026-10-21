@@ -13,7 +13,7 @@ import { addGroups, portionsFor, scaleGroups } from './domain/foodgroups.js';
  * @param {number} kcal
  * @param {[string, number][]} parts Schlüssel und Gramm
  */
-function microsFor(kcal, parts) {
+export function microsFor(kcal, parts) {
   /** @type {import('./domain/micros.js').Amounts} */
   const sum = {};
   /** @type {import('./domain/foodgroups.js').Groups} */

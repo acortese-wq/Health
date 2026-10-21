@@ -45,8 +45,22 @@ export function viewProfile(ctx) {
               },
               'Erst mit Beispieldaten ansehen',
             ),
+            showcaseButton(ctx),
           ),
         ),
+    p
+      ? h(
+          'section',
+          { class: 'card', 'aria-labelledby': 'showcase-h', id: 'showcase-card' },
+          h('h2', { id: 'showcase-h' }, 'Jemandem zeigen'),
+          h(
+            'p',
+            { class: 'small' },
+            'Ein erfundenes Beispieljahr: Marco, 175 cm, von 97 auf 80 kg in 12 Monaten, mit Diätpause, Weihnachten, Krafttraining, besseren Blut- und Laborwerten. Läuft nur vorübergehend; deine Daten werden weder angezeigt noch verändert.',
+          ),
+          showcaseButton(ctx),
+        )
+      : null,
     p
       ? h(
           'section',
@@ -869,4 +883,18 @@ function safetyBlock(ctx) {
         )
       : h('p', { class: 'small muted' }, 'Noch keine Sicherung vorhanden. Sie entsteht beim nächsten Speichern.'),
   );
+}
+
+/**
+ * Startet die Vorführung «−17 kg in einem Jahr» (nur im Arbeitsspeicher).
+ * @param {Ctx} ctx
+ */
+function showcaseButton(ctx) {
+  return ctx.showcase.active
+    ? h('button', { type: 'button', class: 'btn', id: 'showcase-stop', on: { click: () => ctx.showcase.end() } }, 'Vorführung beenden')
+    : h(
+        'button',
+        { type: 'button', class: 'btn', id: 'showcase-start', on: { click: () => ctx.showcase.start() } },
+        'Vorführung: −17 kg in einem Jahr',
+      );
 }

@@ -39,6 +39,13 @@ Die Methodik und alle Grenzwerte mit Quellen stehen in [docs/MEDIZIN.md](docs/ME
 - Ein Doppeltipp legt nichts doppelt an. Gleiche Einträge kurz hintereinander werden als «Mögliche Doppelbuchung»
   markiert (nie automatisch gelöscht). Regeln und Tagesstatus: [docs/AUDIT.md](docs/AUDIT.md).
 
+### Verhaltens-Check und Vorführung
+
+- **Ernährung → Verhaltens-Check:** Kritik am Essverhalten der letzten 14 Tage mit Beispielen, besserer Alternative
+  (z. B. McDonald's → Salat mit Poulet) und Studienquelle; dazu, was gut läuft.
+- **Profil → Jemandem zeigen:** Vorführung «−17 kg in einem Jahr» mit Verlauf, Bilanz (Gewicht, Taille, Blutdruck,
+  Labor) und allen Ansichten. Die eigenen Daten bleiben unverändert und unsichtbar.
+
 ## Nutzung
 
 ### Auf dem Handy installieren

@@ -9,7 +9,7 @@ import { photoBlock } from './photo.js';
 import { healthPasteBlock } from './garmin.js';
 import { waterPace, waterFact, reminderTimes, buildReminderIcs } from '../domain/hydration.js';
 import { reviewCard } from './review.js';
-import { foodSearchBlock, nutrientsCard, suggestCard, pyramidCard, rhythmCard } from './nutrients.js';
+import { foodSearchBlock, nutrientsCard, suggestCard, pyramidCard, rhythmCard, behaviorCard } from './nutrients.js';
 import { scaleGroups } from '../domain/foodgroups.js';
 import { TRIGGERS, HUNGER } from '../domain/meals.js';
 import { PHASE_TIPS } from '../domain/cycle.js';
@@ -65,6 +65,7 @@ export function viewNutrition(ctx) {
     h('h1', {}, 'Ernährung'),
     nutritionCard(ctx, snap),
     suggestCard(ctx, snap),
+    behaviorCard(ctx, snap),
     rhythmCard(ctx, snap),
     pyramidCard(ctx, snap),
     nutrientsCard(ctx, snap),
@@ -109,7 +110,7 @@ function summary(ctx, snap) {
             : snap.series.length
               ? 'Trend ab 7 Messungen'
               : 'Startgewicht, noch keine Messung',
-          toGoal > 0 ? `noch ${fmt(toGoal, 1)} kg bis Ziel` : 'Ziel erreicht',
+          toGoal >= 0.05 ? `noch ${fmt(toGoal, 1)} kg bis Ziel` : 'Ziel erreicht',
         ].join(' · '),
         '',
         '#fortschritt',
