@@ -10,7 +10,7 @@ import { addDays, timeToMinutes } from './util.js';
 
 /** @typedef {import('../store.js').FoodEntry} FoodEntry */
 /** @typedef {import('../store.js').Day} Day */
-/** @typedef {'hunger' | 'stress' | 'muede' | 'gewohnheit' | 'langeweile' | 'gesellschaft' | 'belohnung'} Trigger */
+/** @typedef {'hunger' | 'stress' | 'muede' | 'gewohnheit' | 'langeweile' | 'gesellschaft' | 'belohnung' | 'tv' | 'frust'} Trigger */
 
 export const TRIGGERS = /** @type {const} */ ([
   ['hunger', 'Hunger'],
@@ -20,6 +20,8 @@ export const TRIGGERS = /** @type {const} */ ([
   ['langeweile', 'Langeweile'],
   ['gesellschaft', 'Gesellschaft'],
   ['belohnung', 'Belohnung'],
+  ['tv', 'Fernseher/Handy'],
+  ['frust', 'Frust/Traurigkeit'],
 ]);
 
 export const HUNGER = /** @type {const} */ ([
@@ -44,6 +46,9 @@ export const TRIGGER_TIPS = /** @type {Record<Trigger, string>} */ ({
     'In Gesellschaft: vorher entscheiden, was und wie viel du isst, kleinen Teller nehmen, Wasser dazu. Ein geplanter Genuss ist kein Ausrutscher.',
   belohnung:
     'Belohnungen ohne Essen sammeln: etwas, auf das du dich freust (Serie, Bad, Musik). Wenn Essen, dann bewusst, langsam und portioniert.',
+  tv: 'Vor dem Bildschirm isst man mehr, ohne es zu merken, und hat später früher wieder Hunger. Nur am Tisch essen; vor dem Fernseher eine Portion auf einen Teller, Packung zurück in den Schrank.',
+  frust:
+    'Essen tröstet kurz, das Gefühl bleibt. Zuerst benennen, was los ist, dann etwas tun, das wirklich hilft: jemanden anrufen, rausgehen, aufschreiben. Häufen sich solche Momente, lohnt sich ein Gespräch mit Fachleuten.',
 });
 
 /** Tagesabschnitte (Schweizer Mahlzeiten). */

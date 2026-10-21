@@ -105,6 +105,9 @@ export function scaleEntry(e, factor) {
   return out;
 }
 
+/** @param {string} t HH:MM */
+const toMin = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+
 /**
  * Mögliche Doppelbuchungen eines Tages: ID des verdächtigen Eintrags → ID des früheren.
  * Bewusste Wiederholungen («repeatOf») und bestätigte Einträge («keep») zählen nie.
@@ -130,7 +133,8 @@ export function possibleDuplicates(food) {
       if (!a.at) continue;
       const dt = Date.parse(b.at) - Date.parse(a.at);
       if (dt > DUPLICATE_WINDOW_MS) break;
-      if (signature(a) === signature(b) && a.time === b.time) {
+      // Uhrzeit höchstens 1 Minute auseinander (auch über eine Minutengrenze hinweg)
+      if (signature(a) === signature(b) && Math.abs(toMin(a.time) - toMin(b.time)) <= 1) {
         out.set(b.id, a.id);
         break;
       }

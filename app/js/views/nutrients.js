@@ -19,6 +19,7 @@ import {
 } from '../domain/micros.js';
 import { pyramidTips, dayContextText } from '../domain/pyramidtips.js';
 import { behaviorCheck } from '../domain/behavior.js';
+import { emotionalSummary, STRATEGIES, HUNGER_CHECK, EMOTIONAL } from '../domain/emotional.js';
 import { addDays } from '../domain/util.js';
 import { productPortion } from '../domain/foodvision.js';
 import { pyramid } from '../domain/foodgroups.js';
@@ -703,7 +704,12 @@ export function suggestCard(ctx, snap) {
   return h(
     'section',
     { class: 'card', 'aria-labelledby': 'sug-h', id: 'suggest-card' },
-    h('h2', { id: 'sug-h' }, 'Vorschlag fürs nächste Essen'),
+    h(
+      'div',
+      { class: 'card-head' },
+      h('h2', { id: 'sug-h' }, 'Vorschlag fürs nächste Essen'),
+      h('a', { class: 'btn small-btn', href: '#rezepte', id: 'open-recipes' }, 'Alle Rezepte'),
+    ),
     meals.length && kcalLeft >= 120
       ? [
           h('h3', { class: 'eyebrow' }, `Passend als ${slotLabel}`),
@@ -928,57 +934,10 @@ export function rhythmCard(ctx, snap) {
   const okIds = new Set(ppm.slots.filter((s) => s.ok).map((s) => s.id));
   const mainIds = new Set(ppm.slots.map((s) => s.id));
 
-  // Neuester Eintrag von heute ohne Notiz (ab 100 kcal)
-  const open = [...food]
-    .filter((f) => f.kcal >= 100 && !f.trigger && !f.hunger && !skippedTag.has(f.id))
-    .sort((a, b) => (a.time < b.time ? 1 : -1))[0];
-  /** @param {Partial<import('../store.js').FoodEntry>} patch */
-  const tag = (patch) =>
-    ctx.commit((st) => {
-      const list = st.days[ctx.date].food ?? [];
-      const i = list.findIndex((x) => x.id === open?.id);
-      if (i >= 0) list[i] = { ...list[i], ...patch };
-    }, 'Notiert');
-
   return h(
     'section',
     { class: 'card', 'aria-labelledby': 'rhy-h', id: 'rhythm-card' },
     h('h2', { id: 'rhy-h' }, 'Essrhythmus und Heisshunger'),
-    open
-      ? h(
-          'div',
-          { class: 'quick-tag', id: 'quick-tag' },
-          h('p', { class: 'small' }, h('strong', {}, `${open.time} ${open.name}`), ' – kurz notieren hilft, Muster zu erkennen:'),
-          h(
-            'div',
-            { class: 'segmented wrap', role: 'group', 'aria-label': 'Wie hungrig warst du?' },
-            h('span', { class: 'small muted' }, 'Hunger:'),
-            ...HUNGER.map(([v, label]) => h('button', { type: 'button', id: `qt-h${v}`, on: { click: () => tag({ hunger: v }) } }, label)),
-          ),
-          h(
-            'div',
-            { class: 'segmented wrap', role: 'group', 'aria-label': 'Warum gegessen?' },
-            h('span', { class: 'small muted' }, 'Grund:'),
-            ...TRIGGERS.map(([id, label]) =>
-              h('button', { type: 'button', id: `qt-${id}`, on: { click: () => tag({ trigger: id }) } }, label),
-            ),
-            h(
-              'button',
-              {
-                type: 'button',
-                id: 'qt-skip',
-                on: {
-                  click: () => {
-                    skippedTag.add(open.id);
-                    ctx.go('ernaehrung');
-                  },
-                },
-              },
-              'Später',
-            ),
-          ),
-        )
-      : null,
     h('h3', { class: 'eyebrow' }, 'Heute über den Tag'),
     h(
       'ul',
@@ -1119,5 +1078,186 @@ export function behaviorCard(ctx, snap) {
             `Ausgewertet: ${r.analysedDays} Tage mit Einträgen (heute erst nach dem Abschliessen). Fürs Gewicht entscheidet die Kalorienbilanz; Zeitpunkt und Lebensmittelwahl helfen vor allem, sie mit weniger Hunger einzuhalten. Alternativen und Kalorien sind Richtwerte.`,
           ),
         ],
+  );
+}
+
+/**
+ * Kurz notieren, wie hungrig und warum gegessen wurde (neuester Eintrag ohne Notiz).
+ * @param {Ctx} ctx
+ * @param {NonNullable<Ctx['snap']>} snap
+ */
+export function quickTagBlock(ctx, snap) {
+  const food = snap.day.food ?? [];
+  // Neuester Eintrag von heute ohne Notiz (ab 100 kcal)
+  const open = [...food]
+    .filter((f) => f.kcal >= 100 && !f.trigger && !f.hunger && !skippedTag.has(f.id))
+    .sort((a, b) => (a.time < b.time ? 1 : -1))[0];
+  /** @param {Partial<import('../store.js').FoodEntry>} patch */
+  const tag = (patch) =>
+    ctx.commit((st) => {
+      const list = st.days[ctx.date].food ?? [];
+      const i = list.findIndex((x) => x.id === open?.id);
+      if (i < 0) return false;
+      list[i] = { ...list[i], ...patch };
+      return true;
+    }, 'Notiert');
+
+  // Direkt nach dem Erfassen offen, sonst eingeklappt (die Liste bleibt ohne Scrollen sichtbar)
+  const fresh = Boolean(open?.at && Date.now() - Date.parse(open.at) < 10 * 60 * 1000);
+  return open
+    ? h(
+        'details',
+        { class: 'quick-tag', id: 'quick-tag', open: fresh },
+        h('summary', { class: 'small' }, h('strong', {}, `${open.time} ${open.name}`), ': Hunger und Grund notieren'),
+        h('p', { class: 'small muted' }, 'Kurz notieren hilft, Muster wie Stress, Langeweile oder Fernseher zu erkennen.'),
+        h(
+          'div',
+          { class: 'segmented wrap', role: 'group', 'aria-label': 'Wie hungrig warst du?' },
+          h('span', { class: 'small muted' }, 'Hunger:'),
+          ...HUNGER.map(([v, label]) => h('button', { type: 'button', id: `qt-h${v}`, on: { click: () => tag({ hunger: v }) } }, label)),
+        ),
+        h(
+          'div',
+          { class: 'segmented wrap', role: 'group', 'aria-label': 'Warum gegessen?' },
+          h('span', { class: 'small muted' }, 'Grund:'),
+          ...TRIGGERS.map(([id, label]) =>
+            h('button', { type: 'button', id: `qt-${id}`, on: { click: () => tag({ trigger: id }) } }, label),
+          ),
+          h(
+            'button',
+            {
+              type: 'button',
+              id: 'qt-skip',
+              on: {
+                click: () => {
+                  skippedTag.add(open.id);
+                  ctx.go('ernaehrung');
+                },
+              },
+            },
+            'Später',
+          ),
+        ),
+      )
+    : null;
+}
+
+/** Gewählter Auslöser im Soforthilfe-Teil (nur solange die App offen ist). */
+let sosTrigger = /** @type {import('../domain/meals.js').Trigger | ''} */ ('');
+let checkOpen = false;
+
+/**
+ * Emotionales Essen: Hunger-Check, Soforthilfe je Auslöser, Muster der letzten 4 Wochen.
+ * @param {Ctx} ctx
+ */
+export function emotionalCard(ctx) {
+  const r = emotionalSummary(ctx.state.days, ctx.date);
+  const label = (/** @type {string} */ id) => TRIGGERS.find((t) => t[0] === id)?.[1] ?? id;
+  const sos = sosTrigger && sosTrigger !== 'hunger' ? STRATEGIES[sosTrigger] : null;
+  return h(
+    'section',
+    { class: 'card', 'aria-labelledby': 'emo-h', id: 'emotional-card' },
+    h('h2', { id: 'emo-h' }, 'Emotionales Essen'),
+    h(
+      'details',
+      {
+        class: 'hunger-check',
+        id: 'hunger-check',
+        open: checkOpen,
+        on: { toggle: (/** @type {Event} */ e) => (checkOpen = /** @type {HTMLDetailsElement} */ (e.currentTarget).open) },
+      },
+      h('summary', {}, 'Lust auf etwas? Erst der Hunger-Check'),
+      h(
+        'table',
+        { class: 'check-table small' },
+        h('thead', {}, h('tr', {}, h('th', {}, 'Körperlicher Hunger'), h('th', {}, 'Emotionaler Hunger'))),
+        h('tbody', {}, ...HUNGER_CHECK.map(([a, b]) => h('tr', {}, h('td', {}, a), h('td', {}, b)))),
+      ),
+      h(
+        'p',
+        { class: 'small' },
+        'Passt eher die rechte Spalte: 10 Minuten warten und etwas anderes tun. Der Drang steigt, erreicht einen Höhepunkt und flacht wieder ab. Ist er danach noch da, eine kleine Portion bewusst essen, am Tisch, ohne Bildschirm.',
+      ),
+      h('p', { class: 'eyebrow' }, 'Was ist gerade los?'),
+      h(
+        'div',
+        { class: 'segmented wrap', role: 'group', 'aria-label': 'Auslöser wählen' },
+        ...EMOTIONAL.map((id) =>
+          h(
+            'button',
+            {
+              type: 'button',
+              id: `sos-${id}`,
+              'aria-pressed': String(sosTrigger === id),
+              on: {
+                click: () => {
+                  sosTrigger = sosTrigger === id ? '' : id;
+                  checkOpen = true;
+                  ctx.go('ernaehrung');
+                },
+              },
+            },
+            label(id),
+          ),
+        ),
+      ),
+      sos
+        ? h(
+            'div',
+            { class: 'sos note info small', id: 'sos-tip' },
+            h('p', {}, h('strong', {}, 'Jetzt: '), sos.now),
+            h('p', {}, h('strong', {}, 'Für die nächsten Male: '), sos.plan),
+            h('p', { class: 'hint' }, sos.ref),
+          )
+        : null,
+    ),
+    h('h3', { class: 'eyebrow' }, 'Deine Muster der letzten 4 Wochen'),
+    r.enough
+      ? [
+          h(
+            'p',
+            { class: 'small', id: 'emo-summary' },
+            r.emotionalN
+              ? [
+                  h('strong', {}, `${r.emotionalN}× ohne körperlichen Hunger gegessen`),
+                  `, zusammen ${fmt(r.emotionalKcal)} kcal (≈ ${fmt(r.perWeekKcal)} kcal pro Woche)`,
+                  r.eveningShare >= 0.5 ? `, ${Math.round(r.eveningShare * 100)} % davon abends.` : '.',
+                ]
+              : 'Keine Einträge mit Stress, Langeweile, Fernseher & Co. Stark!',
+          ),
+          r.top.length
+            ? h(
+                'ul',
+                { class: 'emo-list' },
+                ...r.top.slice(0, 3).map((t) => {
+                  const st = t.trigger !== 'hunger' ? STRATEGIES[t.trigger] : null;
+                  return h(
+                    'li',
+                    { id: `emo-${t.trigger}` },
+                    h('strong', {}, `${label(t.trigger)}: ${t.n}× · ${fmt(t.kcal)} kcal`),
+                    st ? h('span', { class: 'small' }, st.plan) : null,
+                    st ? h('span', { class: 'hint' }, st.ref) : null,
+                  );
+                }),
+              )
+            : null,
+          r.supportHint
+            ? h(
+                'p',
+                { class: 'note warn small', id: 'emo-support' },
+                'Du hast mehrmals Frust oder Traurigkeit als Grund notiert. Essen ist dann ein verständlicher Trost, löst aber das Gefühl nicht. Sprich darüber mit deiner Hausärztin oder deinem Hausarzt; Ernährungsberatung und Psychotherapie helfen hier wirksam.',
+              )
+            : null,
+        ]
+      : h(
+          'p',
+          { class: 'small', id: 'emo-none' },
+          `Noch zu wenige Notizen (${r.tagged} von mindestens 5). Tippe nach dem Essen unter «Heute gegessen» kurz an, wie hungrig du warst und warum, z. B. Stress, Langeweile oder Fernseher. Dann zeigt die App deine Muster.`,
+        ),
+    h(
+      'p',
+      { class: 'hint' },
+      'Ablenkung beim Essen erhöht die Menge auch später am Tag (Robinson 2013). Achtsamkeits- und Akzeptanz-Ansätze senken emotionales Essen (Katterman 2014, Forman 2016).',
+    ),
   );
 }

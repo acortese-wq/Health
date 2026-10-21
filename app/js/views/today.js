@@ -9,7 +9,16 @@ import { photoBlock } from './photo.js';
 import { healthPasteBlock } from './garmin.js';
 import { waterPace, waterFact, reminderTimes, buildReminderIcs } from '../domain/hydration.js';
 import { reviewCard } from './review.js';
-import { foodSearchBlock, nutrientsCard, suggestCard, pyramidCard, rhythmCard, behaviorCard } from './nutrients.js';
+import {
+  foodSearchBlock,
+  nutrientsCard,
+  suggestCard,
+  pyramidCard,
+  rhythmCard,
+  behaviorCard,
+  quickTagBlock,
+  emotionalCard,
+} from './nutrients.js';
 import { scaleGroups } from '../domain/foodgroups.js';
 import { TRIGGERS, HUNGER } from '../domain/meals.js';
 import { PHASE_TIPS } from '../domain/cycle.js';
@@ -66,6 +75,7 @@ export function viewNutrition(ctx) {
     nutritionCard(ctx, snap),
     suggestCard(ctx, snap),
     behaviorCard(ctx, snap),
+    emotionalCard(ctx),
     rhythmCard(ctx, snap),
     pyramidCard(ctx, snap),
     nutrientsCard(ctx, snap),
@@ -512,6 +522,7 @@ function nutritionCard(ctx, snap) {
           h('span', { class: salt > SALT_LIMIT_G ? 'over' : '' }, `Salz ${fmt(salt, 1)} / max. ${SALT_LIMIT_G} g`),
         )
       : null,
+    quickTagBlock(ctx, snap),
     food.length ? entryList(ctx, food) : h('p', { class: 'muted small' }, 'Noch nichts erfasst.'),
     h(
       'label',

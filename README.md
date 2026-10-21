@@ -46,6 +46,14 @@ Die Methodik und alle Grenzwerte mit Quellen stehen in [docs/MEDIZIN.md](docs/ME
 - **Profil → Jemandem zeigen:** Vorführung «−17 kg in einem Jahr» mit Verlauf, Bilanz (Gewicht, Taille, Blutdruck,
   Labor) und allen Ansichten. Die eigenen Daten bleiben unverändert und unsichtbar.
 
+### Emotionales Essen und Rezepte
+
+- **Nach dem Erfassen** fragt die App kurz nach Hunger und Grund (Stress, Langeweile, Fernseher/Handy, Frust …).
+- **Ernährung → Emotionales Essen:** Hunger-Check, Soforthilfe je Auslöser, eigene Muster der letzten 4 Wochen.
+- **Ernährung → Alle Rezepte:** 16 Rezepte nach den Prinzipien der Ernährungs-Docs (eigene Rezepte, nicht vom NDR),
+  sortiert nach «passt heute», Filter, Mengen für 1–4 Personen, Portion mit einem Tipp erfassen; dazu jedes Prinzip
+  mit Studienlage.
+
 ## Nutzung
 
 ### Auf dem Handy installieren

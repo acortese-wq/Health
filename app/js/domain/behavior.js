@@ -18,6 +18,7 @@
 // - Racette SB et al., Obesity 2008;16:1826–1830: Wochenende → mehr Energiezufuhr, Abnahme stockt.
 
 import { addDays } from './util.js';
+import { emotionalSummary, STRATEGIES } from './emotional.js';
 
 /**
  * @typedef {import('../store.js').FoodEntry} FoodEntry
@@ -285,6 +286,33 @@ export function behaviorCheck({ days, date, kcalTarget, proteinTarget, bedtime, 
         examples: [],
       });
     else strengths.push('Gemüse und Früchte: gut dabei.');
+  }
+
+  // 8. Emotionales Essen (Notizen «Grund» der Einträge)
+  const emo = emotionalSummary(days, date, span);
+  if (emo.emotionalN >= 3 && emo.emotionalKcal >= 600) {
+    const top = emo.top[0];
+    const st = top.trigger !== 'hunger' ? STRATEGIES[top.trigger] : null;
+    const names = {
+      stress: 'Stress',
+      langeweile: 'Langeweile',
+      tv: 'Fernseher/Handy',
+      muede: 'Müdigkeit',
+      frust: 'Frust',
+      gewohnheit: 'Gewohnheit',
+      belohnung: 'Belohnung',
+      gesellschaft: 'Gesellschaft',
+      hunger: 'Hunger',
+    };
+    findings.push({
+      id: 'emotional',
+      severity: emo.emotionalKcal >= 2000 ? 'alert' : 'warn',
+      title: `${emo.emotionalN}× ohne Hunger gegessen (${Math.round(emo.emotionalKcal / 100) * 100} kcal), meist wegen ${names[top.trigger]}`,
+      text: 'Emotionales Essen ist häufig und kein Charakterfehler, aber es summiert sich. Ablenkung (Fernseher, Handy) erhöht die Menge auch später am Tag, Stress verstärkt die Lust auf Energiereiches.',
+      better: st ? st.plan : 'Vor dem Essen den Hunger-Check machen (Karte «Emotionales Essen»).',
+      ref: `${st ? `${st.ref}; ` : ''}Robinson E et al., Am J Clin Nutr 2013;97:728–742`,
+      examples: emo.top.slice(0, 3).map((t) => ({ date: '', time: '', name: `${names[t.trigger]}: ${t.n}×`, kcal: t.kcal })),
+    });
   }
 
   const order = { alert: 0, warn: 1, info: 2, ok: 3 };

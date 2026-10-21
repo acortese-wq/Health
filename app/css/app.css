@@ -2395,3 +2395,66 @@ textarea {
   color: var(--alert);
   font-weight: 600;
 }
+
+/* Emotionales Essen */
+.check-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+}
+.check-table th,
+.check-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.emo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.emo-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sos p {
+  margin: 4px 0;
+}
+
+/* Rezepte */
+.behavior.sev-ok {
+  border-left-color: var(--ok);
+}
+.recipe-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.recipe summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  min-height: 44px;
+}
+.recipe-name {
+  font-size: 1.05rem;
+}
+.recipe-ingredients {
+  margin: 0;
+  padding-left: 18px;
+}
+.recipe-principles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 12px;
+}

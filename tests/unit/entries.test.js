@@ -192,3 +192,10 @@ test('Verlauf: Lücken bleiben null, Mittel nur über abgeschlossene Ernährungs
     [8000, null],
   );
 });
+
+test('Doppelbuchung auch über eine Minutengrenze erkannt', () => {
+  const a = { id: 'a', name: 'Brot', kcal: 250, protein: 8, time: '12:59', at: '2026-10-21T10:59:59.000Z' };
+  const b = { ...a, id: 'b', time: '13:00', at: '2026-10-21T11:00:01.000Z' };
+  assert.equal(possibleDuplicates([a, b]).get('b'), 'a');
+  assert.equal(possibleDuplicates([a, { ...b, time: '15:00' }]).size, 0, 'bewusst andere Uhrzeit');
+});

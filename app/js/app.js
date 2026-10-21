@@ -10,6 +10,7 @@ import { addDays, daysBetween, toISODate } from './domain/util.js';
 import { shouldNudge } from './domain/hydration.js';
 import { viewToday, viewNutrition } from './views/today.js';
 import { viewWeight, setWeightRange } from './views/weight.js';
+import { viewRecipes } from './views/recipes.js';
 import { viewTraining } from './views/training.js';
 import { viewHealth } from './views/health.js';
 import { viewKnowledge } from './views/knowledge.js';
@@ -53,7 +54,10 @@ const SECONDARY = [
   { id: 'profil', label: 'Profil', icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0', render: viewProfile, dated: false },
 ];
 /** Seiten ohne eigenen Navigationspunkt (z. B. aus dem Profil verlinkt). */
-const HIDDEN = [{ id: 'bericht', label: 'Bericht', icon: '', render: viewReport, dated: false }];
+const HIDDEN = [
+  { id: 'bericht', label: 'Bericht', icon: '', render: viewReport, dated: false },
+  { id: 'rezepte', label: 'Rezepte', icon: '', render: viewRecipes, dated: true },
+];
 /** Frühere Adressen weiter unterstützen (Lesezeichen, Home-Bildschirm). */
 const ALIASES = /** @type {Record<string, string>} */ ({ gewicht: 'fortschritt' });
 

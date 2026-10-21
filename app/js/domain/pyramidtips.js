@@ -37,7 +37,7 @@ const CANDIDATES = /** @type {const} */ ({
     ['huettenkaese', 150],
     ['kabeljau', 150],
     ['pouletbrust', 120],
-    ['trutenbrust', 100],
+    ['blv-13275', 100],
     ['tofu', 150],
     ['ei-hart', 120],
   ],

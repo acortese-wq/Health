@@ -62,6 +62,9 @@ test('Essrhythmus: Kurznotiz zu Hunger und Grund, Muster, Lebensmittelpyramide',
   await page.click('#load-demo');
   await page.goto('/#ernaehrung');
   await expect(page.locator('#quick-tag')).toContainText('19:15 Pasta-Teller');
+  // Ältere Einträge: Notiz-Leiste eingeklappt, damit die Liste sichtbar bleibt
+  await expect(page.locator('#qt-stress')).toBeHidden();
+  await page.locator('#quick-tag summary').click();
   await page.click('#qt-stress');
   await expect(page.locator('#quick-tag')).not.toContainText('19:15');
   await expect(page.locator('#food-entries li', { hasText: 'Pasta-Teller' })).toContainText('Stress');

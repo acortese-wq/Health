@@ -137,6 +137,28 @@ Die Texte sagen ausdrücklich, dass für das Gewicht die Energiebilanz entscheid
 und Laborwerte. Die Vorführung läuft nur im Arbeitsspeicher: nichts wird gespeichert, Import und Löschen sind gesperrt,
 Beenden oder Neuladen bringt die eigenen Daten unverändert zurück.
 
+### Emotionales Essen
+
+Jeder Eintrag kann «Hunger vorher» und einen «Grund» haben: Hunger, Stress, Müdigkeit, Gewohnheit, Langeweile,
+Gesellschaft, Belohnung, Fernseher/Handy, Frust/Traurigkeit. Als emotional zählt ein Eintrag mit einem anderen Grund
+als Hunger und ohne nennenswerten Hunger (keine Angabe oder «kaum»). Die Karte «Emotionales Essen» bietet einen
+Hunger-Check (körperlicher vs. emotionaler Hunger, Faustregeln aus der Ernährungsberatung), Soforthilfe je Auslöser
+und die Muster der letzten 4 Wochen (ab 5 Notizen). Bei wiederholtem Frust folgt ein behutsamer Hinweis auf
+professionelle Unterstützung. Der Verhaltens-Check meldet ab 3 Einträgen und 600 kcal in 14 Tagen.
+
+Belege: Robinson E et al., Am J Clin Nutr 2013;97:728–742 (Ablenkung); Adam TC, Epel ES, Physiol Behav
+2007;91:449–458 (Stress); Moynihan AB et al., Front Psychol 2015;6:369 (Langeweile); Greer SM et al., Nat Commun
+2013;4:2259 (Schlafmangel); Katterman SN et al., Eat Behav 2014;15:197–204 (Achtsamkeit); Forman EM et al., Obesity
+2016;24:2050–2056 (Akzeptanz-basierte Therapie).
+
+### Rezepte und Prinzipien («Ernährungs-Docs»)
+
+16 eigene Rezepte (`data/recipes.js`), keine NDR-Rezepte, nach Prinzipien, die in der NDR-Sendung häufig vorkommen.
+Nährwerte pro Portion aus der BLV-Datenbank, höchstens 2.5 g Salz (Test), Tipps gegen die berechneten Werte geprüft.
+Jedes Prinzip ist mit Studienlage bewertet: hoch (Gemüse, Ballaststoffe, Eiweiss, Süssgetränke, gute Fette),
+mittel (Intervallfasten gleichwertig, fermentierte Lebensmittel, anti-entzündliches Muster, langsam essen),
+schwach (abends weniger Kohlenhydrate, Hafertage nur mit ärztlicher Begleitung bei Diabetes-Medikamenten).
+
 ## Zyklus und Lebensphase (Frauen)
 
 | Thema | Umsetzung | Quelle |
