@@ -708,7 +708,12 @@ export function suggestCard(ctx, snap) {
       'div',
       { class: 'card-head' },
       h('h2', { id: 'sug-h' }, 'Vorschlag fürs nächste Essen'),
-      h('a', { class: 'btn small-btn', href: '#rezepte', id: 'open-recipes' }, 'Alle Rezepte'),
+      h(
+        'div',
+        { class: 'btn-row' },
+        h('a', { class: 'btn small-btn', href: '#rezepte', id: 'open-recipes' }, 'Rezepte'),
+        h('a', { class: 'btn small-btn', href: '#planung', id: 'open-planner' }, 'Wochenplan'),
+      ),
     ),
     meals.length && kcalLeft >= 120
       ? [

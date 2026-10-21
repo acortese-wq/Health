@@ -2458,3 +2458,182 @@ textarea {
   gap: 6px;
   margin: 8px 0 12px;
 }
+
+/* Rezepte und Ernährungsplanung */
+.module-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.module-nav a[aria-current='page'] {
+  background: var(--petrol);
+  border-color: var(--petrol);
+  color: var(--petrol-ink);
+}
+.recipe-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.recipe-open {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  min-height: 44px;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  flex: 1;
+}
+.recipe-open:hover .recipe-name {
+  color: var(--petrol);
+}
+.recipe-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.fav-btn[aria-pressed='true'] {
+  color: var(--amber);
+}
+.servings {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.servings strong {
+  min-width: 2.5em;
+  text-align: center;
+  font-size: 1.2rem;
+}
+.nutrition-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.nutrition-table th,
+.nutrition-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.nutrition-table th:first-child {
+  text-align: left;
+}
+.plan-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.plan-add-row select,
+.plan-add-row input:not(.serv-input) {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+.serv-input {
+  width: 5.5em;
+  flex: 0 0 auto;
+}
+.week-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.plan-day.is-today {
+  border-color: var(--petrol);
+}
+.plan-slot {
+  margin-top: 8px;
+}
+.entries li.planned {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  justify-content: space-between;
+  align-items: center;
+}
+.planned-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 200px;
+}
+.planned-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.entries li.planned > form {
+  flex: 1 1 100%;
+}
+.ok-text {
+  color: var(--ok);
+  font-weight: 600;
+}
+.shop-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.shop-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+.shop-item .check {
+  flex: 1;
+}
+.shop-item.done .check span {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.shop-amount {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.editor-ings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.editor-ing-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.editor-ing-row input:not(.serv-input) {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.editor-ing-food {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 4px;
+}
+.meal-checks {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}

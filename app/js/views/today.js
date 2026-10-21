@@ -19,6 +19,7 @@ import {
   quickTagBlock,
   emotionalCard,
 } from './nutrients.js';
+import { planTodayCard } from './planner.js';
 import { scaleGroups } from '../domain/foodgroups.js';
 import { TRIGGERS, HUNGER } from '../domain/meals.js';
 import { PHASE_TIPS } from '../domain/cycle.js';
@@ -47,6 +48,7 @@ export function viewToday(ctx) {
     { class: 'stack' },
     h('h1', { class: 'sr-only' }, 'Heute'),
     summary(ctx, snap),
+    planTodayCard(ctx),
     hints(snap),
     h(
       'div',

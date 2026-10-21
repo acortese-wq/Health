@@ -10,6 +10,10 @@ import { TRIGGERS } from './domain/meals.js';
 import { CYCLE_OPTIONS } from './domain/cycle.js';
 import { BLUE_ITEMS } from './domain/bluezones.js';
 import { createEntry } from './domain/entries.js';
+import { validateRecipe } from './domain/recipes.js';
+import { UNITS } from './domain/units.js';
+
+const PLAN_SLOTS = ['morgen', 'mittag', 'abend', 'snack'];
 
 const BLUE_IDS = BLUE_ITEMS.filter((i) => i.kind === 'self').map((i) => i.id);
 
@@ -20,7 +24,10 @@ export const STORAGE_KEY = 'gesundheitscockpit';
 // Schema 2 (2026-10): Mahlzeiten mit Zeitstempel «at», «repeatOf» (bewusst wiederholt),
 // «dupOf» (technische Kopie), «keep» (Doppelbuchung geprüft) und «proteinKnown».
 // Version-1-Daten werden unverändert übernommen; die neuen Felder sind optional.
-export const SCHEMA_VERSION = 2;
+// Schema 3 (2026-10): Rezepte («recipes», eigene und Referenzen), Favoriten, zuletzt verwendet,
+// Wochenplan («mealPlan»), Einkaufsliste («shopping»); Mahlzeiten mit «planId» und Quelle «rezept».
+// Ältere Daten erhalten leere Sammlungen; nichts wird umgeschrieben.
+export const SCHEMA_VERSION = 3;
 
 /**
  * @typedef {'m' | 'f'} Sex
@@ -37,7 +44,7 @@ export const SCHEMA_VERSION = 2;
  *   caffeineHalfLifeH: number, caffeineCutoffH: number, caffeineMaxMg: number,
  *   caffeineStartCups: number, caffeineTargetCups: number, caffeineTaperStart: string,
  * }} Profile
- * @typedef {'foto' | 'text' | 'etikett' | 'barcode' | 'manuell' | 'datenbank'} FoodSource
+ * @typedef {'foto' | 'text' | 'etikett' | 'barcode' | 'manuell' | 'datenbank' | 'rezept'} FoodSource
  * @typedef {{
  *   id: string, name: string, kcal: number, protein: number, time: string,
  *   carbs?: number, fat?: number, sugar?: number, satFat?: number, fiber?: number, salt?: number,
@@ -45,7 +52,7 @@ export const SCHEMA_VERSION = 2;
  *   micros?: import('./domain/micros.js').Amounts, microSrc?: 'db' | 'ki' | 'mix' | 'etikett',
  *   groups?: import('./domain/foodgroups.js').Groups,
  *   hunger?: 1 | 2 | 3, trigger?: import('./domain/meals.js').Trigger, nova?: number,
- *   at?: string, repeatOf?: string, dupOf?: string, keep?: boolean, proteinKnown?: false,
+ *   at?: string, repeatOf?: string, dupOf?: string, keep?: boolean, proteinKnown?: false, planId?: string,
  * }} FoodEntry
  * @typedef {{ id: string, label: string, mg: number, time: string }} CaffeineEntry
  * @typedef {{
@@ -69,6 +76,10 @@ export const SCHEMA_VERSION = 2;
  *   stopBang: Record<string, boolean>,
  *   prevention: Record<string, string>,
  *   blueZones: Record<string, string[]>,
+ *   recipes: import('./domain/recipes.js').Recipe[],
+ *   favorites: string[], recentRecipes: string[],
+ *   mealPlan: import('./domain/planner.js').MealPlan,
+ *   shopping: import('./domain/planner.js').ShoppingList | null,
  *   lastBackup?: string,
  *   demo?: boolean,
  * }} State
@@ -112,6 +123,11 @@ export function emptyState() {
     stopBang: {},
     prevention: {},
     blueZones: {},
+    recipes: [],
+    favorites: [],
+    recentRecipes: [],
+    mealPlan: {},
+    shopping: null,
   };
 }
 
@@ -236,6 +252,78 @@ export function sanitize(raw) {
   }
   if (isObj(raw.prevention)) {
     for (const [k, v] of Object.entries(raw.prevention)) if (typeof v === 'string' && isISODate(v)) s.prevention[k] = v;
+  }
+  // Rezepte und Planung (Schema 3); ungültige Rezepte werden übersprungen, nicht repariert
+  if (Array.isArray(raw.recipes)) {
+    const seenIds = new Set();
+    for (const r of raw.recipes.slice(0, 2000)) {
+      try {
+        const rec = validateRecipe(r, { id: uid, now: new Date().toISOString(), keepTimes: true });
+        if (seenIds.has(rec.id)) rec.id = uid();
+        seenIds.add(rec.id);
+        s.recipes.push(rec);
+      } catch {
+        /* ungültig: weglassen */
+      }
+    }
+  }
+  const strList = (/** @type {unknown} */ v) =>
+    Array.isArray(v) ? [...new Set(v.filter((x) => typeof x === 'string' && x))].slice(0, 500) : [];
+  s.favorites = strList(raw.favorites);
+  s.recentRecipes = strList(raw.recentRecipes).slice(0, 20);
+  if (isObj(raw.mealPlan)) {
+    for (const [d, list] of Object.entries(raw.mealPlan)) {
+      if (!isISODate(d) || !Array.isArray(list)) continue;
+      const meals = list.flatMap((m) =>
+        isObj(m) &&
+        typeof m.recipeId === 'string' &&
+        isNum(m.servings) &&
+        m.servings > 0 &&
+        m.servings <= 50 &&
+        PLAN_SLOTS.includes(String(m.slot))
+          ? [
+              {
+                id: typeof m.id === 'string' && m.id ? m.id : uid(),
+                recipeId: m.recipeId,
+                slot: /** @type {import('./domain/recipes.js').Meal} */ (m.slot),
+                servings: m.servings,
+                ...(typeof m.entryId === 'string' && m.entryId ? { entryId: m.entryId } : {}),
+              },
+            ]
+          : [],
+      );
+      if (meals.length) s.mealPlan[d] = meals;
+    }
+  }
+  if (
+    isObj(raw.shopping) &&
+    typeof raw.shopping.weekStart === 'string' &&
+    isISODate(raw.shopping.weekStart) &&
+    Array.isArray(raw.shopping.items)
+  ) {
+    s.shopping = {
+      weekStart: raw.shopping.weekStart,
+      updatedAt: typeof raw.shopping.updatedAt === 'string' ? raw.shopping.updatedAt : '',
+      items: raw.shopping.items.flatMap((x) =>
+        isObj(x) && typeof x.label === 'string' && x.label.trim()
+          ? [
+              {
+                id: typeof x.id === 'string' && x.id ? x.id : uid(),
+                key: typeof x.key === 'string' ? x.key : `txt:${x.label.toLowerCase()}`,
+                label: x.label.slice(0, 80),
+                amount: isNum(x.amount) && x.amount >= 0 ? x.amount : null,
+                unit: /** @type {any} */ (UNITS.includes(/** @type {any} */ (x.unit)) ? x.unit : ''),
+                category: typeof x.category === 'string' ? x.category : 'Eigene Artikel',
+                checked: x.checked === true,
+                manual: x.manual === true,
+                ...(x.edited === true ? { edited: true } : {}),
+                ...(isNum(x.planAmount) || x.planAmount === null ? { planAmount: /** @type {number | null} */ (x.planAmount) } : {}),
+                ...(x.stale === true ? { stale: true } : {}),
+              },
+            ]
+          : [],
+      ),
+    };
   }
   if (typeof raw.lastBackup === 'string' && isISODate(raw.lastBackup)) s.lastBackup = raw.lastBackup;
   if (raw.demo === true) s.demo = true;
@@ -441,7 +529,7 @@ export function exportCSV(state) {
 }
 
 const EXTRA_KEYS = /** @type {const} */ (['carbs', 'fat', 'sugar', 'satFat', 'fiber', 'salt', 'grams']);
-const SOURCES = ['foto', 'text', 'etikett', 'barcode', 'manuell', 'datenbank'];
+const SOURCES = ['foto', 'text', 'etikett', 'barcode', 'manuell', 'datenbank', 'rezept'];
 
 /**
  * Optionale Nährwerte und Herkunft eines Eintrags übernehmen (nur gültige Zahlen).
@@ -515,6 +603,7 @@ function entryMeta(f) {
   if (typeof f.dupOf === 'string' && f.dupOf) out.dupOf = f.dupOf;
   if (f.keep === true) out.keep = true;
   if (f.proteinKnown === false) out.proteinKnown = false;
+  if (typeof f.planId === 'string' && f.planId) out.planId = f.planId;
   return out;
 }
 

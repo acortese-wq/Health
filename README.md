@@ -50,9 +50,9 @@ Die Methodik und alle Grenzwerte mit Quellen stehen in [docs/MEDIZIN.md](docs/ME
 
 - **Nach dem Erfassen** fragt die App kurz nach Hunger und Grund (Stress, Langeweile, Fernseher/Handy, Frust …).
 - **Ernährung → Emotionales Essen:** Hunger-Check, Soforthilfe je Auslöser, eigene Muster der letzten 4 Wochen.
-- **Ernährung → Alle Rezepte:** 16 Rezepte nach den Prinzipien der Ernährungs-Docs (eigene Rezepte, nicht vom NDR),
-  sortiert nach «passt heute», Filter, Mengen für 1–4 Personen, Portion mit einem Tipp erfassen; dazu jedes Prinzip
-  mit Studienlage.
+- **Ernährung → Rezepte / Wochenplan:** Rezeptbibliothek (Suche, Filter, Favoriten, zuletzt verwendet, eigene
+  Rezepte, Referenzen mit Link zum Original), Detail mit Portionsregler und Nährwerten pro Portion und gesamt,
+  Wochenplan mit Übernahme ins Protokoll, Einkaufsliste, Import/Export. Details: [docs/REZEPTE.md](docs/REZEPTE.md).
 
 ## Nutzung
 

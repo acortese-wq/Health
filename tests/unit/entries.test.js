@@ -171,7 +171,7 @@ test('11: Export und Import erhalten Einträge, IDs, Zeitstempel und Nährwerte;
   assert.deepEqual(back.days['2026-10-19'].food, st.days['2026-10-19'].food);
   const v1 = sanitize({ schema: 1, days: { '2026-01-02': { food: [{ id: 'old', name: 'Brot', kcal: 250, protein: 8, time: '07:00' }] } } });
   assert.equal(v1.days['2026-01-02'].food?.[0].id, 'old');
-  assert.equal(v1.schema, 2);
+  assert.equal(v1.schema, SCHEMA_VERSION);
 });
 
 test('Verlauf: Lücken bleiben null, Mittel nur über abgeschlossene Ernährungstage', () => {

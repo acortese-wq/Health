@@ -11,6 +11,7 @@ import { shouldNudge } from './domain/hydration.js';
 import { viewToday, viewNutrition } from './views/today.js';
 import { viewWeight, setWeightRange } from './views/weight.js';
 import { viewRecipes } from './views/recipes.js';
+import { viewPlanner } from './views/planner.js';
 import { viewTraining } from './views/training.js';
 import { viewHealth } from './views/health.js';
 import { viewKnowledge } from './views/knowledge.js';
@@ -57,6 +58,7 @@ const SECONDARY = [
 const HIDDEN = [
   { id: 'bericht', label: 'Bericht', icon: '', render: viewReport, dated: false },
   { id: 'rezepte', label: 'Rezepte', icon: '', render: viewRecipes, dated: true },
+  { id: 'planung', label: 'Wochenplan', icon: '', render: viewPlanner, dated: false },
 ];
 /** Frühere Adressen weiter unterstützen (Lesezeichen, Home-Bildschirm). */
 const ALIASES = /** @type {Record<string, string>} */ ({ gewicht: 'fortschritt' });
