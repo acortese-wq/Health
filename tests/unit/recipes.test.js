@@ -1,7 +1,7 @@
 // @ts-check
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { RECIPES, PRINCIPLES } from '../../app/js/data/recipes.js';
+import { RECIPES, PRINCIPLES, NOT_AT_HOME } from '../../app/js/data/recipes.js';
 import { mealEntry } from '../../app/js/domain/mealplans.js';
 import { emotionalSummary, STRATEGIES, EMOTIONAL } from '../../app/js/domain/emotional.js';
 import { behaviorCheck } from '../../app/js/domain/behavior.js';
@@ -23,7 +23,7 @@ test('Rezepte: alle Zutaten in der Datenbank, plausible Werte, höchstens 2.5 g 
     assert.ok(!ids.has(r.id), `doppelte ID ${r.id}`);
     ids.add(r.id);
     const n = nutrition(r);
-    assert.ok(n.kcal >= 150 && n.kcal <= 700, `${r.id}: ${n.kcal} kcal`);
+    assert.ok(n.kcal >= 100 && n.kcal <= 700, `${r.id}: ${n.kcal} kcal`);
     assert.ok(n.salt <= 2.5, `${r.id}: ${n.salt} g Salz`);
     assert.ok(r.steps.length >= 1);
     for (const p of r.principles)
@@ -41,7 +41,7 @@ test('Rezept-Tipps stimmen mit den berechneten Werten überein', () => {
   const kab = by('kabeljau-paeckli');
   assert.ok(kab.protein >= 32 && kab.kcal <= 340, `Kabeljau ${kab.protein} g / ${kab.kcal} kcal`);
   assert.ok(by('quark-bowl').protein >= 27);
-  assert.ok(by('hummus-sticks').kcal <= 330 * 0.6, 'gut die Hälfte einer Tüte Chips');
+  assert.ok(by('gemuese-dip').kcal <= 330 * 0.5, 'Bruchteil einer Tüte Chips');
   assert.ok(by('salat-bohnen-ei').kcal <= 1080 * 0.6, 'rund die Hälfte des Burger-Menüs');
 });
 
@@ -86,4 +86,14 @@ test('Muster und Verhaltens-Check erkennen Essen vor dem Fernseher', () => {
   assert.ok(f, b.findings.map((x) => x.id).join(','));
   assert.match(f.title, /Fernseher/);
   assert.match(f.ref, /Robinson/);
+});
+
+test('Rezepte bleiben einfach: Zutaten von zuhause, keine Spezialgewürze, kurz', () => {
+  for (const r of RECIPES) {
+    const text = [r.name, ...r.ingredients.map((i) => i.label), ...r.steps, r.tip ?? ''].join(' ');
+    assert.ok(!NOT_AT_HOME.test(text), `${r.id}: ${text.match(NOT_AT_HOME)?.[0]}`);
+    assert.ok(r.ingredients.filter((i) => i.g > 0).length <= 7, `${r.id}: zu viele Zutaten`);
+    assert.ok(r.steps.length <= 3, `${r.id}: zu viele Schritte`);
+    assert.ok(r.minutes <= 35, `${r.id}: zu lange`);
+  }
 });

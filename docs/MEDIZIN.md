@@ -155,6 +155,9 @@ Belege: Robinson E et al., Am J Clin Nutr 2013;97:728–742 (Ablenkung); Adam TC
 
 16 eigene Rezepte (`data/recipes.js`), keine NDR-Rezepte, nach Prinzipien, die in der NDR-Sendung häufig vorkommen.
 Nährwerte pro Portion aus der BLV-Datenbank, höchstens 2.5 g Salz (Test), Tipps gegen die berechneten Werte geprüft.
+Bewusst einfach (Test): Zutaten aus dem Grossverteiler, höchstens 7 Zutaten, 3 Schritte, 35 Minuten, gewürzt nur mit Salz,
+Pfeffer, Paprika, Zimt und Kräutern; keine Spezialzutaten wie Kreuzkümmel, Koriander, Kurkuma, Ingwer, Tofu, Quinoa.
+Die App verlinkt die Originalrezepte des NDR («Rezepte bei Fettleibigkeit»).
 Jedes Prinzip ist mit Studienlage bewertet: hoch (Gemüse, Ballaststoffe, Eiweiss, Süssgetränke, gute Fette),
 mittel (Intervallfasten gleichwertig, fermentierte Lebensmittel, anti-entzündliches Muster, langsam essen),
 schwach (abends weniger Kohlenhydrate, Hafertage nur mit ärztlicher Begleitung bei Diabetes-Medikamenten).

@@ -7,6 +7,9 @@ import { RECIPES, PRINCIPLES } from '../data/recipes.js';
 import { mealEntry } from '../domain/mealplans.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
+
+/** Originalrezepte der NDR-Sendung «Die Ernährungs-Docs» zum Thema Adipositas. */
+const NDR_URL = 'https://www.ndr.de/ratgeber/kochen/rezepte/Rezepte-bei-Fettleibigkeit,fettleibigkeit110.html';
 /** @typedef {import('../data/recipes.js').Recipe} Recipe */
 
 /** Filter bleiben gewählt, solange die App offen ist. */
@@ -89,7 +92,13 @@ export function viewRecipes(ctx) {
     h(
       'p',
       { class: 'lead' },
-      'Einfache Rezepte nach Prinzipien, die auch die NDR-Sendung «Die Ernährungs-Docs» vertritt: viel Gemüse, Hülsenfrüchte, Eiweiss zu jeder Mahlzeit, gute Fette, wenig Zucker. Es sind eigene Rezepte, keine Rezepte des NDR; die Originale gibt es auf ndr.de. Nährwerte pro Portion aus der Schweizer Nährwertdatenbank.',
+      'Einfache Rezepte nach Prinzipien, die auch die NDR-Sendung «Die Ernährungs-Docs» vertritt: viel Gemüse, Hülsenfrüchte, Eiweiss zu jeder Mahlzeit, gute Fette, wenig Zucker. Bewusst einfach: Zutaten aus dem Grossverteiler, gewürzt mit Salz, Pfeffer, Paprika und Kräutern. Es sind eigene Rezepte, keine Rezepte des NDR. Nährwerte pro Portion aus der Schweizer Nährwertdatenbank.',
+    ),
+    h(
+      'p',
+      { class: 'small' },
+      'Originalrezepte der Sendung: ',
+      h('a', { href: NDR_URL, target: '_blank', rel: 'noopener noreferrer', id: 'ndr-link' }, 'NDR: Rezepte bei Fettleibigkeit'),
     ),
     snap
       ? h(

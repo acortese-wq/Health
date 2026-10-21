@@ -46,6 +46,7 @@ test('Rezepte: Filter, Einkaufsmengen, Prinzipien mit Studienlage, Portion erfas
   await expect(page).toHaveURL(/#rezepte$/);
   await expect(page.locator('h1')).toHaveText('Rezepte');
   await expect(page.locator('main')).toContainText('keine Rezepte des NDR');
+  await expect(page.locator('#ndr-link')).toHaveAttribute('href', /ndr\.de\/ratgeber\/kochen\/rezepte\/Rezepte-bei-Fettleibigkeit/);
   const all = await page.locator('#recipe-list > li').count();
   expect(all).toBeGreaterThanOrEqual(15);
   await page.click('#rm-abend');
