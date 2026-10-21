@@ -260,7 +260,7 @@ function sanitizeProfile(p) {
     goalWeightKg: num(p.goalWeightKg, 75),
     goalDate: dt(p.goalDate, '2027-01-01'),
     activity: str(p.activity, 'mittel'),
-    proteinPerKg: num(p.proteinPerKg, 1.9),
+    proteinPerKg: num(p.proteinPerKg, 1.6),
     kcalOverride: isNum(p.kcalOverride) ? p.kcalOverride : null,
     stepsTarget: num(p.stepsTarget, 9000),
     sleepTargetH: num(p.sleepTargetH, 7.5),

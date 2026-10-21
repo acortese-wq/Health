@@ -93,3 +93,38 @@ test('Modus «nur Laufen»: kein Kraft-Hinweis', () => {
   s.profile = { ...profile(), trainingMode: 'laufen' };
   assert.ok(!snapshot(s, '2026-10-17').hints.some((h) => h.id === 'strength'));
 });
+
+test('Schlaf-Regel: unter 6,5 h im Defizit → Warnung «Defizit nicht vergrössern»', () => {
+  const s = emptyState();
+  s.profile = /** @type {any} */ ({ ...profile(), proteinPerKg: 1.6 });
+  for (let i = 0; i < 7; i++) s.days[addDays('2026-10-23', -i)] = { weightKg: 95, sleepH: 5.75 };
+  const snap = snapshot(s, '2026-10-23');
+  const h = snap.hints.find((x) => x.id === 'sleep');
+  assert.ok(h);
+  assert.equal(h.severity, 'warn');
+  assert.match(h.title, /Defizit jetzt nicht vergrössern/);
+  assert.equal(
+    snap.hints.some((x) => x.id === 'protein-default'),
+    false,
+  );
+  s.days['2026-10-23'].sleepH = 7.5;
+  for (let i = 0; i < 7; i++) s.days[addDays('2026-10-23', -i)].sleepH = 7.4;
+  assert.equal(
+    snapshot(s, '2026-10-23').hints.some((x) => x.id === 'sleep'),
+    false,
+  );
+});
+
+test('Protein: Hinweis auf 1,6 g/kg nur bei der alten Voreinstellung 1,9', () => {
+  const s = emptyState();
+  s.profile = /** @type {any} */ (profile());
+  s.days['2026-10-17'] = { weightKg: 95 };
+  const h = snapshot(s, '2026-10-17').hints.find((x) => x.id === 'protein-default');
+  assert.ok(h);
+  assert.match(h.title, /≈ 130 statt 150 g/);
+  s.profile = /** @type {any} */ ({ ...profile(), proteinPerKg: 2.0 });
+  assert.equal(
+    snapshot(s, '2026-10-17').hints.some((x) => x.id === 'protein-default'),
+    false,
+  );
+});

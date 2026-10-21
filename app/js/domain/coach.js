@@ -9,14 +9,14 @@ import { formatDate } from './util.js';
 
 /**
  * @typedef {{
- *   profile: { trainingMode?: 'kombi' | 'laufen', sex: 'm' | 'f', goalWeightKg: number, sleepTargetH: number, stepsTarget: number, caffeineMaxMg: number },
+ *   profile: { trainingMode?: 'kombi' | 'laufen', sex: 'm' | 'f', goalWeightKg: number, sleepTargetH: number, stepsTarget: number, caffeineMaxMg: number, proteinPerKg?: number },
  *   weightKg: number,
  *   slope: { slopeKgPerDay: number, n: number } | null,
  *   plan: { goalDatePassed: boolean, feasible: boolean, requiredRateKgPerWeek: number, maxRateKgPerWeek: number, projectedGoalDate: string | null, belowBmr: boolean, maintenance: boolean },
  *   kcalTarget: number,
  *   kcal7: { value: number, n: number } | null,
  *   proteinG: number,
- *   protein: { grams: number },
+ *   protein: { grams: number, referenceKg?: number },
  *   kcal: number,
  *   caffeine: { total: number, late: unknown[], atBedtime: number, cutoff: string, largeSingle: boolean },
  *   caffeine7: { value: number, n: number } | null,
@@ -95,12 +95,28 @@ export function coachHints(s) {
     });
   }
 
+  // Schlaf-Regel: Bei kurzem Schlaf geht im Defizit mehr Muskel- statt Fettmasse verloren
+  // (Nedeltcheva AV et al., Ann Intern Med 2010;153:435–441: 5.5 statt 8.5 h → 55 % weniger
+  // Fettverlust bei gleichem Gewichtsverlust). Mehr Schlaf senkte die Zufuhr um ca. 270 kcal/Tag
+  // (Tasali E et al., JAMA Intern Med 2022;182:365–374).
   if (s.sleep7 && s.sleep7.n >= 4 && s.sleep7.value < 6.5) {
+    const inDeficit = !s.plan.maintenance;
     out.push({
       id: 'sleep',
+      severity: inDeficit ? 'warn' : 'info',
+      title: `Schlaf im Schnitt ${s.sleep7.value.toFixed(1)} h${inDeficit ? ': Defizit jetzt nicht vergrössern' : ''}`,
+      text: `${inDeficit ? 'Mit wenig Schlaf verliert man im Defizit bei gleichem Gewichtsverlust deutlich weniger Fett und mehr Muskeln, und man isst mehr. Diese Woche das Kalorienziel nicht weiter senken und Schlaf zuerst verbessern. ' : 'Wer zu wenig schläft, isst messbar mehr (in einer Studie ca. 270 kcal pro Tag). '}So gelingt mehr Schlaf: feste Aufstehzeit auch am Wochenende, ${s.profile.sleepTargetH} h im Bett einplanen, Bildschirm 30–60 Min. vorher weg, Koffein nur bis zur Grenzzeit, Schlafzimmer kühl und dunkel.`,
+    });
+  }
+
+  // Protein: 1.6 g/kg Referenzgewicht genügt für die meisten (Morton RW et al., Br J Sports Med 2018).
+  // Frühere Voreinstellung war 1.9; wer sie nie geändert hat, bekommt einmal den Hinweis.
+  if (s.profile.proteinPerKg === 1.9) {
+    out.push({
+      id: 'protein-default',
       severity: 'info',
-      title: `Schlaf im Schnitt ${s.sleep7.value.toFixed(1)} h`,
-      text: 'Wer zu wenig schläft, isst messbar mehr und baut im Defizit eher Muskeln ab. Ziel: mindestens 7 h, regelmässige Zeiten.',
+      title: `Neue Empfehlung: Protein 1,6 statt 1,9 g/kg (≈ ${Math.round(((s.protein.referenceKg ?? s.protein.grams / 1.9) * 1.6) / 5) * 5} statt ${s.protein.grams} g)`,
+      text: 'Die grösste Auswertung (49 Studien) findet ab ca. 1,6 g/kg kaum zusätzlichen Nutzen für die Muskeln. Mehr lohnt sich nur bei grossem Defizit oder viel Training. Anpassen unter Profil → Protein.',
     });
   }
 
