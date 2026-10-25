@@ -347,6 +347,51 @@ export function scaleItem(item, grams) {
 }
 
 /**
+ * Bestandteil aus der Nährwertdatenbank (z. B. vergessene Sauce oder Beilage ergänzen).
+ * Werte pro Gramm sind bekannt; die Spanne entspricht dem Wert (Unsicherheit liegt nur in der Menge).
+ * @param {import('../data/foods.js').Food} food
+ * @param {number} [grams] Standard: Datenbank-Portion
+ * @returns {MealItem}
+ */
+export function itemFromFood(food, grams = food.g || 100) {
+  const a = foodAmounts(food, grams);
+  const kcal = Math.round(a.kcal ?? 0);
+  /** @type {ItemValues} */
+  const values = {
+    kcal,
+    kcalLow: kcal,
+    kcalHigh: kcal,
+    protein: r1(a.protein ?? 0),
+    carbs: r1(a.carbs ?? 0),
+    sugar: r1(a.sugar ?? 0),
+    fat: r1(a.fat ?? 0),
+    satFat: r1(a.satFat ?? 0),
+    fiber: r1(a.fiber ?? 0),
+    salt: Math.round((((a.sodium ?? 0) * 2.5) / 1000) * 100) / 100,
+    micros: pickMicros(a),
+    microSrc: 'db',
+    ...(food.gr ? { groups: portionsFor(food.gr, grams, kcal) } : {}),
+    dbKey: food.k,
+  };
+  return {
+    ...values,
+    name: food.n,
+    portion: food.g === grams ? food.p : '',
+    grams: Math.round(grams),
+    baseGrams: Math.round(grams),
+    base: values,
+  };
+}
+
+/**
+ * Schrittweite für ± bei einem Bestandteil: ein Viertel der geschätzten Menge, auf 5 g gerundet.
+ * @param {MealItem} item
+ */
+export function gramStep(item) {
+  return Math.max(5, Math.round(item.baseGrams / 4 / 5) * 5);
+}
+
+/**
  * Summen über die gewählten Bestandteile, skaliert mit dem Portionsfaktor.
  * @param {MealItem[]} items
  * @param {number} factor z. B. 0.5 für eine halbe Portion

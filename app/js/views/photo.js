@@ -4,8 +4,20 @@
 
 import { h, badge, fmt, num, str, nowTime } from '../ui/dom.js';
 import { uid, addFood } from '../store.js';
-import { totals, macrosConsistent, isHighProtein, scaleItem, productPortion, isValidGtin } from '../domain/foodvision.js';
-import { scaleMicros } from '../domain/micros.js';
+import {
+  totals,
+  macrosConsistent,
+  isHighProtein,
+  scaleItem,
+  productPortion,
+  isValidGtin,
+  itemFromFood,
+  gramStep,
+} from '../domain/foodvision.js';
+import { scaleMicros, searchFoods } from '../domain/micros.js';
+import { FOODS } from '../data/foods.js';
+import { savePhoto, prunePhotos, KEEP_DAYS } from '../photostore.js';
+import { addDays } from '../domain/util.js';
 import { activeProvider, analyzeMeal, detectBarcode, lookupBarcode, prepareImage, readLabel, PROVIDERS } from '../vision.js';
 import { pyramidTipsFor, pyramidTipList, dayContextFor } from './nutrients.js';
 import { captureTime } from '../ui/slot.js';
@@ -37,7 +49,7 @@ const MODES = /** @type {const} */ ([
  *   previewUrl: string, base64: string, hint: string, description: string, error: string,
  *   result: MealEstimate | null, excluded: Set<number>, factor: number,
  *   product: Product | null, productGrams: number, barcode: string,
- *   controller: AbortController | null, date: string, loadingText: string,
+ *   controller: AbortController | null, date: string, loadingText: string, blob: Blob | null, addQuery: string,
  * }}
  */
 const st = {
@@ -57,7 +69,12 @@ const st = {
   controller: null,
   date: '',
   loadingText: '',
+  blob: null,
+  addQuery: '',
 };
+
+/** Alte Vorschaubilder einmal pro Sitzung aufräumen. */
+let pruned = false;
 
 /** @param {boolean} [keepMode] */
 function reset(keepMode = true) {
@@ -80,6 +97,8 @@ function reset(keepMode = true) {
     controller: null,
     date: '',
     loadingText: '',
+    blob: null,
+    addQuery: '',
   });
 }
 
@@ -187,6 +206,10 @@ function lookupTyped(ctx, code) {
 function save(ctx, e) {
   const date = ctx.date;
   const v = e.values;
+  // Foto für das Tagebuch (nur Mahlzeit-Fotos, nicht in der Vorführung)
+  const photo = st.mode === 'foto' && e.source === 'foto' && !ctx.showcase.active ? st.blob : null;
+  /** @type {string} */
+  let addedId = '';
   const nutrients = { carbs: v.carbs, fat: v.fat, sugar: v.sugar, satFat: v.satFat, fiber: v.fiber, salt: v.salt };
   const micros = v.micros && Object.keys(v.micros).length ? { micros: v.micros, microSrc: v.microSrc ?? 'ki' } : {};
   reset();
@@ -204,6 +227,7 @@ function save(ctx, e) {
       source: e.source,
     });
     if (!added) return false;
+    addedId = added.id;
     if (e.asPreset)
       s.presets.food = [
         ...s.presets.food,
@@ -211,6 +235,7 @@ function save(ctx, e) {
       ];
     return true;
   }, `${e.name} erfasst`);
+  if (photo && addedId) savePhoto(addedId, photo, date).then((ok) => ok && redraw(ctx));
 }
 
 /**
@@ -220,6 +245,11 @@ function save(ctx, e) {
 export function photoBlock(ctx, snap) {
   // Ein Ergebnis gehört zum Tag, an dem es erstellt wurde.
   if (st.status !== 'idle' && st.date && st.date !== ctx.date) reset();
+  if (!pruned && !ctx.showcase.active) {
+    pruned = true;
+    const ids = new Set(Object.values(ctx.state.days).flatMap((d) => (d.food ?? []).filter((f) => f.source === 'foto').map((f) => f.id)));
+    window.setTimeout(() => prunePhotos(ids, addDays(ctx.today, -KEEP_DAYS)), 2000);
+  }
 
   const fileInput = h('input', {
     type: 'file',
@@ -236,7 +266,7 @@ export function photoBlock(ctx, snap) {
         try {
           const img = await prepareImage(file);
           if (st.previewUrl) URL.revokeObjectURL(st.previewUrl);
-          Object.assign(st, { previewUrl: img.previewUrl, base64: img.base64, result: null, product: null });
+          Object.assign(st, { previewUrl: img.previewUrl, base64: img.base64, blob: img.blob, result: null, product: null });
           if (st.mode === 'packung') await scanPackage(ctx, img.blob);
           else if (!activeProvider()) {
             Object.assign(st, { status: 'error', error: 'noKey' });
@@ -477,26 +507,7 @@ function mealBody(ctx, snap, r) {
             }),
             h('span', {}, it.name, it.portion ? h('small', {}, it.portion) : null),
           ),
-          h(
-            'div',
-            { class: 'item-grams' },
-            h('label', { for: `photo-grams-${i}`, class: 'sr-only' }, `Gramm ${it.name}`),
-            h('input', {
-              id: `photo-grams-${i}`,
-              inputmode: 'numeric',
-              value: String(it.grams),
-              disabled: !it.baseGrams,
-              on: {
-                change: (e) => {
-                  const v = Number(/** @type {HTMLInputElement} */ (e.target).value.replace(',', '.'));
-                  if (!Number.isFinite(v) || v < 0) return;
-                  r.items[i] = scaleItem(it, v);
-                  redraw(ctx);
-                },
-              },
-            }),
-            h('span', { class: 'suffix-inline' }, 'g'),
-          ),
+          itemAdjust(ctx, r, it, i),
           h(
             'span',
             { class: 'entry-num' },
@@ -507,10 +518,11 @@ function mealBody(ctx, snap, r) {
         ),
       ),
     ),
+    addItemForm(ctx, r),
     h(
       'div',
       { class: 'portion' },
-      h('span', { class: 'small muted', id: 'portion-label' }, 'Gegessen'),
+      h('span', { class: 'small muted', id: 'portion-label' }, 'Ganze Mahlzeit'),
       h(
         'div',
         { class: 'segmented', role: 'group', 'aria-labelledby': 'portion-label' },
@@ -564,6 +576,161 @@ function mealBody(ctx, snap, r) {
       'Schätzungen liegen oft 20–40 % daneben, vor allem wegen Öl, Butter und Saucen. Im Zweifel den oberen Wert nehmen.',
     ),
     st.mode === 'foto' ? hintForm(ctx, snap) : null,
+  );
+}
+
+/**
+ * Menge eines Bestandteils: − / + in Viertel-Schritten, Eingabefeld und Schieberegler
+ * (wie in Foto-Apps: ohne Tastatur anpassbar). Ohne Grammangabe der KI nicht änderbar.
+ * @param {Ctx} ctx
+ * @param {MealEstimate} r
+ * @param {import('../domain/foodvision.js').MealItem} it
+ * @param {number} i
+ */
+function itemAdjust(ctx, r, it, i) {
+  const off = !it.baseGrams;
+  const step = off ? 5 : gramStep(it);
+  const max = Math.max(Math.round((it.baseGrams * 2.5) / 5) * 5, it.grams);
+  /** @param {number} g */
+  const set = (g) => {
+    r.items[i] = scaleItem(it, Math.max(0, Math.min(5000, Math.round(g))));
+    redraw(ctx);
+  };
+  const range = h('input', {
+    type: 'range',
+    id: `photo-range-${i}`,
+    class: 'item-range',
+    min: '0',
+    max: String(max),
+    step: '5',
+    value: String(it.grams),
+    disabled: off,
+    'aria-label': `Menge ${it.name} in Gramm`,
+    on: {
+      // Während des Ziehens nur die Zahl nachführen; neu gerechnet wird beim Loslassen
+      input: (e) => {
+        const v = /** @type {HTMLInputElement} */ (e.target).value;
+        const box = /** @type {HTMLInputElement | null} */ (document.getElementById(`photo-grams-${i}`));
+        if (box) box.value = v;
+      },
+      change: (e) => set(Number(/** @type {HTMLInputElement} */ (e.target).value)),
+    },
+  });
+  return h(
+    'div',
+    { class: 'item-adjust' },
+    h(
+      'div',
+      { class: 'item-grams' },
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'icon-btn step-btn',
+          id: `photo-minus-${i}`,
+          disabled: off || it.grams <= 0,
+          'aria-label': `${it.name}: ${step} g weniger`,
+          on: { click: () => set(it.grams - step) },
+        },
+        '−',
+      ),
+      h('label', { for: `photo-grams-${i}`, class: 'sr-only' }, `Gramm ${it.name}`),
+      h('input', {
+        id: `photo-grams-${i}`,
+        inputmode: 'numeric',
+        value: String(it.grams),
+        disabled: off,
+        on: {
+          change: (e) => {
+            const v = Number(/** @type {HTMLInputElement} */ (e.target).value.replace(',', '.'));
+            if (!Number.isFinite(v) || v < 0) return;
+            set(v);
+          },
+        },
+      }),
+      h('span', { class: 'suffix-inline' }, 'g'),
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'icon-btn step-btn',
+          id: `photo-plus-${i}`,
+          disabled: off,
+          'aria-label': `${it.name}: ${step} g mehr`,
+          on: { click: () => set(it.grams + step) },
+        },
+        '+',
+      ),
+    ),
+    range,
+    off ? h('small', { class: 'muted' }, 'Ohne Grammangabe: nur über «Ganze Mahlzeit» anpassbar.') : null,
+  );
+}
+
+/**
+ * Vergessenen Bestandteil (Sauce, Brot, Getränk) aus der Nährwertdatenbank ergänzen.
+ * @param {Ctx} ctx
+ * @param {MealEstimate} r
+ */
+function addItemForm(ctx, r) {
+  const results = st.addQuery.trim().length >= 2 ? searchFoods(FOODS, st.addQuery).slice(0, 5) : [];
+  const list = h(
+    'div',
+    { class: 'chips', id: 'photo-add-results' },
+    ...results.map((f, k) =>
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'chip',
+          id: `photo-add-res-${k}`,
+          on: {
+            click: () => {
+              r.items.push(itemFromFood(f));
+              st.addQuery = '';
+              redraw(ctx);
+            },
+          },
+        },
+        f.n,
+        h('small', {}, `${f.p} · ${fmt(((f.v.kcal ?? 0) * f.g) / 100)} kcal`),
+      ),
+    ),
+  );
+  return h(
+    'details',
+    { class: 'photo-add', id: 'photo-add', open: Boolean(st.addQuery) },
+    h('summary', {}, '+ Bestandteil ergänzen (z. B. Sauce, Brot, Getränk)'),
+    h(
+      'form',
+      {
+        class: 'stack-sm',
+        on: {
+          submit: (e) => {
+            e.preventDefault();
+            redraw(ctx);
+          },
+        },
+      },
+      h('label', { for: 'photo-add-q', class: 'sr-only' }, 'Lebensmittel suchen'),
+      h('input', {
+        id: 'photo-add-q',
+        type: 'search',
+        value: st.addQuery,
+        placeholder: 'Lebensmittel suchen, z. B. Rahmsauce',
+        autocomplete: 'off',
+        on: {
+          input: (e) => {
+            st.addQuery = /** @type {HTMLInputElement} */ (e.target).value;
+            // Nur die Trefferliste erneuern, damit die Tastatur offen bleibt
+            const fresh = addItemForm(ctx, r).querySelector('#photo-add-results');
+            if (fresh) document.getElementById('photo-add-results')?.replaceWith(fresh);
+          },
+        },
+      }),
+      list,
+      h('p', { class: 'hint' }, 'Werte aus der Schweizer Nährwertdatenbank; Menge danach mit − / + anpassen.'),
+    ),
   );
 }
 

@@ -241,3 +241,20 @@ test('Portion eines Produkts', () => {
   assert.equal(v.protein, 27.5);
   assert.equal(v.salt, 0.3);
 });
+
+test('Bestandteil aus der Datenbank: Werte pro Gramm, Standardportion, Schrittweite', async () => {
+  const { itemFromFood, gramStep, scaleItem } = await import('../../app/js/domain/foodvision.js');
+  const { FOODS } = await import('../../app/js/data/foods.js');
+  const kiwi = /** @type {any} */ (FOODS.find((f) => f.k === 'kiwi'));
+  const it = itemFromFood(kiwi);
+  assert.equal(it.grams, 75);
+  assert.equal(it.portion, '1 Kiwi');
+  assert.equal(it.kcal, Math.round((kiwi.v.kcal * 75) / 100));
+  assert.equal(it.kcalLow, it.kcal);
+  assert.equal(it.microSrc, 'db');
+  assert.ok((it.micros?.vitC ?? 0) > 0);
+  const double = scaleItem(it, 150);
+  assert.equal(double.kcal, Math.round(it.base.kcal * 2));
+  assert.equal(gramStep({ ...it, baseGrams: 350 }), 90);
+  assert.equal(gramStep({ ...it, baseGrams: 10 }), 5);
+});

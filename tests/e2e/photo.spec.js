@@ -182,6 +182,46 @@ test('Grammangabe pro Bestandteil ändern', async ({ page }) => {
   await expect(page.locator('#photo-total-kcal')).toHaveText('405 kcal');
 });
 
+test('Foto: Menge per − / + und Regler, Bestandteil ergänzen, Vorschaubild im Tagebuch', async ({ page }) => {
+  await mockApi(page);
+  await setup(page);
+  await page.evaluate((k) => localStorage.setItem('gesundheitscockpit.apikey', k), KEY);
+  await page.setInputFiles('#photo-input', IMAGE);
+  await expect(page.locator('#photo-total-kcal')).toHaveText('730 kcal');
+  // − nimmt ein Viertel der geschätzten Menge weg (350 g → 260 g, auf 5 g gerundet)
+  await page.click('#photo-minus-0');
+  await expect(page.locator('#photo-grams-0')).toHaveValue('260');
+  await expect(page.locator('#photo-total-kcal')).toHaveText('563 kcal');
+  await page.click('#photo-plus-0');
+  await expect(page.locator('#photo-grams-0')).toHaveValue('350');
+  // Schieberegler
+  await page.locator('#photo-range-0').fill('175');
+  await expect(page.locator('#photo-grams-0')).toHaveValue('175');
+  await expect(page.locator('#photo-total-kcal')).toHaveText('405 kcal');
+
+  // Vergessene Beilage aus der Datenbank ergänzen (Kiwi, 1 Stück = 75 g)
+  await page.locator('#photo-add summary').click();
+  await page.locator('#photo-add-q').pressSequentially('kiw');
+  await expect(page.locator('#photo-add-res-0')).toContainText('Kiwi');
+  await expect(page.locator('#photo-add-q')).toBeFocused();
+  await page.click('#photo-add-res-0');
+  await expect(page.locator('.photo-items li')).toHaveCount(3);
+  await expect(page.locator('#photo-total-kcal')).toHaveText('449 kcal');
+  await expect(page.locator('#photo-grams-2')).toHaveValue('75');
+
+  // Übernehmen: Eintrag mit Vorschaubild (nur lokal), bleibt nach Neuladen
+  await page.click('#photo-save');
+  const thumb = page.locator('#food-entries .entry-photo');
+  await expect(thumb).toBeVisible();
+  expect(await thumb.getAttribute('src')).toMatch(/^blob:/);
+  // nicht im gespeicherten Zustand (und damit nicht im Backup)
+  expect(await page.evaluate(() => localStorage.getItem('gesundheitscockpit'))).not.toContain('blob:');
+  await page.reload();
+  await expect(page.locator('#food-entries .entry-photo')).toBeVisible();
+  await page.locator('#food-entries .entry-photo-btn').click();
+  await expect(page.locator('#food-entries .entry-photo-btn')).toHaveClass(/big/);
+});
+
 test('Beschreiben statt fotografieren', async ({ page }) => {
   const requests = await mockApi(page);
   await setup(page);

@@ -1,6 +1,7 @@
 // @ts-check
 import { h, s, field, select, meter, badge, fmt, fmtSigned, fmtDate, num, str, nowTime } from '../ui/dom.js';
 import { MEAL_SLOTS, activeSlot, setSlot, captureTime } from '../ui/slot.js';
+import { photoUrl, cachedPhotoUrl } from '../photostore.js';
 import { uid, extraNutrients, recentFoods, addFood } from '../store.js';
 import { repeatEntry, scaleEntry, possibleDuplicates, dayStatus, foodQuality } from '../domain/entries.js';
 import { dailyTargets } from '../domain/micros.js';
@@ -1367,6 +1368,35 @@ function entryList(ctx, food) {
 }
 
 /**
+ * Vorschaubild eines fotografierten Eintrags (lokal gespeichert); antippen vergrössert.
+ * @param {import('../store.js').FoodEntry} f
+ */
+function entryPhoto(f) {
+  const cached = cachedPhotoUrl(f.id);
+  if (cached === null) return null;
+  const img = /** @type {HTMLImageElement} */ (h('img', { class: 'entry-photo', alt: `Foto: ${f.name}`, id: `entry-photo-${f.id}` }));
+  const btn = h(
+    'button',
+    {
+      type: 'button',
+      class: 'entry-photo-btn',
+      'aria-label': `Foto von ${f.name} vergrössern`,
+      hidden: !cached,
+      on: { click: () => btn.classList.toggle('big') },
+    },
+    img,
+  );
+  if (cached) img.src = cached;
+  else
+    photoUrl(f.id).then((url) => {
+      if (!url) return;
+      img.src = url;
+      btn.hidden = false;
+    });
+  return btn;
+}
+
+/**
  * Eine Mahlzeit: anzeigen, erneut erfassen, Menge ändern, bearbeiten oder löschen.
  * @param {Ctx} ctx
  * @param {import('../store.js').FoodEntry} f
@@ -1387,6 +1417,7 @@ function foodRow(ctx, f, suspect = false) {
       h(
         'span',
         { class: 'entry-name' },
+        f.source === 'foto' ? entryPhoto(f) : null,
         f.name,
         f.source === 'foto' || f.source === 'text' ? h('small', { class: 'muted' }, ' · geschätzt') : null,
         f.carbs === undefined || f.fat === undefined || f.proteinKnown === false

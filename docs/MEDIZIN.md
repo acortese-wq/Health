@@ -62,6 +62,8 @@ PSA 50–69 nur nach Aufklärung · dT mit 25/45/65 · Gürtelrose und Grippe ab
 
 - Das Modell zerlegt das Gericht in Bestandteile, schätzt Gramm (verzehrfertig), kcal mit Spanne, Makronährstoffe, Zucker, gesättigte Fette, Ballaststoffe und Salz; unsichtbare Fette werden ausdrücklich als Annahme genannt.
 - Grammangaben pro Bestandteil sind korrigierbar; alle Werte werden linear von den Originalwerten aus umgerechnet.
+- Menge pro Bestandteil ohne Tastatur: − / + in Schritten von einem Viertel der geschätzten Menge (auf 5 g gerundet) und Schieberegler bis 2.5-fach. Vergessene Bestandteile (Sauce, Brot, Getränk) lassen sich aus der Schweizer Nährwertdatenbank ergänzen; deren Werte sind exakt pro Gramm, die Unsicherheit liegt nur in der Menge.
+- Vorschaubilder fotografierter Mahlzeiten (längste Kante 240 px) liegen nur auf dem Gerät in IndexedDB, nicht im Backup und nie bei der KI; sie werden nach 60 Tagen oder mit dem Eintrag gelöscht.
 - Plausibilitätsprüfung nach Atwater (4 kcal/g Protein und Kohlenhydrate, 9 kcal/g Fett, 2 kcal/g Ballaststoffe): Abweichung > 25 % → Hinweis.
 - «Proteinreich» nach EU-Verordnung 1924/2006: mindestens 20 % der Energie aus Protein.
 - Tagesrichtwerte: Ballaststoffe ≥ 30 g (Schweizerische Gesellschaft für Ernährung), Salz < 5 g (WHO).

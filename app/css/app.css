@@ -2890,3 +2890,53 @@ textarea {
 #capture-card {
   scroll-margin-top: 150px;
 }
+
+/* Foto-Erfassung: Mengen pro Bestandteil, ergänzen, Vorschaubilder */
+.item-adjust {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 100%;
+}
+.step-btn {
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 1.2rem;
+}
+.item-range {
+  width: 100%;
+  min-height: 32px;
+  accent-color: var(--petrol);
+}
+.photo-add summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  color: var(--petrol);
+  cursor: pointer;
+}
+.entry-photo-btn {
+  float: left;
+  margin: 0 8px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+.entry-photo {
+  display: block;
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: var(--r-sm);
+}
+.entry-photo-btn.big {
+  float: none;
+  display: block;
+  margin: 4px 0 8px;
+  cursor: zoom-out;
+}
+.entry-photo-btn.big .entry-photo {
+  width: min(240px, 100%);
+  height: auto;
+}
