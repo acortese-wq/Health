@@ -2850,8 +2850,8 @@ textarea {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  min-height: 64px;
-  padding: 6px 4px;
+  min-height: 56px;
+  padding: 4px;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--surface);
@@ -2939,4 +2939,54 @@ textarea {
 .entry-photo-btn.big .entry-photo {
   width: min(240px, 100%);
   height: auto;
+}
+
+/* Favoriten, eigene Mahlzeiten, Serie */
+.chips-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.chip-remove {
+  border-color: var(--alert);
+  color: var(--alert);
+}
+.entries li.entry-group .entry-group-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.save-meal {
+  min-height: 28px;
+  padding: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.78rem;
+}
+.fav-btn.on {
+  color: var(--warn);
+}
+.title-stack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.streak {
+  margin: 0;
+  font-weight: 600;
+  color: var(--petrol);
+}
+@media (max-width: 420px) {
+  .diary-head {
+    grid-template-columns: 104px 1fr;
+    gap: 12px;
+  }
+  .kcal-ring {
+    width: 104px;
+    height: 104px;
+  }
+  .kcal-ring-text strong {
+    font-size: 1.4rem;
+  }
 }

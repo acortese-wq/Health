@@ -110,3 +110,66 @@ test('Wischen wechselt den Tag (nur Touch)', async ({ page, isMobile }) => {
   await swipe(-150);
   await expect(page.locator('#date-pick')).toHaveValue(isoAgo(0));
 });
+
+test('Wie Yazio: Favorit mit ☆, eigene Mahlzeit speichern und mit einem Tipp erfassen, Serie', async ({ page }) => {
+  await createProfile(page);
+  // Zwei Tage in Folge erfasst → Serie
+  await page.evaluate(
+    ([a, b]) => {
+      const st = JSON.parse(localStorage.getItem('gesundheitscockpit') ?? '{}');
+      st.days[a] = { food: [{ id: 'a1', name: 'Apfel', kcal: 80, protein: 0, time: '10:00' }] };
+      st.days[b] = { food: [{ id: 'b1', name: 'Apfel', kcal: 80, protein: 0, time: '10:00' }] };
+      localStorage.setItem('gesundheitscockpit', JSON.stringify(st));
+    },
+    [isoAgo(2), isoAgo(1)],
+  );
+  await page.goto('/#ernaehrung');
+  await page.reload();
+  await expect(page.locator('#log-streak')).toHaveText('2 Tage in Folge erfasst · heute noch offen');
+
+  // Frühstück aus zwei Teilen erfassen
+  await page.click('#mealslot-fruehstueck');
+  for (const [name, kcal, protein] of [
+    ['Haferflocken mit Milch', '350', '15'],
+    ['Banane', '100', '1'],
+  ]) {
+    await page.fill('#food-name', name);
+    await page.fill('#food-kcal', kcal);
+    await page.fill('#food-protein', protein);
+    await page.click('#food-add');
+  }
+  await expect(page.locator('#log-streak')).toHaveText('3 Tage in Folge erfasst');
+
+  // ☆ merkt einen Eintrag als Favorit (erscheint in der Schnellerfassung)
+  const banane = page.locator('#food-entries li', { hasText: 'Banane' });
+  await banane.getByRole('button', { name: 'Banane als Favorit' }).click();
+  await expect(banane.getByRole('button', { name: 'Banane als Favorit' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#capture-card .chip', { hasText: 'Banane' })).toBeVisible();
+
+  // Frühstück als eigene Mahlzeit speichern
+  page.once('dialog', (d) => d.accept('Mein Hafer-Frühstück'));
+  await page.click('#save-meal-fruehstueck');
+  const meal = page.locator('#saved-meals .chip', { hasText: 'Mein Hafer-Frühstück' });
+  await expect(meal).toContainText('2 Teile · 450 kcal');
+
+  // Am nächsten Tag (gestern simuliert) mit einem Tipp erfassen
+  await page.click('#date-prev');
+  await page.locator('#saved-meals .chip', { hasText: 'Mein Hafer-Frühstück' }).click();
+  const food = await foodOf(page, isoAgo(1));
+  expect(food.map((/** @type {any} */ f) => f.name).sort()).toEqual(['Apfel', 'Banane', 'Haferflocken mit Milch']);
+  // Doppeltipp legt nichts doppelt an
+  await page.locator('#saved-meals .chip', { hasText: 'Mein Hafer-Frühstück' }).dblclick();
+  expect((await foodOf(page, isoAgo(1))).length).toBeLessThanOrEqual(5);
+
+  // Bearbeiten: Mahlzeit und Favorit entfernen
+  await page.click('#fav-edit');
+  await page.locator('#saved-meals .chip-remove', { hasText: 'Mein Hafer-Frühstück' }).click();
+  await expect(page.locator('#saved-meals')).toHaveCount(0);
+  await page.locator('#capture-card .chip-remove', { hasText: 'Banane' }).click();
+  await expect(page.locator('#capture-card .chip', { hasText: 'Banane' })).toHaveCount(0);
+  await page.click('#fav-edit');
+
+  // Mobil ohne horizontales Scrollen
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+});

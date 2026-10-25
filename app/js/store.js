@@ -29,7 +29,8 @@ export const STORAGE_KEY = 'gesundheitscockpit';
 // Wochenplan («mealPlan»), Einkaufsliste («shopping»); Mahlzeiten mit «planId» und Quelle «rezept».
 // Ältere Daten erhalten leere Sammlungen; nichts wird umgeschrieben.
 // Schema 4 (2026-10): Nahrungsergänzungsmittel («supplements») und Einnahmen pro Tag («supps»).
-export const SCHEMA_VERSION = 4;
+// Schema 5 (2026-10): eigene Mahlzeiten aus mehreren Einträgen («savedMeals»).
+export const SCHEMA_VERSION = 5;
 
 /**
  * @typedef {'m' | 'f'} Sex
@@ -64,6 +65,8 @@ export const SCHEMA_VERSION = 4;
  * }} Day
  * @typedef {{ id: string, name: string, kcal: number, protein: number, carbs?: number, fat?: number, sugar?: number, satFat?: number, fiber?: number, salt?: number }} FoodPreset
  * @typedef {{ id: string, label: string, mg: number, ml?: number }} CaffeinePreset
+ * @typedef {Pick<FoodEntry, 'name' | 'kcal' | 'protein'> & Partial<FoodEntry>} SavedMealItem
+ * @typedef {{ id: string, name: string, items: SavedMealItem[], createdAt: string }} SavedMeal
  * @typedef {{ id: string, date: string, cm: number }} WaistEntry
  * @typedef {{ id: string, date: string, time: string, sys: number, dia: number, pulse?: number, setting: 'home' | 'office' }} BpEntry
  * @typedef {{ id: string, date: string, value: number }} Vo2Entry
@@ -84,6 +87,7 @@ export const SCHEMA_VERSION = 4;
  *   mealPlan: import('./domain/planner.js').MealPlan,
  *   shopping: import('./domain/planner.js').ShoppingList | null,
  *   supplements: import('./domain/supplements.js').Supplement[],
+ *   savedMeals: SavedMeal[],
  *   lastBackup?: string,
  *   demo?: boolean,
  * }} State
@@ -133,6 +137,7 @@ export function emptyState() {
     mealPlan: {},
     shopping: null,
     supplements: [],
+    savedMeals: [],
   };
 }
 
@@ -331,6 +336,29 @@ export function sanitize(raw) {
           : [],
       ),
     };
+  }
+  if (Array.isArray(raw.savedMeals)) {
+    const ids = new Set();
+    for (const x of raw.savedMeals.slice(0, 200)) {
+      if (!isObj(x) || typeof x.name !== 'string' || !x.name.trim() || !Array.isArray(x.items)) continue;
+      const items = x.items
+        .slice(0, 30)
+        .flatMap((f) =>
+          isObj(f) && typeof f.name === 'string' && isNum(f.kcal) && f.kcal >= 0 && f.kcal <= 10000 && isNum(f.protein)
+            ? [{ name: f.name.slice(0, 120), kcal: f.kcal, protein: f.protein, ...withoutEvent(extraNutrients(f)) }]
+            : [],
+        );
+      if (!items.length) continue;
+      let id = typeof x.id === 'string' && x.id ? x.id : uid();
+      if (ids.has(id)) id = uid();
+      ids.add(id);
+      s.savedMeals.push({
+        id,
+        name: x.name.trim().slice(0, 80),
+        items,
+        createdAt: typeof x.createdAt === 'string' ? x.createdAt : new Date().toISOString(),
+      });
+    }
   }
   if (Array.isArray(raw.supplements)) {
     const now = new Date().toISOString();
@@ -678,6 +706,15 @@ export function recentFoods(state, date, limit = 8) {
     }
   }
   return out;
+}
+
+/**
+ * Nur die Nährwerte, ohne Angaben zum einzelnen Essensereignis (Hunger, Auslöser).
+ * @param {Partial<FoodEntry>} e
+ */
+function withoutEvent(e) {
+  const { hunger: _h, trigger: _t, ...rest } = e;
+  return rest;
 }
 
 /**

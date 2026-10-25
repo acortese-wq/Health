@@ -2,6 +2,7 @@
 import { h, s, field, select, meter, badge, fmt, fmtSigned, fmtDate, num, str, nowTime } from '../ui/dom.js';
 import { MEAL_SLOTS, activeSlot, setSlot, captureTime } from '../ui/slot.js';
 import { photoUrl, cachedPhotoUrl } from '../photostore.js';
+import { mealFromEntries, mealTotals, loggingStreak } from '../domain/savedmeals.js';
 import { uid, extraNutrients, recentFoods, addFood } from '../store.js';
 import { repeatEntry, scaleEntry, possibleDuplicates, dayStatus, foodQuality } from '../domain/entries.js';
 import { dailyTargets } from '../domain/micros.js';
@@ -539,7 +540,7 @@ function nutritionCard(ctx, snap) {
     h(
       'div',
       { class: 'card-head' },
-      h('h2', { id: 'n-h' }, 'Heute gegessen'),
+      h('div', { class: 'title-stack' }, h('h2', { id: 'n-h' }, 'Heute gegessen'), streakLine(ctx)),
       h(
         'button',
         {
@@ -552,7 +553,7 @@ function nutritionCard(ctx, snap) {
       ),
     ),
     statusList(ctx, snap),
-    diaryHeader(snap),
+    diaryHeader(ctx, snap),
     hasMicro
       ? h(
           'p',
@@ -638,19 +639,60 @@ function nutritionCard(ctx, snap) {
           ),
         ]
       : null,
-    h('p', { class: 'eyebrow' }, 'Schnell erfassen'),
+    savedMealsBlock(ctx),
+    h(
+      'div',
+      { class: 'chips-head' },
+      h('p', { class: 'eyebrow' }, 'Favoriten'),
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'link-btn',
+          id: 'fav-edit',
+          'aria-pressed': String(favEdit),
+          on: {
+            click: () => {
+              favEdit = !favEdit;
+              ctx.go('ernaehrung');
+            },
+          },
+        },
+        favEdit ? 'Fertig' : 'Bearbeiten',
+      ),
+    ),
     h(
       'div',
       { class: 'chips' },
       ...ctx.state.presets.food.map((p) =>
-        h(
-          'button',
-          { type: 'button', class: 'chip', id: `preset-${p.id}`, on: { click: () => add(p) } },
-          p.name,
-          h('small', {}, `${fmt(p.kcal)} kcal · ${fmt(p.protein)} g`),
-        ),
+        favEdit
+          ? h(
+              'button',
+              {
+                type: 'button',
+                class: 'chip chip-remove',
+                id: `preset-del-${p.id}`,
+                'aria-label': `${p.name} aus Favoriten entfernen`,
+                on: {
+                  click: () =>
+                    ctx.commit((s) => {
+                      s.presets.food = s.presets.food.filter((x) => x.id !== p.id);
+                      return true;
+                    }, `${p.name} entfernt`),
+                },
+              },
+              `× ${p.name}`,
+              h('small', {}, 'entfernen'),
+            )
+          : h(
+              'button',
+              { type: 'button', class: 'chip', id: `preset-${p.id}`, on: { click: () => add(p) } },
+              p.name,
+              h('small', {}, `${fmt(p.kcal)} kcal · ${fmt(p.protein)} g`),
+            ),
       ),
     ),
+    !ctx.state.presets.food.length ? h('p', { class: 'hint' }, 'Mit ☆ bei einem Eintrag merkst du ihn als Favorit.') : null,
     custom,
     handMethod,
   );
@@ -658,11 +700,95 @@ function nutritionCard(ctx, snap) {
 }
 
 /**
+ * Erfassungs-Serie (motiviert zum regelmässigen Protokollieren).
+ * @param {Ctx} ctx
+ */
+function streakLine(ctx) {
+  const streak = loggingStreak(ctx.state.days, ctx.date);
+  if (streak.days < 2) return null;
+  return h(
+    'span',
+    { class: 'streak small', id: 'log-streak' },
+    `${streak.days} Tage in Folge erfasst`,
+    streak.today ? '' : h('span', { class: 'muted' }, ' · heute noch offen'),
+  );
+}
+
+/** Favoriten und eigene Mahlzeiten bearbeiten (entfernen)? */
+let favEdit = false;
+
+/**
+ * Eigene Mahlzeiten: ein Tipp erfasst alle Teile (Uhrzeit: gewählte Mahlzeit oder jetzt).
+ * @param {Ctx} ctx
+ */
+function savedMealsBlock(ctx) {
+  const meals = ctx.state.savedMeals;
+  if (!meals.length)
+    return h(
+      'p',
+      { class: 'hint', id: 'saved-meals-hint' },
+      'Tipp: Bei einer Mahlzeit im Tagebuch «☆ Speichern» wählen, dann erfasst du sie künftig mit einem Tipp.',
+    );
+  return [
+    h('p', { class: 'eyebrow' }, 'Meine Mahlzeiten'),
+    h(
+      'div',
+      { class: 'chips', id: 'saved-meals' },
+      ...meals.map((m) => {
+        const t = mealTotals(m);
+        return favEdit
+          ? h(
+              'button',
+              {
+                type: 'button',
+                class: 'chip chip-remove',
+                id: `meal-del-${m.id}`,
+                'aria-label': `${m.name} löschen`,
+                on: {
+                  click: () =>
+                    ctx.commit((s) => {
+                      s.savedMeals = s.savedMeals.filter((x) => x.id !== m.id);
+                      return true;
+                    }, `${m.name} gelöscht`),
+                },
+              },
+              `× ${m.name}`,
+              h('small', {}, 'löschen'),
+            )
+          : h(
+              'button',
+              {
+                type: 'button',
+                class: 'chip',
+                id: `meal-log-${m.id}`,
+                on: {
+                  click: () =>
+                    ctx.commit(
+                      (s) => {
+                        const time = entryTimeFor(ctx);
+                        let added = 0;
+                        for (const item of m.items) if (addFood(s, ctx.date, { ...item, time })) added++;
+                        return added > 0;
+                      },
+                      `${m.name} erfasst (${fmt(t.kcal)} kcal)`,
+                    ),
+                },
+              },
+              m.name,
+              h('small', {}, `${m.items.length} Teile · ${fmt(t.kcal)} kcal · ${fmt(t.protein)} g`),
+            );
+      }),
+    ),
+  ];
+}
+
+/**
  * Tagebuch-Kopf: Ring mit verbleibenden Kalorien, daneben Protein, Kohlenhydrate, Fett.
  * Kohlenhydrate und Fett nur aus Einträgen mit bekannten Werten (dann als «mind.»).
+ * @param {Ctx} ctx
  * @param {NonNullable<Ctx['snap']>} snap
  */
-function diaryHeader(snap) {
+function diaryHeader(ctx, snap) {
   const food = snap.day.food ?? [];
   const t = dailyTargets({ kcalTarget: snap.kcalTarget, proteinG: snap.protein.grams, sex: snap.profile.sex, stage: snap.lifeStage });
   const left = snap.kcalTarget - snap.kcal;
@@ -1363,20 +1489,78 @@ function entryList(ctx, food) {
   // Neueste Mahlzeit oben (auch innerhalb der Gruppe)
   const sorted = [...food].sort(byMoment).reverse();
   const groupOf = mealGroupOf;
-  const multi = new Set(sorted.map((f) => groupOf(f.time))).size > 1;
   /** @type {HTMLElement[]} */
   const rows = [];
   let last = '';
   for (const f of sorted) {
     const g = groupOf(f.time);
-    if (multi && g !== last) {
-      const kcal = sorted.filter((x) => groupOf(x.time) === g).reduce((a, x) => a + x.kcal, 0);
-      rows.push(h('li', { class: 'entry-group' }, h('span', {}, g), h('span', { class: 'entry-num' }, `${fmt(kcal)} kcal`)));
+    if (g !== last) {
+      const group = sorted.filter((x) => groupOf(x.time) === g);
+      const kcal = group.reduce((a, x) => a + x.kcal, 0);
+      const slot = MEAL_SLOTS.find((m) => m.label === g);
+      rows.push(
+        h(
+          'li',
+          { class: 'entry-group' },
+          h('span', {}, g),
+          h(
+            'span',
+            { class: 'entry-group-end' },
+            h('span', { class: 'entry-num' }, `${fmt(kcal)} kcal`),
+            h(
+              'button',
+              {
+                type: 'button',
+                class: 'link-btn save-meal',
+                id: `save-meal-${slot?.id ?? 'x'}`,
+                'aria-label': `${g} als eigene Mahlzeit speichern`,
+                on: { click: () => saveMeal(ctx, g, [...group].sort(byMoment)) },
+              },
+              '☆ Speichern',
+            ),
+          ),
+        ),
+      );
       last = g;
     }
     rows.push(foodRow(ctx, f, dups.has(f.id)));
   }
   return h('ul', { class: 'entries', id: 'food-entries' }, ...rows);
+}
+
+/**
+ * Mahlzeit (z. B. das heutige Frühstück) als eigene Mahlzeit speichern.
+ * @param {Ctx} ctx
+ * @param {string} group
+ * @param {import('../store.js').FoodEntry[]} entries
+ */
+function saveMeal(ctx, group, entries) {
+  const name = window.prompt('Name der Mahlzeit', `Mein ${group}`);
+  if (!name?.trim()) return;
+  ctx.commit((s) => {
+    s.savedMeals = [...s.savedMeals, mealFromEntries(name, entries, { id: uid(), now: new Date().toISOString() })];
+    return true;
+  }, `«${name.trim()}» gespeichert: künftig mit einem Tipp erfassen`);
+}
+
+/**
+ * Einen Eintrag als Favorit merken oder entfernen (Favoriten = Schnellerfassung).
+ * @param {Ctx} ctx
+ * @param {import('../store.js').FoodEntry} f
+ */
+function toggleFavorite(ctx, f) {
+  const fav = ctx.state.presets.food.some((p) => p.name === f.name);
+  ctx.commit(
+    (s) => {
+      if (fav) s.presets.food = s.presets.food.filter((p) => p.name !== f.name);
+      else {
+        const { grams: _g, source: _s, hunger: _h, trigger: _t, ...nutrients } = extraNutrients(/** @type {Record<string, unknown>} */ (f));
+        s.presets.food = [...s.presets.food, { id: uid(), name: f.name, kcal: f.kcal, protein: f.protein, ...nutrients }];
+      }
+      return true;
+    },
+    fav ? `${f.name}: aus Favoriten entfernt` : `${f.name}: als Favorit gemerkt`,
+  );
 }
 
 /**
@@ -1468,6 +1652,18 @@ function foodRow(ctx, f, suspect = false) {
       h(
         'span',
         { class: 'entry-actions' },
+        h(
+          'button',
+          {
+            type: 'button',
+            class: ctx.state.presets.food.some((p) => p.name === f.name) ? 'icon-btn fav-btn on' : 'icon-btn fav-btn',
+            'aria-pressed': String(ctx.state.presets.food.some((p) => p.name === f.name)),
+            'aria-label': `${f.name} als Favorit`,
+            title: 'Favorit (Schnellerfassung)',
+            on: { click: () => toggleFavorite(ctx, f) },
+          },
+          ctx.state.presets.food.some((p) => p.name === f.name) ? '★' : '☆',
+        ),
         h(
           'button',
           {

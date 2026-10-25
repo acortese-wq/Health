@@ -159,7 +159,7 @@ test('Migration: Mood «2 Kapseln» (alte Vorlage) wird zu 1 Kapsel × 2, Einnah
 });
 
 test('Speichern: Schema 4, ungültige Produkte und Einnahmen fallen weg, alte Daten bleiben lesbar', () => {
-  assert.equal(SCHEMA_VERSION, 4);
+  assert.ok(SCHEMA_VERSION >= 4);
   const st = emptyState();
   const raw = JSON.parse(
     JSON.stringify({

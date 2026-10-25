@@ -33,7 +33,7 @@ test('Präparate: Vorlage hinzufügen, einzelne Kapsel abhaken, Nährstoffe zäh
   await expect(page.locator('#sub-praeparate')).toContainText('2');
 
   let st = await stored(page);
-  expect(st.schema).toBe(4);
+  expect(st.schema).toBeGreaterThanOrEqual(4);
   const mood = st.supplements.find((/** @type {any} */ s) => s.templateId === 'burgerstein-mood');
   const supra = st.supplements.find((/** @type {any} */ s) => s.templateId === 'supradyn-pro-energy');
   // Mood: 1 Kapsel, morgens und abends

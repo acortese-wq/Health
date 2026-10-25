@@ -164,6 +164,17 @@ Jedes Prinzip ist mit Studienlage bewertet: hoch (Gemüse, Ballaststoffe, Eiweis
 mittel (Intervallfasten gleichwertig, fermentierte Lebensmittel, anti-entzündliches Muster, langsam essen),
 schwach (abends weniger Kohlenhydrate, Hafertage nur mit ärztlicher Begleitung bei Diabetes-Medikamenten).
 
+## Dranbleiben beim Erfassen (wie Yazio)
+
+Regelmässiges Protokollieren hängt eng mit dem Abnehmerfolg zusammen (Burke LE et al., J Am Diet Assoc 2011;111:92–102;
+Harvey J et al., Obesity 2019;27:380–384: entscheidend ist die Häufigkeit, nicht die Zeit pro Eintrag). Darum:
+
+- **Favoriten** (☆ bei einem Eintrag) erscheinen in der Schnellerfassung; «Bearbeiten» entfernt sie.
+- **Eigene Mahlzeiten** («☆ Speichern» bei einer Mahlzeit im Tagebuch) erfassen mehrere Teile mit einem Tipp, mit der
+  Uhrzeit der gewählten Mahlzeit. Gespeichert werden nur Nährwerte, nicht Hunger, Auslöser oder Uhrzeit (Schema 5,
+  `savedMeals`).
+- **Serie**: Tage in Folge mit mindestens einem Eintrag; solange heute noch nichts erfasst ist, zählt sie bis gestern.
+
 ## Trinken
 
 Die Trinkmenge ist Wasser plus Kaffee, Tee und andere Getränke aus «Koffein». In üblichen Mengen (bis ca. 4 Tassen)
