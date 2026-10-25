@@ -3,6 +3,7 @@ import { h, s, field, select, meter, badge, fmt, fmtSigned, fmtDate, num, str, n
 import { MEAL_SLOTS, activeSlot, setSlot, captureTime } from '../ui/slot.js';
 import { photoUrl, cachedPhotoUrl } from '../photostore.js';
 import { mealFromEntries, mealTotals, loggingStreak } from '../domain/savedmeals.js';
+import { mealCheck, averageStars, starText } from '../domain/mealscore.js';
 import { uid, extraNutrients, recentFoods, addFood } from '../store.js';
 import { repeatEntry, scaleEntry, possibleDuplicates, dayStatus, foodQuality } from '../domain/entries.js';
 import { dailyTargets } from '../domain/micros.js';
@@ -82,11 +83,106 @@ export function viewNutrition(ctx) {
     tab.id === 'analyse'
       ? [nutrientsCard(ctx, snap), pyramidCard(ctx, snap), rhythmCard(ctx, snap)]
       : tab.id === 'coach'
-        ? [behaviorCard(ctx, snap), emotionalCard(ctx)]
+        ? [journalCard(ctx), behaviorCard(ctx, snap), emotionalCard(ctx)]
         : tab.id === 'praeparate'
           ? [supplementCard(ctx, snap)]
           : [...nutritionCard(ctx, snap), suggestCard(ctx, snap)];
   return h('div', { class: 'stack' }, h('h1', { class: 'sr-only' }, `Ernährung: ${tab.label}`), nutritionNav(ctx, tab.id), body);
+}
+
+/**
+ * Mahlzeit-Checks eines Tages.
+ * @param {import('../store.js').FoodEntry[]} food
+ */
+function dayChecks(food) {
+  const groups = [...new Set(food.map((f) => mealGroupOf(f.time)))];
+  return groups.flatMap((g) => {
+    const c = mealCheck(
+      food.filter((f) => mealGroupOf(f.time) === g),
+      g !== 'Zwischenmahlzeit',
+    );
+    return c ? [{ ...c, group: g }] : [];
+  });
+}
+
+/**
+ * Wochenbilanz der Mahlzeit-Checks und Fotojournal (wie Foodvisor): Fortschritt sichtbar machen.
+ * @param {Ctx} ctx
+ */
+function journalCard(ctx) {
+  const range = (/** @type {number} */ from, /** @type {number} */ to) =>
+    Array.from({ length: to - from }, (_, i) => addDays(ctx.date, -(from + i)));
+  const week = range(0, 7).flatMap((d) => dayChecks(ctx.state.days[d]?.food ?? []).map((c) => ({ ...c, date: d })));
+  const prev = range(7, 14).flatMap((d) => dayChecks(ctx.state.days[d]?.food ?? []));
+  const avg = averageStars(week);
+  const avgPrev = averageStars(prev);
+  const best = week.filter((c) => c.stars >= 4).length;
+  const photos = range(0, 14).flatMap((d) =>
+    (ctx.state.days[d]?.food ?? [])
+      .filter((f) => f.source === 'foto')
+      .map((f) => ({ f, d, stars: mealCheck([f], mealGroupOf(f.time) !== 'Zwischenmahlzeit')?.stars ?? 3 })),
+  );
+  const grid = h('div', { class: 'photo-grid', id: 'photo-journal' });
+  for (const p of photos) {
+    const tile = h(
+      'figure',
+      { class: 'photo-tile', hidden: true },
+      h('img', { alt: p.f.name, loading: 'lazy' }),
+      h('figcaption', {}, h('span', {}, `${fmtDate(p.d, 'dm')} ${p.f.time}`), h('span', { class: 'meal-stars' }, starText(p.stars))),
+    );
+    const img = /** @type {HTMLImageElement} */ (tile.querySelector('img'));
+    photoUrl(p.f.id).then((url) => {
+      if (!url) return;
+      img.src = url;
+      tile.hidden = false;
+    });
+    grid.append(tile);
+  }
+  return h(
+    'section',
+    { class: 'card stack-sm', 'aria-labelledby': 'journal-h', id: 'journal-card' },
+    h('h2', { id: 'journal-h' }, 'Mahlzeit-Checks und Fotojournal'),
+    avg === null
+      ? h('p', { class: 'small muted' }, 'Sobald du Mahlzeiten erfasst, siehst du hier die Sterne der Woche.')
+      : h(
+          'div',
+          { class: 'journal-stats' },
+          h(
+            'p',
+            { id: 'journal-avg' },
+            h('strong', { class: 'journal-big' }, fmt(avg, 1)),
+            ' Sterne im Schnitt (7 Tage)',
+            avgPrev !== null
+              ? h(
+                  'span',
+                  { class: avg > avgPrev ? 'trend-up' : avg < avgPrev ? 'trend-down' : 'muted' },
+                  ` · Vorwoche ${fmt(avgPrev, 1)}${avg > avgPrev ? ' ↑' : avg < avgPrev ? ' ↓' : ''}`,
+                )
+              : null,
+          ),
+          h('p', { class: 'small', id: 'journal-best' }, `${best} von ${week.length} Mahlzeiten mit 4 oder 5 Sternen.`),
+        ),
+    photos.length
+      ? [h('h3', { class: 'eyebrow' }, 'Deine Teller der letzten 14 Tage'), grid]
+      : h('p', { class: 'hint' }, 'Fotografierte Mahlzeiten erscheinen hier als Fotojournal (Bilder bleiben auf dem Gerät).'),
+    h(
+      'details',
+      { class: 'small' },
+      h('summary', {}, 'So entstehen die Sterne'),
+      h(
+        'ul',
+        {},
+        h('li', {}, 'Start 3 Sterne. Plus: Protein ≥ 25 g (Zwischenmahlzeit ≥ 10 g), Gemüse/Früchte, Ballaststoffe oder Vollkorn.'),
+        h('li', {}, 'Minus: stark verarbeitet (NOVA 4), viel Zucker, Wurstwaren, sehr grosse Portion.'),
+        h(
+          'li',
+          {},
+          'Belege: Paddon-Jones 2009 (Protein pro Mahlzeit), Hall 2019 (stark verarbeitete Lebensmittel), SGE-Pyramide, WHO (Zucker).',
+        ),
+        h('li', {}, 'Eine Orientierung, keine Diagnose. Fehlen Angaben (z. B. Lebensmittelgruppen), wird nicht abgezogen.'),
+      ),
+    ),
+  );
 }
 
 /** Unterseiten der Ernährung: kurze Seiten statt einer langen (Tagebuch zuerst, wie in Ernährungs-Apps). */
@@ -1524,8 +1620,43 @@ function entryList(ctx, food) {
       last = g;
     }
     rows.push(foodRow(ctx, f, dups.has(f.id)));
+    // Nach dem letzten Eintrag einer Mahlzeit: Mahlzeit-Check mit Lob und Tipp
+    const next = sorted[sorted.indexOf(f) + 1];
+    if (!next || groupOf(next.time) !== g) {
+      const row = mealCheckRow(
+        sorted.filter((x) => groupOf(x.time) === g),
+        g,
+      );
+      if (row) rows.push(row);
+    }
   }
   return h('ul', { class: 'entries', id: 'food-entries' }, ...rows);
+}
+
+/**
+ * Mahlzeit-Check als Zeile: Sterne, was gut war, ein Tipp.
+ * @param {import('../store.js').FoodEntry[]} entries
+ * @param {string} group
+ */
+function mealCheckRow(entries, group) {
+  const c = mealCheck(entries, group !== 'Zwischenmahlzeit');
+  if (!c) return null;
+  const slot = MEAL_SLOTS.find((m) => m.label === group);
+  return h(
+    'li',
+    { class: `meal-check stars-${c.stars}`, id: `check-${slot?.id ?? 'x'}` },
+    h('span', { class: 'meal-stars', role: 'img', 'aria-label': `Mahlzeit-Check ${group}: ${c.stars} von 5 Sternen` }, starText(c.stars)),
+    h(
+      'span',
+      { class: 'meal-check-text' },
+      c.good.length ? h('span', { class: 'meal-good' }, c.good.join(' · ')) : null,
+      c.tip
+        ? h('span', { class: 'meal-tip' }, h('strong', {}, 'Tipp: '), c.tip)
+        : !c.good.length
+          ? 'Ausgewogen.'
+          : h('span', { class: 'meal-tip' }, 'Stark, weiter so!'),
+    ),
+  );
 }
 
 /**

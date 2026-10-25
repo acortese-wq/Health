@@ -173,3 +173,42 @@ test('Wie Yazio: Favorit mit ☆, eigene Mahlzeit speichern und mit einem Tipp e
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 });
+
+test('Wie Foodvisor: Mahlzeit-Check mit Sternen, Lob und Tipp; Wochenbilanz im Coach', async ({ page }) => {
+  await createProfile(page);
+  await page.evaluate(
+    ([y]) => {
+      const st = JSON.parse(localStorage.getItem('gesundheitscockpit') ?? '{}');
+      st.days[y] = {
+        food: [{ id: 'y1', name: 'Gipfeli', kcal: 300, protein: 6, time: '07:30' }],
+      };
+      localStorage.setItem('gesundheitscockpit', JSON.stringify(st));
+    },
+    [isoAgo(8)],
+  );
+  await page.goto('/#ernaehrung');
+  await page.reload();
+  await page.click('#mealslot-mittag');
+  await page.fill('#food-search', 'lachs');
+  await page.locator('#food-search-results .chip').first().click();
+  await page.fill('#food-search-grams', '150');
+  await page.click('#food-search-add');
+  const check = page.locator('#check-mittag');
+  await expect(check).toBeVisible();
+  await expect(check.locator('.meal-stars')).toHaveAttribute('aria-label', /Mittagessen: \d von 5 Sternen/);
+  await expect(check).toContainText('Proteinreich');
+  // Lachs allein: Tipp für Gemüse
+  await expect(check).toContainText('Tipp: Gemüse oder Salat dazu');
+
+  await page.click('#mealslot-fruehstueck');
+  await page.fill('#food-name', 'Gipfeli');
+  await page.fill('#food-kcal', '300');
+  await page.fill('#food-protein', '6');
+  await page.click('#food-add');
+  await expect(page.locator('#check-fruehstueck')).toContainText('Nur 6 g Protein');
+
+  await page.click('#sub-coach');
+  await expect(page.locator('#journal-avg')).toContainText('Sterne im Schnitt (7 Tage)');
+  await expect(page.locator('#journal-avg')).toContainText('Vorwoche 2.0');
+  await expect(page.locator('#journal-best')).toContainText('von 2 Mahlzeiten');
+});

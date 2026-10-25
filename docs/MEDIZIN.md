@@ -175,6 +175,24 @@ Harvey J et al., Obesity 2019;27:380–384: entscheidend ist die Häufigkeit, ni
   `savedMeals`).
 - **Serie**: Tage in Folge mit mindestens einem Eintrag; solange heute noch nichts erfasst ist, zählt sie bis gestern.
 
+## Mahlzeit-Check und Fotojournal (wie Foodvisor)
+
+Jede Mahlzeit im Tagebuch bekommt 1–5 Sterne mit Lob und einem konkreten Tipp (`domain/mealscore.js`). Start bei 3 Sternen.
+
+| Kriterium | Hauptmahlzeit | Zwischenmahlzeit | Beleg |
+| --- | --- | --- | --- |
+| Protein | ≥ 25 g +1, < 15 g −1 | ≥ 10 g +1 | Paddon-Jones & Rasmussen 2009 |
+| Gemüse/Früchte | ≥ 1 Portion +1 | Frucht/Gemüse oder Nüsse +1 | SGE-Lebensmittelpyramide |
+| Ballaststoffe/Vollkorn | ≥ 8 g oder Vollkorn +1 | – | SGE (30 g/Tag) |
+| Stark verarbeitet (NOVA 4) | −1 | −1 | Hall et al., Cell Metab 2019 |
+| Zucker | > 25 g −1 | > 20 g −1 | WHO |
+| Wurstwaren | −1 | −1 | WCRF/AICR 2018 |
+| Portion | > 900 kcal −1 | > 350 kcal −1 | – |
+
+Fehlende Angaben (z. B. keine Lebensmittelgruppen) führen zu keinem Abzug. Im Coach stehen der Schnitt der letzten
+7 Tage mit Vorwoche und ein Fotojournal der fotografierten Mahlzeiten (14 Tage, Bilder nur auf dem Gerät). Eine
+Orientierung, keine Diagnose.
+
 ## Trinken
 
 Die Trinkmenge ist Wasser plus Kaffee, Tee und andere Getränke aus «Koffein». In üblichen Mengen (bis ca. 4 Tassen)
