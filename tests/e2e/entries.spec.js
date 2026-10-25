@@ -43,8 +43,8 @@ test('1/2/8: Apfel dreimal am selben Tag – mit einem Tipp wiederholt, separat 
   await page.getByRole('button', { name: 'Apfel erneut erfassen' }).first().click();
   await expect(page.getByRole('button', { name: 'Apfel erneut erfassen' })).toHaveCount(3);
   // Kein Seitenwechsel
-  await expect(page).toHaveURL(/#ernaehrung$/);
-  await expect(page.locator('#eaten-card .meter').first()).toContainText('234');
+  await expect(page).toHaveURL(/#ernaehrung(\/erfassen)?$/);
+  await expect(page.locator('#diary-eaten')).toContainText('234');
   const food = await stored(page);
   expect(food).toHaveLength(3);
   expect(new Set(food.map((/** @type {any} */ f) => f.id)).size).toBe(3);
@@ -105,7 +105,7 @@ test('5/6: Bearbeiten und Löschen rechnen Tag und Dashboard neu; andere Menge e
   await page.click('#food-search-add');
   const name = (await page.locator('#food-entries .entry .entry-name').first().textContent()) ?? '';
   expect(name).toContain('200 g');
-  const kcal200 = Number((await page.locator('#eaten-card .meter-value strong').first().textContent())?.replace(/\D/g, ''));
+  const kcal200 = Number((await page.locator('#kcal-eaten').textContent())?.replace(/\D/g, ''));
   expect(kcal200).toBeGreaterThan(50);
 
   // Andere Menge: ½ → neuer Eintrag mit 100 g
@@ -119,7 +119,7 @@ test('5/6: Bearbeiten und Löschen rechnen Tag und Dashboard neu; andere Menge e
   await page.click('#amount-save');
   await expect(page.locator('#food-entries .entry')).toHaveCount(2);
   await expect(page.locator('#food-entries')).toContainText('100 g');
-  const total = Number((await page.locator('#eaten-card .meter-value strong').first().textContent())?.replace(/\D/g, ''));
+  const total = Number((await page.locator('#kcal-eaten').textContent())?.replace(/\D/g, ''));
   expect(Math.abs(total - kcal200 * 1.5)).toBeLessThanOrEqual(1);
 
   // Bearbeiten: Menge 200 → 400 g verdoppelt alle Werte dieses Eintrags
@@ -129,7 +129,7 @@ test('5/6: Bearbeiten und Löschen rechnen Tag und Dashboard neu; andere Menge e
     .click();
   await page.fill('#edit-grams', '400');
   await page.click('#edit-save');
-  const afterEdit = Number((await page.locator('#eaten-card .meter-value strong').first().textContent())?.replace(/\D/g, ''));
+  const afterEdit = Number((await page.locator('#kcal-eaten').textContent())?.replace(/\D/g, ''));
   expect(Math.abs(afterEdit - kcal200 * 2.5)).toBeLessThanOrEqual(2);
   await expect(page.locator('#food-entries')).toContainText('400 g');
 
@@ -139,7 +139,7 @@ test('5/6: Bearbeiten und Löschen rechnen Tag und Dashboard neu; andere Menge e
     .getByRole('button', { name: /entfernen/ })
     .click();
   await expect(page.locator('#food-entries .entry')).toHaveCount(1);
-  const afterDelete = Number((await page.locator('#eaten-card .meter-value strong').first().textContent())?.replace(/\D/g, ''));
+  const afterDelete = Number((await page.locator('#kcal-eaten').textContent())?.replace(/\D/g, ''));
   const food = await stored(page);
   expect(afterDelete).toBe(food.reduce((/** @type {number} */ a, /** @type {any} */ f) => a + f.kcal, 0));
   await page.goto('/#heute');

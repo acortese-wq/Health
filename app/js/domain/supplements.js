@@ -19,7 +19,7 @@ import { SUPPLEMENT_TEMPLATES } from '../data/supplements.js';
  *   other: OtherIngredient[], unknown: string[], templateId?: string, templateRev?: number, source: string, checked?: string,
  *   active: boolean, createdAt: string,
  * }} Supplement
- * @typedef {{ id: string, sid: string, servings: number, time: string }} Intake
+ * @typedef {{ id: string, sid: string, servings: number, time: string, dose?: number }} Intake
  */
 
 /** Folsäure mit dem Essen in Folat-Äquivalente (IOM/D-A-CH-Konvention). */
@@ -107,6 +107,90 @@ export function templateUpdate(s) {
 export function applyTemplate(s) {
   const fresh = s.templateId ? fromTemplate(s.templateId, { id: s.id, now: s.createdAt }) : null;
   return fresh ? { ...fresh, active: s.active } : s;
+}
+
+/**
+ * Faktor alte Portion / neue Portion, gemessen an einem Nährstoff, den beide enthalten.
+ * @param {Supplement} from
+ * @param {Supplement} to
+ */
+export function servingFactor(from, to) {
+  for (const [k, v] of Object.entries(from.nutrients)) {
+    const w = to.nutrients[/** @type {NutrientKey} */ (k)];
+    if (v && w) return Math.round((v / w) * 100) / 100;
+  }
+  return 1;
+}
+
+/**
+ * Unveränderte Produkte aus Vorlagen auf die aktuelle Vorlage bringen. Ändert sich die Portion
+ * (z. B. Mood: «2 Kapseln» → «1 Kapsel»), werden die gespeicherten Einnahmen so umgerechnet,
+ * dass die Nährstoffmenge gleich bleibt.
+ * @param {{ supplements: Supplement[], days: Record<string, { supps?: Intake[] }> }} state
+ */
+export function upgradeTemplates(state) {
+  state.supplements = state.supplements.map((s) => {
+    if (!templateUpdate(s)) return s;
+    const next = applyTemplate(s);
+    const f = servingFactor(s, next);
+    if (f !== 1)
+      for (const d of Object.values(state.days))
+        if (d.supps) d.supps = d.supps.map((i) => (i.sid === s.id ? { ...i, servings: Math.round(i.servings * f * 100) / 100 } : i));
+    return next;
+  });
+}
+
+/**
+ * Einnahmezeitpunkte: Bei 2–4 ganzen Portionen pro Tag einzeln abhakbar (z. B. Mood: morgens und
+ * abends je 1 Kapsel), sonst eine Tagesdosis.
+ * @param {Supplement} s
+ * @returns {string[]}
+ */
+export function doseSlots(s) {
+  if (!Number.isInteger(s.perDay) || s.perDay < 2 || s.perDay > 4) return [];
+  if (s.perDay === 2) return ['Morgens', 'Abends'];
+  if (s.perDay === 3) return ['Morgens', 'Mittags', 'Abends'];
+  return ['1.', '2.', '3.', '4.'];
+}
+
+/**
+ * Welche Einzeldosen eines Tages genommen sind. Einnahmen ohne Dosis (ältere Daten, «alle»)
+ * füllen die Plätze der Reihe nach.
+ * @param {Supplement} s
+ * @param {Intake[] | undefined} intakes
+ * @returns {boolean[]}
+ */
+export function takenDoses(s, intakes) {
+  const slots = doseSlots(s);
+  const mine = (intakes ?? []).filter((i) => i.sid === s.id);
+  const taken = slots.map((_, k) => mine.some((i) => i.dose === k + 1));
+  let rest = mine.filter((i) => !i.dose).reduce((a, i) => a + i.servings, 0);
+  for (let k = 0; k < taken.length && rest >= 1; k++)
+    if (!taken[k]) {
+      taken[k] = true;
+      rest -= 1;
+    }
+  return taken;
+}
+
+/**
+ * Eine Einzeldosis abhaken oder zurücknehmen. Gibt die neuen Einnahmen des Tages zurück.
+ * @param {Supplement} s
+ * @param {Intake[] | undefined} intakes
+ * @param {number} dose 1-basiert
+ * @param {{ id: () => string, time: string }} o
+ * @returns {Intake[]}
+ */
+export function toggleDose(s, intakes, dose, { id, time }) {
+  const taken = takenDoses(s, intakes);
+  const others = (intakes ?? []).filter((i) => i.sid !== s.id);
+  const mine = (intakes ?? []).filter((i) => i.sid === s.id && i.dose);
+  // Einnahmen ohne Dosis in Einzeldosen auflösen, damit jede einzeln zurückgenommen werden kann
+  const explicit = taken.flatMap((t, k) =>
+    t ? [mine.find((i) => i.dose === k + 1) ?? { id: id(), sid: s.id, servings: 1, time, dose: k + 1 }] : [],
+  );
+  const next = taken[dose - 1] ? explicit.filter((i) => i.dose !== dose) : [...explicit, { id: id(), sid: s.id, servings: 1, time, dose }];
+  return [...others, ...next.sort((a, b) => (a.dose ?? 0) - (b.dose ?? 0))];
 }
 
 /**

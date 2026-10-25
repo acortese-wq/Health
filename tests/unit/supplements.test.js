@@ -12,6 +12,11 @@ import {
   FOLIC_TO_DFE,
   templateUpdate,
   applyTemplate,
+  doseSlots,
+  takenDoses,
+  toggleDose,
+  upgradeTemplates,
+  servingFactor,
 } from '../../app/js/domain/supplements.js';
 import { SUPPLEMENT_TEMPLATES } from '../../app/js/data/supplements.js';
 import { dayAmounts, MICRO_KEYS } from '../../app/js/domain/micros.js';
@@ -30,10 +35,12 @@ test('Vorlagen: nur bekannte Nährstoffschlüssel, Quelle und Belege vorhanden',
 });
 
 test('Mengen: Folsäure zählt als Folat-Äquivalent, Portionen skalieren', () => {
-  const a = supplementAmounts(mood, 1);
+  // Mood: 1 Portion = 1 Kapsel, 2 pro Tag
+  const a = supplementAmounts(mood, 2);
   assert.equal(a.micros.folate, 500 * FOLIC_TO_DFE);
   assert.equal(a.folicAcid, 500);
   assert.equal(a.nicotinamide, 40);
+  assert.equal(supplementAmounts(mood, 1).micros.vitD, 7.5);
   const b = supplementAmounts(supra, 2);
   assert.equal(b.micros.iron, 16);
   assert.equal(b.suppMagnesium, 160);
@@ -42,7 +49,7 @@ test('Mengen: Folsäure zählt als Folat-Äquivalent, Portionen skalieren', () =
 test('Packungswerte: Supradyn B6 4 mg, Mood Zink 5 mg; ältere Produkte bekommen ein Update-Angebot', () => {
   assert.equal(supra.nutrients.b6, 4);
   assert.deepEqual(supra.unknown, []);
-  assert.equal(mood.nutrients.zinc, 5);
+  assert.equal(mood.nutrients.zinc * mood.perDay, 5);
   const old = {
     ...supra,
     templateRev: undefined,
@@ -62,7 +69,7 @@ test('Packungswerte: Supradyn B6 4 mg, Mood Zink 5 mg; ältere Produkte bekommen
 
 test('Pseudo-Einträge: 0 kcal, Etikettwerte, ändern die Abdeckung nicht', () => {
   const food = [{ kcal: 500, protein: 20, micros: { vitC: 10 }, microSrc: 'blv' }];
-  const e = intakeEntries([mood], [{ id: 'i1', sid: 'm', servings: 1, time: '08:00' }]);
+  const e = intakeEntries([mood], [{ id: 'i1', sid: 'm', servings: 2, time: '08:00' }]);
   assert.equal(e.length, 1);
   assert.equal(e[0].kcal, 0);
   assert.equal(e[0].microSrc, 'etikett');
@@ -104,6 +111,51 @@ test('Höchstmenge «gesamt» rechnet das Essen dazu, «Präparat» nicht', () =
   );
   // Pausierte Produkte zählen nicht
   assert.equal(plannedTotals([{ ...supra, active: false }]).iron, undefined);
+});
+
+test('Einzeldosen: 1 Kapsel Mood morgens, zurücknehmen, ältere Tagesdosis wird aufgelöst', () => {
+  assert.deepEqual(doseSlots(mood), ['Morgens', 'Abends']);
+  assert.deepEqual(doseSlots(supra), []);
+  let ids = 0;
+  const o = { id: () => `n${++ids}`, time: '08:00' };
+  let day = toggleDose(mood, [], 1, o);
+  assert.deepEqual(takenDoses(mood, day), [true, false]);
+  assert.equal(intakeTotals([mood], day).vitD, 7.5);
+  day = toggleDose(mood, day, 2, o);
+  assert.equal(intakeTotals([mood], day).vitD, 15);
+  day = toggleDose(mood, day, 1, o);
+  assert.deepEqual(takenDoses(mood, day), [false, true]);
+  assert.equal(day.length, 1);
+  // Tagesdosis ohne Einzeldosen (z. B. «Alle eingenommen» oder alte Daten): beide gelten als genommen
+  const legacy = [
+    { id: 'x', sid: 'm', servings: 2, time: '08:00' },
+    { id: 'y', sid: 's', servings: 1, time: '08:00' },
+  ];
+  assert.deepEqual(takenDoses(mood, legacy), [true, true]);
+  const after = toggleDose(mood, legacy, 2, o);
+  assert.deepEqual(takenDoses(mood, after), [true, false]);
+  assert.ok(after.some((i) => i.sid === 's'));
+});
+
+test('Migration: Mood «2 Kapseln» (alte Vorlage) wird zu 1 Kapsel × 2, Einnahmen behalten die Menge', () => {
+  const old = {
+    ...mood,
+    templateRev: 2,
+    serving: '2 Kapseln',
+    perDay: 1,
+    nutrients: { b6: 3.5, niacin: 40, b5: 15, b12: 7, vitD: 15, zinc: 5 },
+    folicAcid: 500,
+  };
+  assert.equal(servingFactor(old, mood), 2);
+  const st = { supplements: [old], days: { '2026-10-24': { supps: [{ id: 'i', sid: 'm', servings: 1, time: '08:00' }] } } };
+  upgradeTemplates(st);
+  assert.equal(st.supplements[0].perDay, 2);
+  assert.equal(st.days['2026-10-24'].supps[0].servings, 2);
+  assert.equal(intakeTotals(st.supplements, st.days['2026-10-24'].supps).vitD, 15);
+  // Selbst ergänzte Produkte bleiben unverändert
+  const edited = { supplements: [{ ...old, source: 'x; eigene Ergänzung' }], days: {} };
+  upgradeTemplates(edited);
+  assert.equal(edited.supplements[0].perDay, 1);
 });
 
 test('Speichern: Schema 4, ungültige Produkte und Einnahmen fallen weg, alte Daten bleiben lesbar', () => {

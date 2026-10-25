@@ -30,6 +30,7 @@ test('Emotionales Essen: Grund direkt nach dem Erfassen notieren, Hunger-Check m
   );
   expect(stored[0].trigger).toBe('tv');
 
+  await page.click('#sub-coach');
   const card = page.locator('#emotional-card');
   await expect(card.locator('#emo-none')).toContainText('1 von mindestens 5');
   await card.locator('#hunger-check summary').click();

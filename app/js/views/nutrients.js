@@ -29,7 +29,8 @@ import { addGroups } from '../domain/foodgroups.js';
 import { isPremenstrual } from '../domain/cycle.js';
 import { searchProducts } from '../vision.js';
 import { intakeEntries, supplementAmounts } from '../domain/supplements.js';
-import { pendingSupplements, supplementPendingNote } from './supplements.js';
+import { captureTime } from '../ui/slot.js';
+import { pendingSupplements, supplementPendingNote, remainingToday } from './supplements.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 /** @typedef {import('../domain/micros.js').NutrientDef} NutrientDef */
@@ -62,7 +63,7 @@ function addProduct(ctx, p, grams) {
   ctx.commit(
     (st) =>
       addFoodEntry(st, ctx.date, {
-        time: nowTime(),
+        time: captureTime(ctx),
         name,
         kcal: v.kcal,
         protein: Math.round(v.protein),
@@ -89,7 +90,7 @@ function addProduct(ctx, p, grams) {
  */
 function addFood(ctx, food, grams) {
   const e = entryFromFood(food, grams);
-  ctx.commit((st) => addFoodEntry(st, ctx.date, { time: nowTime(), ...e }) !== null, `${e.name} erfasst`);
+  ctx.commit((st) => addFoodEntry(st, ctx.date, { time: captureTime(ctx), ...e }) !== null, `${e.name} erfasst`);
 }
 
 /**
@@ -511,7 +512,7 @@ export function nutrientsCard(ctx, snap) {
   const pending = week ? [] : pendingSupplements(ctx);
   const pendingText = (/** @type {NutrientDef} */ n) =>
     pending
-      .map((s) => ({ s, v: supplementAmounts(s, s.perDay).micros[n.key] }))
+      .map((s) => ({ s, v: supplementAmounts(s, remainingToday(ctx, s)).micros[n.key] }))
       .filter((x) => x.v)
       .map((x) => `${x.s.name} ${fmt(/** @type {number} */ (x.v), n.digits)} ${n.unit}`)
       .join(', ');
@@ -766,7 +767,10 @@ export function suggestCard(ctx, snap) {
                     on: {
                       click: () => {
                         const { tags: _t, ...e } = m.entry;
-                        ctx.commit((st) => addFoodEntry(st, ctx.date, { time: nowTime(), ...e }) !== null, `${m.template.name} erfasst`);
+                        ctx.commit(
+                          (st) => addFoodEntry(st, ctx.date, { time: captureTime(ctx), ...e }) !== null,
+                          `${m.template.name} erfasst`,
+                        );
                       },
                     },
                   },

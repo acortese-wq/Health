@@ -29,7 +29,7 @@ test('Frauenprofil: Zyklus erfassen, Phase und Hinweise; Schwangerschaft ohne De
   await expect(page.locator('#cycle-tip')).toContainText('kein Fett');
   await expect(page.locator('main')).toContainText('Tage vor der Periode');
   // Eisenziel für Frauen
-  await page.goto('/#ernaehrung');
+  await page.goto('/#ernaehrung/analyse');
   await expect(page.locator('#n-iron .nrow-val')).toContainText('/ 16');
 
   // Periode heute eintragen → Tag 1
@@ -48,7 +48,7 @@ test('Frauenprofil: Zyklus erfassen, Phase und Hinweise; Schwangerschaft ohne De
   await page.goto('/#heute');
   await expect(page.locator('#cycle-card')).toHaveCount(0);
   await expect(page.locator('main')).toContainText('Schwangerschaft: kein Kaloriendefizit');
-  await page.goto('/#ernaehrung');
+  await page.goto('/#ernaehrung/analyse');
   await expect(page.locator('#n-folate .nrow-val')).toContainText('/ 550');
   await expect(page.locator('#n-iron .nrow-val')).toContainText('/ 27');
 });

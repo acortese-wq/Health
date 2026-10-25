@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
 test('Nährstoffe: Ring, Balken, 7 Tage, Vorschlag erfassen, Suche', async ({ page }) => {
   await page.goto('/');
   await page.click('#load-demo');
-  await page.goto('/#ernaehrung');
+  await page.goto('/#ernaehrung/analyse');
   const card = page.locator('#nutrients-card');
   await expect(card).toBeVisible();
   await expect(card.locator('.ring')).toHaveAttribute('aria-label', /Kohlenhydrate \d+ %, Fett \d+ %, Protein \d+ %/);
@@ -17,7 +17,8 @@ test('Nährstoffe: Ring, Balken, 7 Tage, Vorschlag erfassen, Suche', async ({ pa
   await expect(card).toContainText('Durchschnitt pro Tag über 7 Tage');
   await expect(page.locator('#nut-woche')).toHaveAttribute('aria-pressed', 'true');
 
-  // Vorschlag direkt erfassen
+  // Vorschlag direkt erfassen (im Tagebuch)
+  await page.click('#sub-tagebuch');
   const sug = page.locator('#suggest-card .suggestion:not(.meal):not(.pyr-tip)');
   await expect(sug).toHaveCount(3);
   const name = (await sug.first().locator('strong').textContent())?.split(':')[0] ?? '';
@@ -47,7 +48,9 @@ test('Vorlieben: ohne Fisch, Fleisch und Milch keine solchen Vorschläge; Abdeck
   await page.fill('#food-name', 'Kantine');
   await page.fill('#food-kcal', '600');
   await page.click('#food-add');
+  await page.click('#sub-analyse');
   await expect(page.locator('#nut-coverage')).toContainText('0 % der Kalorien');
+  await page.click('#sub-tagebuch');
   const text = (await page.locator('#suggest-card .suggestion').allTextContents()).join(' ');
   for (const n of ['Lachs', 'Sardinen', 'Thon', 'Forelle', 'Poulet', 'Skyr', 'Joghurt', 'Käse', 'Emmentaler', 'Gruyère']) {
     expect(text).not.toContain(n);
@@ -68,6 +71,7 @@ test('Essrhythmus: Kurznotiz zu Hunger und Grund, Muster, Lebensmittelpyramide',
   await page.click('#qt-stress');
   await expect(page.locator('#quick-tag')).not.toContainText('19:15');
   await expect(page.locator('#food-entries li', { hasText: 'Pasta-Teller' })).toContainText('Stress');
+  await page.click('#sub-analyse');
   await expect(page.locator('#slot-zmittag')).toContainText('kcal');
   await expect(page.locator('#patterns')).toBeVisible();
   await expect(page.locator('#trigger-top')).toContainText('Häufigster Grund abends');
@@ -76,6 +80,7 @@ test('Essrhythmus: Kurznotiz zu Hunger und Grund, Muster, Lebensmittelpyramide',
   await expect(page.locator('#pyr-milch .nrow-val strong')).not.toHaveText('0.0');
   await expect(page.locator('#pyr-fisch')).toBeVisible();
   // Grund im Bearbeiten-Formular ändern
+  await page.click('#sub-tagebuch');
   await page
     .locator('#food-entries li', { hasText: 'Pasta-Teller' })
     .getByRole('button', { name: /bearbeiten/ })
@@ -148,6 +153,7 @@ test('Ernährung: Gegessenes zuoberst ohne Scrollen; Nährstoffe und Pyramide an
   await expect(capture).toBeInViewport();
 
   // Vitamin C antippen → Herkunft
+  await page.click('#sub-analyse');
   await page.locator('#n-vitC summary').click();
   const vc = page.locator('#n-vitC .contrib');
   await expect(vc).toBeVisible();

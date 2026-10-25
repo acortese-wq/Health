@@ -1,7 +1,7 @@
 // @ts-check
 // App-Schale: Zustand, Navigation, Speichern, Rückmeldungen.
 
-import { h, s } from './ui/dom.js';
+import { h, s, fmtDate } from './ui/dom.js';
 import { load, safeStorage, STORAGE_KEY } from './store.js';
 import { saveWithBackup, snapshot as backupSnapshot, preserveCorrupt, saveDraft, takeDraft } from './safety.js';
 import { snapshot } from './model.js';
@@ -30,6 +30,7 @@ import { viewProfile } from './views/profile.js';
  *   replace: (s: State, message?: string) => void,
  *   setDate: (d: string) => void,
  *   go: (route: string) => void,
+ *   sub: string,
  *   toast: (message: string, kind?: 'ok' | 'error') => void,
  *   persistent: boolean,
  *   showcase: { active: boolean, start: () => void, end: () => void },
@@ -114,8 +115,13 @@ function toast(message, kind = 'ok', undo = null) {
   toastRegion.dataset.timer = String(window.setTimeout(() => toastRegion.replaceChildren(), undo ? 5000 : 3200));
 }
 
+/** Unterseite aus der Adresse (z. B. «#ernaehrung/analyse» → «analyse»). */
+function currentSub() {
+  return location.hash.replace('#', '').split('/')[1] ?? '';
+}
+
 function currentRoute() {
-  const raw = location.hash.replace('#', '');
+  const raw = location.hash.replace('#', '').split('/')[0];
   const id = ALIASES[raw] ?? raw;
   if (!state.profile) return SECONDARY[1];
   return [...ROUTES, ...SECONDARY, ...HIDDEN].find((r) => r.id === id) ?? ROUTES[0];
@@ -220,8 +226,10 @@ function render() {
       discardDirty = true;
       render();
     },
+    sub: currentSub(),
     go(id) {
-      if (location.hash === `#${id}`) render();
+      // Gleicher Bereich ohne Unterseite: nur neu zeichnen, die Unterseite bleibt
+      if (location.hash === `#${id}` || (!id.includes('/') && route.id === id)) render();
       else location.hash = id;
     },
     toast,
@@ -431,6 +439,42 @@ function dateNav(ctx) {
       : h('button', { type: 'button', class: 'link-btn', id: 'date-today', on: { click: () => ctx.setDate(ctx.today) } }, 'Heute'),
   );
 }
+
+// Wischen nach links/rechts wechselt auf datierten Seiten den Tag (wie in Ernährungs-Apps).
+// Nicht auf Eingabefeldern, Diagrammen und waagrecht scrollbaren Bereichen.
+/** @type {{ x: number, y: number, t: number } | null} */
+let touchStart = null;
+window.addEventListener(
+  'touchstart',
+  (e) => {
+    const target = /** @type {Element | null} */ (e.target instanceof Element ? e.target : null);
+    touchStart =
+      e.touches.length === 1 && !target?.closest('input, select, textarea, svg, table, .segmented, .subnav, [data-noswipe]')
+        ? { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() }
+        : null;
+  },
+  { passive: true },
+);
+window.addEventListener(
+  'touchend',
+  (e) => {
+    const start = touchStart;
+    touchStart = null;
+    if (!start || !state.profile || !currentRoute().dated) return;
+    const dx = e.changedTouches[0].clientX - start.x;
+    const dy = e.changedTouches[0].clientY - start.y;
+    if (Date.now() - start.t > 700 || Math.abs(dx) < 80 || Math.abs(dx) < Math.abs(dy) * 2) return;
+    const today = toISODate();
+    const next = addDays(date, dx < 0 ? 1 : -1);
+    if (next > today) return;
+    date = next;
+    followToday = date === today;
+    discardDirty = true;
+    render();
+    toast(date === today ? 'Heute' : fmtDate(date, 'long'));
+  },
+  { passive: true },
+);
 
 window.addEventListener('hashchange', () => {
   discardDirty = true;

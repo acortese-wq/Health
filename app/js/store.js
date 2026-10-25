@@ -12,7 +12,7 @@ import { BLUE_ITEMS } from './domain/bluezones.js';
 import { createEntry } from './domain/entries.js';
 import { validateRecipe } from './domain/recipes.js';
 import { UNITS } from './domain/units.js';
-import { sanitizeSupplement } from './domain/supplements.js';
+import { sanitizeSupplement, upgradeTemplates } from './domain/supplements.js';
 
 const PLAN_SLOTS = ['morgen', 'mittag', 'abend', 'snack'];
 
@@ -340,6 +340,8 @@ export function sanitize(raw) {
       ids.add(sp.id);
       s.supplements.push(sp);
     }
+    // Unveränderte Vorlagen-Produkte auf die aktuelle Vorlage bringen (Einnahmen werden umgerechnet)
+    upgradeTemplates(s);
   }
   if (typeof raw.lastBackup === 'string' && isISODate(raw.lastBackup)) s.lastBackup = raw.lastBackup;
   if (raw.demo === true) s.demo = true;
@@ -420,6 +422,7 @@ function sanitizeDay(d, seen) {
               sid: x.sid,
               servings: x.servings,
               time: typeof x.time === 'string' && /^\d{2}:\d{2}$/.test(x.time) ? x.time : '08:00',
+              ...(isNum(x.dose) && Number.isInteger(x.dose) && x.dose >= 1 && x.dose <= 4 ? { dose: x.dose } : {}),
             },
           ]
         : [],

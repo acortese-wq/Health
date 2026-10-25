@@ -8,6 +8,7 @@ import { totals, macrosConsistent, isHighProtein, scaleItem, productPortion, isV
 import { scaleMicros } from '../domain/micros.js';
 import { activeProvider, analyzeMeal, detectBarcode, lookupBarcode, prepareImage, readLabel, PROVIDERS } from '../vision.js';
 import { pyramidTipsFor, pyramidTipList, dayContextFor } from './nutrients.js';
+import { captureTime } from '../ui/slot.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 /** @typedef {import('../domain/foodvision.js').MealEstimate} MealEstimate */
@@ -194,7 +195,7 @@ function save(ctx, e) {
       name: e.name,
       kcal: Math.round(v.kcal),
       protein: Math.round(v.protein),
-      time: nowTime(),
+      time: captureTime({ date, today: ctx.today }),
       ...nutrients,
       ...micros,
       ...(v.groups && Object.keys(v.groups).length ? { groups: v.groups } : {}),

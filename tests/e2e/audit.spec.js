@@ -62,8 +62,8 @@ test('Mahlzeit direkt in der Liste bearbeiten; Summen passen sich an', async ({ 
   await page.fill('#edit-protein', '35');
   await page.click('#edit-save');
   await expect(page.locator('#food-entries')).toContainText('300 kcal · 35 g');
-  await expect(page.locator('.meter').first()).toContainText('300');
-  await expect(page.locator('.meter').nth(1)).toContainText('35');
+  await expect(page.locator('#diary-eaten')).toContainText('300');
+  await expect(page.locator('#diary-head .meter').first()).toContainText('35');
 });
 
 test('Keine Anfragen an Dritte beim Laden; keine Bedienelemente unter 24 px', async ({ page }) => {

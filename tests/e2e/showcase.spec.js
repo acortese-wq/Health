@@ -29,13 +29,14 @@ test('Vorführung −17 kg: zeigt Beispieljahr, speichert nichts, eigene Daten d
   await expect(page.locator('#range-plan')).toHaveAttribute('aria-pressed', 'true');
   const weight = page.locator('#balance-card tbody tr', { hasText: 'Gewicht' });
   await expect(weight).toContainText('97.0 kg');
-  await expect(weight).toContainText('−17.0 kg');
+  // Trend am Stichtag schwankt je nach Wochentag leicht um −17 kg
+  await expect(weight).toContainText(/−(16\.[5-9]|17\.[0-5]) kg/);
   await expect(page.locator('#balance-card')).toContainText('HbA1c');
 
   // Änderungen während der Vorführung bleiben im Speicher, nicht im Gerät
   await page.goto('/#heute');
   await page.click('#cta-water');
-  await page.goto('/#ernaehrung');
+  await page.goto('/#ernaehrung/coach');
   await expect(page.locator('#behavior-card')).toBeVisible();
   await page.goto('/#profil');
   await page.setInputFiles('#import-file', { name: 'x.json', mimeType: 'application/json', buffer: Buffer.from('{"schema":1}') });
@@ -79,7 +80,7 @@ test('Verhaltens-Check: Kritik mit Alternative und Quelle', async ({ page }) => 
       };
     localStorage.setItem('gesundheitscockpit', JSON.stringify(st));
   });
-  await page.goto('/#ernaehrung');
+  await page.goto('/#ernaehrung/coach');
   await page.reload();
   const card = page.locator('#behavior-card');
   await expect(card.locator('#beh-traps')).toContainText("McDonald's Big Mac Menü");

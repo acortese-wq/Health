@@ -127,7 +127,7 @@ test('Foto → Gericht, Kalorien, Portion anpassen → übernehmen', async ({ pa
   await page.check('#photo-preset');
   await page.click('#photo-save');
   await expect(page.locator('.entries').first()).toContainText('Älplermagronen mit Apfelmus');
-  await expect(page.locator('.meter').first()).toContainText('325');
+  await expect(page.locator('#diary-eaten')).toContainText('325');
   await expect(page.locator('#photo-trigger')).toContainText('Mahlzeit fotografieren');
   await expect(page.locator('.chips .chip', { hasText: 'Älplermagronen' })).toBeVisible();
 });

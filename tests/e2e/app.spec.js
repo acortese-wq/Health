@@ -54,14 +54,14 @@ test('Tageserfassung: Gewicht, Mahlzeit, Koffein, Werte bleiben nach Neuladen er
   await expect(page.locator('#weight')).toHaveValue('94.6');
 
   await page.click('#cta-meal');
-  await expect(page).toHaveURL(/#ernaehrung$/);
+  await expect(page).toHaveURL(/#ernaehrung(\/erfassen)?$/);
   await page.click('#preset-skyr');
   await expect(page.locator('.entries').first()).toContainText('Skyr');
   await page.fill('#food-name', 'Kantine');
   await page.fill('#food-kcal', '650');
   await page.fill('#food-protein', '40');
   await page.click('#food-add');
-  await expect(page.locator('.meter').first()).toContainText('860');
+  await expect(page.locator('#diary-eaten')).toContainText('860');
 
   await page.click('#nav-profil');
   await page.goto('/#heute');
@@ -77,7 +77,7 @@ test('Tageserfassung: Gewicht, Mahlzeit, Koffein, Werte bleiben nach Neuladen er
   await expect(page.locator('#weight')).toHaveValue('94.6');
   await expect(page.locator('#steps')).toHaveValue('9500');
   await page.goto('/#ernaehrung');
-  await expect(page.locator('.meter').first()).toContainText('860');
+  await expect(page.locator('#diary-eaten')).toContainText('860');
   expect(errors).toEqual([]);
 });
 

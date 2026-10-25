@@ -16,7 +16,10 @@ import {
   UPPER_LIMITS,
   FOLIC_TO_DFE,
   templateUpdate,
-  applyTemplate,
+  upgradeTemplates,
+  doseSlots,
+  takenDoses,
+  toggleDose,
 } from '../domain/supplements.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -30,7 +33,7 @@ const MICRO_DEFS = NUTRIENTS.filter((n) => n.group !== 'makro' && n.key !== 'sod
 const def = (key) => NUTRIENTS.find((n) => n.key === key);
 
 /**
- * Heute eingenommen?
+ * Am gewählten Tag eingenommene Portionen.
  * @param {Ctx} ctx
  * @param {string} sid
  */
@@ -39,7 +42,19 @@ function takenToday(ctx, sid) {
 }
 
 /**
- * Einnahme abhaken bzw. zurücknehmen (ein Tipp; zweiter Tipp nimmt zurück).
+ * Noch offene Portionen des Tages (0 = alles genommen).
+ * @param {Ctx} ctx
+ * @param {Supplement} s
+ */
+export function remainingToday(ctx, s) {
+  return Math.max(0, Math.round((s.perDay - takenToday(ctx, s.id)) * 100) / 100);
+}
+
+/** @param {Ctx} ctx */
+const intakeTime = (ctx) => (ctx.date === ctx.today ? nowTime() : '08:00');
+
+/**
+ * Tagesdosis abhaken bzw. zurücknehmen (ein Tipp; zweiter Tipp nimmt zurück).
  * @param {Ctx} ctx
  * @param {Supplement} s
  */
@@ -51,11 +66,75 @@ function toggleIntake(ctx, s) {
       if (taken) {
         d.supps = (d.supps ?? []).filter((i) => i.sid !== s.id);
         if (!d.supps.length) delete d.supps;
-      } else
-        d.supps = [...(d.supps ?? []), { id: uid(), sid: s.id, servings: s.perDay, time: ctx.date === ctx.today ? nowTime() : '08:00' }];
+      } else d.supps = [...(d.supps ?? []), { id: uid(), sid: s.id, servings: s.perDay, time: intakeTime(ctx) }];
       return true;
     },
     taken ? `${s.name}: Einnahme zurückgenommen` : `${s.name} eingenommen`,
+  );
+}
+
+/**
+ * Eine Einzeldosis (z. B. 1 Kapsel am Morgen) abhaken bzw. zurücknehmen.
+ * @param {Ctx} ctx
+ * @param {Supplement} s
+ * @param {number} dose 1-basiert
+ */
+function toggleOneDose(ctx, s, dose) {
+  const was = takenDoses(s, ctx.state.days[ctx.date]?.supps)[dose - 1];
+  const label = doseSlots(s)[dose - 1];
+  ctx.commit(
+    (st) => {
+      const d = (st.days[ctx.date] = st.days[ctx.date] ?? {});
+      d.supps = toggleDose(s, d.supps, dose, { id: uid, time: intakeTime(ctx) });
+      if (!d.supps.length) delete d.supps;
+      return true;
+    },
+    was ? `${s.name} (${label}) zurückgenommen` : `${s.name}: ${s.serving} (${label}) eingenommen`,
+  );
+}
+
+/**
+ * Abhak-Knöpfe: eine Tagesdosis oder einzelne Dosen (morgens/abends).
+ * @param {Ctx} ctx
+ * @param {Supplement} s
+ * @param {string} prefix ID-Präfix
+ * @param {boolean} [compact]
+ */
+function intakeButtons(ctx, s, prefix, compact = false) {
+  const slots = doseSlots(s);
+  if (!slots.length) {
+    const n = takenToday(ctx, s.id);
+    return h(
+      'button',
+      {
+        type: 'button',
+        class: n ? 'btn small-btn dose done' : 'btn primary small-btn dose',
+        id: `${prefix}-${s.id}`,
+        'aria-pressed': String(n > 0),
+        'aria-label': `${s.name}: ${n ? 'eingenommen, antippen zum Zurücknehmen' : 'als eingenommen markieren'}`,
+        on: { click: () => toggleIntake(ctx, s) },
+      },
+      n ? '✓ Eingenommen' : compact ? 'Abhaken' : 'Eingenommen',
+    );
+  }
+  const taken = takenDoses(s, ctx.state.days[ctx.date]?.supps);
+  return h(
+    'div',
+    { class: 'dose-group', role: 'group', 'aria-label': `${s.name}: einzelne Einnahmen` },
+    ...slots.map((label, k) =>
+      h(
+        'button',
+        {
+          type: 'button',
+          class: taken[k] ? 'btn small-btn dose done' : 'btn small-btn dose',
+          id: `${prefix}-${s.id}-${k + 1}`,
+          'aria-pressed': String(taken[k]),
+          'aria-label': `${s.name}, ${s.serving} ${label}: ${taken[k] ? 'eingenommen' : 'offen'}`,
+          on: { click: () => toggleOneDose(ctx, s, k + 1) },
+        },
+        `${taken[k] ? '✓ ' : ''}${label}`,
+      ),
+    ),
   );
 }
 
@@ -64,7 +143,7 @@ function toggleIntake(ctx, s) {
  * @param {Ctx} ctx
  */
 export function pendingSupplements(ctx) {
-  return ctx.state.supplements.filter((s) => s.active && !takenToday(ctx, s.id));
+  return ctx.state.supplements.filter((s) => s.active && remainingToday(ctx, s) > 0);
 }
 
 /**
@@ -80,7 +159,9 @@ export function supplementPendingNote(ctx) {
     h(
       'span',
       {},
-      `Noch nicht abgehakt: ${open.map((s) => s.name).join(', ')}. Präparate zählen erst mit, wenn du sie als eingenommen markierst.`,
+      `Noch nicht abgehakt: ${open
+        .map((s) => (takenToday(ctx, s.id) > 0 ? `${s.name} (${fmt(takenToday(ctx, s.id))} von ${fmt(s.perDay)})` : s.name))
+        .join(', ')}. Präparate zählen erst mit, wenn du sie als eingenommen markierst.`,
     ),
     h(
       'button',
@@ -93,8 +174,17 @@ export function supplementPendingNote(ctx) {
             ctx.commit(
               (st) => {
                 const d = (st.days[ctx.date] = st.days[ctx.date] ?? {});
-                const time = ctx.date === ctx.today ? nowTime() : '08:00';
-                d.supps = [...(d.supps ?? []), ...open.map((s) => ({ id: uid(), sid: s.id, servings: s.perDay, time }))];
+                const time = intakeTime(ctx);
+                for (const s of open) {
+                  const slots = doseSlots(s);
+                  if (!slots.length) {
+                    d.supps = [...(d.supps ?? []), { id: uid(), sid: s.id, servings: remainingToday(ctx, s), time }];
+                    continue;
+                  }
+                  takenDoses(s, d.supps).forEach((t, k) => {
+                    if (!t) d.supps = toggleDose(s, d.supps, k + 1, { id: uid, time });
+                  });
+                }
                 return true;
               },
               open.length === 1 ? `${open[0].name} eingenommen` : `${open.length} Präparate eingenommen`,
@@ -120,24 +210,18 @@ export function supplementTodayCard(ctx) {
       'div',
       { class: 'card-head' },
       h('h2', { id: 'supp-today-h' }, 'Präparate heute'),
-      h('a', { href: '#ernaehrung', class: 'link-btn', id: 'supp-more' }, 'Details'),
+      h('a', { href: '#ernaehrung/praeparate', class: 'link-btn', id: 'supp-more' }, 'Details'),
     ),
     h(
       'div',
-      { class: 'chips' },
+      { class: 'supp-chips' },
       ...active.map((s) => {
-        const n = takenToday(ctx, s.id);
+        const done = remainingToday(ctx, s) === 0;
         return h(
-          'button',
-          {
-            type: 'button',
-            class: n ? 'chip chip-done' : 'chip',
-            id: `supp-take-${s.id}`,
-            'aria-pressed': String(n > 0),
-            on: { click: () => toggleIntake(ctx, s) },
-          },
-          `${n ? '✓ ' : ''}${s.name}`,
-          h('small', {}, n ? 'eingenommen' : s.serving),
+          'div',
+          { class: done ? 'supp-chip done' : 'supp-chip', id: `supp-chip-${s.id}` },
+          h('span', { class: 'supp-chip-name' }, s.name, h('small', {}, doseSlots(s).length ? `je ${s.serving}` : s.serving)),
+          intakeButtons(ctx, s, 'supp-take', true),
         );
       }),
     ),
@@ -167,8 +251,9 @@ export function supplementCard(ctx, snap) {
     h(
       'p',
       { class: 'small muted' },
-      'Essen zuerst: Präparate ersetzen keine ausgewogene Ernährung und lohnen sich vor allem bei einem nachgewiesenen Mangel oder in besonderen Phasen (z. B. Vitamin D im Winter). Ihre Nährstoffe zählen in der Übersicht oben als eigene Quelle mit.',
+      'Essen zuerst: Präparate ersetzen keine ausgewogene Ernährung und lohnen sich vor allem bei einem nachgewiesenen Mangel oder in besonderen Phasen (z. B. Vitamin D im Winter). Abgehakte Präparate zählen unter «Nährstoffe» als eigene Quelle mit.',
     ),
+    supplementPendingNote(ctx),
     [...today.filter((w) => !w.near), ...planned.filter((w) => !w.near && !today.some((t) => t.key === w.key))].map((w) =>
       h(
         'p',
@@ -225,7 +310,6 @@ export function supplementCard(ctx, snap) {
  * @param {Partial<Record<import('../domain/micros.js').NutrientKey, number>>} targets
  */
 function productItem(ctx, s, targets) {
-  const n = takenToday(ctx, s.id);
   const a = supplementAmounts(s, 1);
   const tpl = SUPPLEMENT_TEMPLATES.find((t) => t.id === s.templateId);
   if (view.editId === s.id) return h('li', { class: 'supp-item editing' }, editForm(ctx, s));
@@ -247,9 +331,8 @@ function productItem(ctx, s, targets) {
               on: {
                 click: () =>
                   ctx.commit((st) => {
-                    const i = st.supplements.findIndex((y) => y.id === s.id);
-                    if (i < 0) return false;
-                    st.supplements[i] = applyTemplate(st.supplements[i]);
+                    // rechnet auch die gespeicherten Einnahmen um, falls sich die Portion ändert
+                    upgradeTemplates(st);
                     return true;
                   }, `${s.name}: Werte aktualisiert`),
               },
@@ -267,19 +350,7 @@ function productItem(ctx, s, targets) {
         h('strong', {}, s.name),
         h('span', { class: 'small muted' }, `${s.serving}${s.perDay !== 1 ? ` × ${fmt(s.perDay)}` : ''} pro Tag`),
       ),
-      s.active
-        ? h(
-            'button',
-            {
-              type: 'button',
-              class: n ? 'btn small-btn' : 'btn primary small-btn',
-              id: `supp-toggle-${s.id}`,
-              'aria-pressed': String(n > 0),
-              on: { click: () => toggleIntake(ctx, s) },
-            },
-            n ? '✓ Heute eingenommen' : 'Eingenommen',
-          )
-        : null,
+      s.active ? intakeButtons(ctx, s, 'supp-toggle') : null,
     ),
     h(
       'details',

@@ -16,11 +16,11 @@ async function createProfile(page) {
 /** @param {import('@playwright/test').Page} page */
 const stored = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('gesundheitscockpit') ?? '{}'));
 
-test('Präparate: Vorlage hinzufügen, abhaken, Nährstoffe zählen mit, Warnung, Neuladen', async ({ page }) => {
+test('Präparate: Vorlage hinzufügen, einzelne Kapsel abhaken, Nährstoffe zählen mit, Warnung, Neuladen', async ({ page }) => {
   await createProfile(page);
   // Ohne Präparate keine Karte auf «Heute»
   await expect(page.locator('#supp-today')).toHaveCount(0);
-  await page.goto('/#ernaehrung');
+  await page.goto('/#ernaehrung/praeparate');
   await expect(page.locator('#supp-none')).toBeVisible();
   await page.selectOption('#supp-template', 'burgerstein-mood');
   await page.click('#supp-add-go');
@@ -30,45 +30,62 @@ test('Präparate: Vorlage hinzufügen, abhaken, Nährstoffe zählen mit, Warnung
   await page.click('#supp-add-go');
   await expect(page.locator('#supp-list > li')).toHaveCount(2);
   await expect(page.locator('#supp-overlap')).toContainText('Folsäure');
-
-  // Nicht abgehakt: zählt nicht, Hinweis und Nennung im Vitamin-D-Drilldown
-  await expect(page.locator('#supp-pending')).toContainText('Noch nicht abgehakt');
-  await expect(page.locator('#n-vitD')).toContainText('0.0');
-  await page.locator('#n-vitD').click();
-  await expect(page.locator('#nutrients-card')).toContainText('Noch nicht abgehakt (zählt nicht): Burgerstein Mood 15.0 µg');
-  // «Alle eingenommen» hakt beide ab, Vitamin D 15 + 5 µg zählt
-  await page.click('#supp-take-all');
-  await expect(page.locator('#supp-pending')).toHaveCount(0);
-  await expect(page.locator('#n-vitD')).toContainText('20.0');
-  await page.locator('#n-vitD').click();
-  await expect(page.locator('#nutrients-card')).toContainText('Burgerstein Mood (Präparat)');
-  // wieder zurücknehmen, damit der Ablauf unten mit dem Einzel-Abhaken prüft
-  for (const s of (await stored(page)).supplements) await page.click(`#supp-toggle-${s.id}`);
-  await expect(page.locator('#supp-pending')).toBeVisible();
+  await expect(page.locator('#sub-praeparate')).toContainText('2');
 
   let st = await stored(page);
   expect(st.schema).toBe(4);
   const mood = st.supplements.find((/** @type {any} */ s) => s.templateId === 'burgerstein-mood');
-  // Abhaken auf «Heute»
-  await page.goto('/#heute');
-  await page.click(`#supp-take-${mood.id}`);
-  await expect(page.locator(`#supp-take-${mood.id}`)).toHaveAttribute('aria-pressed', 'true');
-  // Zweiter Tipp nimmt zurück, dritter hakt wieder ab (keine Doppelbuchung)
-  await page.click(`#supp-take-${mood.id}`);
-  await expect(page.locator(`#supp-take-${mood.id}`)).toHaveAttribute('aria-pressed', 'false');
-  await page.click(`#supp-take-${mood.id}`);
-  st = await stored(page);
-  const day = Object.values(st.days).find((/** @type {any} */ d) => d.supps);
-  expect(/** @type {any} */ (day).supps).toHaveLength(1);
+  const supra = st.supplements.find((/** @type {any} */ s) => s.templateId === 'supradyn-pro-energy');
+  // Mood: 1 Kapsel, morgens und abends
+  expect(mood.serving).toBe('1 Kapsel');
+  expect(mood.perDay).toBe(2);
 
-  // Vitamin D aus dem Präparat erscheint in den Nährstoffen als Quelle
+  // Nicht abgehakt: zählt nicht, Hinweis und Nennung im Vitamin-D-Drilldown
+  await page.click('#sub-analyse');
+  await expect(page).toHaveURL(/#ernaehrung\/analyse$/);
+  await expect(page.locator('#supp-pending')).toContainText('Noch nicht abgehakt');
+  await expect(page.locator('#n-vitD')).toContainText('0.0');
+  await page.locator('#n-vitD').click();
+  await expect(page.locator('#nutrients-card')).toContainText('Noch nicht abgehakt (zählt nicht): Burgerstein Mood 15.0 µg');
+  // «Alle eingenommen» hakt beide ab, Vitamin D 15 + 5 µg zählt; die Unterseite bleibt
+  await page.click('#supp-take-all');
+  await expect(page).toHaveURL(/#ernaehrung\/analyse$/);
+  await expect(page.locator('#supp-pending')).toHaveCount(0);
+  await expect(page.locator('#n-vitD')).toContainText('20.0');
+  await page.locator('#n-vitD').click();
+  await expect(page.locator('#nutrients-card')).toContainText('Burgerstein Mood (Präparat)');
+
+  // Zurücknehmen einzeln
+  await page.goto('/#ernaehrung/praeparate');
+  await expect(page.locator(`#supp-toggle-${mood.id}-1`)).toHaveAttribute('aria-pressed', 'true');
+  await page.click(`#supp-toggle-${mood.id}-1`);
+  await page.click(`#supp-toggle-${mood.id}-2`);
+  await page.click(`#supp-toggle-${supra.id}`);
+  await expect(page.locator(`#supp-toggle-${supra.id}`)).toHaveAttribute('aria-pressed', 'false');
+
+  // Auf «Heute» nur 1 Kapsel (morgens) abhaken
+  await page.goto('/#heute');
+  await page.click(`#supp-take-${mood.id}-1`);
+  await expect(page.locator(`#supp-take-${mood.id}-1`)).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator(`#supp-take-${mood.id}-2`)).toHaveAttribute('aria-pressed', 'false');
+  // Zweiter Tipp nimmt zurück, dritter hakt wieder ab (keine Doppelbuchung)
+  await page.click(`#supp-take-${mood.id}-1`);
+  await expect(page.locator(`#supp-take-${mood.id}-1`)).toHaveAttribute('aria-pressed', 'false');
+  await page.click(`#supp-take-${mood.id}-1`);
+  st = await stored(page);
+  const day = /** @type {any} */ (Object.values(st.days).find((/** @type {any} */ d) => d.supps));
+  expect(day.supps).toHaveLength(1);
+  expect(day.supps[0]).toMatchObject({ servings: 1, dose: 1 });
+
+  // Halbe Tagesportion: Vitamin D 7.5 µg, Hinweis «1 von 2»
   await page.reload();
-  await page.goto('/#ernaehrung');
-  await expect(page.locator(`#supp-toggle-${mood.id}`)).toHaveText(/Heute eingenommen/);
-  await expect(page.locator('#nutrients-card')).toContainText('Vitamin D');
+  await page.goto('/#ernaehrung/analyse');
+  await expect(page.locator('#n-vitD')).toContainText('7.5');
+  await expect(page.locator('#supp-pending')).toContainText('Burgerstein Mood (1 von 2)');
 
   // Supradyn: Packungswerte und Belege in der Detailansicht
-  const supra = st.supplements.find((/** @type {any} */ s) => s.templateId === 'supradyn-pro-energy');
+  await page.goto('/#ernaehrung/praeparate');
+  await expect(page.locator(`#supp-toggle-${mood.id}-1`)).toHaveText(/✓ Morgens/);
   await page.locator(`#supp-${supra.id} summary`).click();
   await expect(page.locator(`#supp-${supra.id}`)).toContainText('Vitamin B6');
   await expect(page.locator(`#supp-${supra.id}`)).toContainText('Mangione');
@@ -95,29 +112,47 @@ test('Präparate: Vorlage hinzufügen, abhaken, Nährstoffe zählen mit, Warnung
   expect(overflow).toBeLessThanOrEqual(1);
 });
 
-test('Präparat: ältere Werte auf die Packung aktualisieren und von Hand ergänzen', async ({ page }) => {
+test('Präparat: ältere Daten werden beim Laden auf die Packung gebracht, Ergänzung von Hand', async ({ page }) => {
   await createProfile(page);
-  await page.goto('/#ernaehrung');
+  await page.goto('/#ernaehrung/praeparate');
   await page.selectOption('#supp-template', 'supradyn-pro-energy');
   await page.click('#supp-add-go');
-  // Stand vor dem Packungsabgleich simulieren: B6 unbekannt, keine Vorlagen-Version
+  await page.selectOption('#supp-template', 'burgerstein-mood');
+  await page.click('#supp-add-go');
+  // Stand vor dem Packungsabgleich simulieren: Supradyn ohne B6, Mood als «2 Kapseln» mit einer Tageseinnahme
   await page.evaluate(() => {
     const st = JSON.parse(localStorage.getItem('gesundheitscockpit') ?? '{}');
-    const p = st.supplements[0];
-    delete p.templateRev;
-    delete p.nutrients.b6;
-    p.unknown = ['Vitamin B6'];
+    const [supra, mood] = st.supplements;
+    delete supra.templateRev;
+    delete supra.nutrients.b6;
+    supra.unknown = ['Vitamin B6'];
+    Object.assign(mood, {
+      templateRev: 2,
+      serving: '2 Kapseln',
+      perDay: 1,
+      nutrients: { b6: 3.5, niacin: 40, b5: 15, b12: 7, vitD: 15, zinc: 5 },
+      folicAcid: 500,
+    });
+    const d = new Date();
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    st.days[iso] = { ...(st.days[iso] ?? {}), supps: [{ id: 'alt', sid: mood.id, servings: 1, time: '08:00' }] };
     localStorage.setItem('gesundheitscockpit', JSON.stringify(st));
   });
   await page.reload();
-  const s = (await stored(page)).supplements[0];
-  await page.click(`#supp-upd-go-${s.id}`);
-  await expect(page.locator(`#supp-upd-${s.id}`)).toHaveCount(0);
-  let after = (await stored(page)).supplements[0];
-  expect(after.nutrients.b6).toBe(4);
-  expect(after.unknown).toEqual([]);
+  // IDs aus dem Speicher; die Umstellung selbst passiert beim Laden (gespeichert wird beim nächsten Ändern)
+  const [s, m] = (await stored(page)).supplements;
+  await page.locator(`#supp-${s.id} summary`).click();
+  await expect(page.locator(`#supp-${s.id} tr`, { hasText: 'Vitamin B6' })).toContainText('4 mg');
+  await expect(page.locator(`#supp-${s.id}`)).not.toContainText('Menge unbekannt');
+  await expect(page.locator(`#supp-${m.id}`)).toContainText('1 Kapsel × 2 pro Tag');
+  // Die alte Tagesportion gilt als beide Kapseln, Vitamin D bleibt 15 µg
+  await expect(page.locator(`#supp-toggle-${m.id}-1`)).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator(`#supp-toggle-${m.id}-2`)).toHaveAttribute('aria-pressed', 'true');
+  await page.goto('/#ernaehrung/analyse');
+  await expect(page.locator('#n-vitD')).toContainText('15.0');
 
   // Eigene Ergänzung in einer leeren Zeile
+  await page.goto('/#ernaehrung/praeparate');
   await page.locator(`#supp-${s.id} summary`).click();
   await page.click(`#supp-edit-${s.id}`);
   const form = page.locator(`#supp-editform-${s.id}`);
@@ -126,7 +161,8 @@ test('Präparat: ältere Werte auf die Packung aktualisieren und von Hand ergän
   await last.selectOption('vitA');
   await form.locator(`input[name="${String(name).replace('key', 'val')}"]`).fill('100');
   await page.click(`#supp-save-${s.id}`);
-  after = (await stored(page)).supplements[0];
+  const after = (await stored(page)).supplements[0];
   expect(after.nutrients.vitA).toBe(100);
+  expect(after.nutrients.b6).toBe(4);
   expect(after.source).toContain('eigene Ergänzung');
 });

@@ -1,5 +1,6 @@
 // @ts-check
-import { h, field, select, meter, badge, fmt, fmtSigned, fmtDate, num, str, nowTime } from '../ui/dom.js';
+import { h, s, field, select, meter, badge, fmt, fmtSigned, fmtDate, num, str, nowTime } from '../ui/dom.js';
+import { MEAL_SLOTS, activeSlot, setSlot, captureTime } from '../ui/slot.js';
 import { uid, extraNutrients, recentFoods, addFood } from '../store.js';
 import { repeatEntry, scaleEntry, possibleDuplicates, dayStatus, foodQuality } from '../domain/entries.js';
 import { dailyTargets } from '../domain/micros.js';
@@ -72,18 +73,51 @@ export function viewToday(ctx) {
  */
 export function viewNutrition(ctx) {
   const snap = /** @type {NonNullable<Ctx['snap']>} */ (ctx.snap);
+  const tab = NUTRITION_TABS.find((t) => t.id === ctx.sub) ?? NUTRITION_TABS[0];
+  // «#ernaehrung/erfassen» (z. B. von «+ Mahlzeit erfassen» auf Heute): direkt zur Erfassung
+  if (ctx.sub === 'erfassen') window.setTimeout(() => document.getElementById('capture-card')?.scrollIntoView({ block: 'start' }), 0);
+  const body =
+    tab.id === 'analyse'
+      ? [nutrientsCard(ctx, snap), pyramidCard(ctx, snap), rhythmCard(ctx, snap)]
+      : tab.id === 'coach'
+        ? [behaviorCard(ctx, snap), emotionalCard(ctx)]
+        : tab.id === 'praeparate'
+          ? [supplementCard(ctx, snap)]
+          : [...nutritionCard(ctx, snap), suggestCard(ctx, snap)];
+  return h('div', { class: 'stack' }, h('h1', { class: 'sr-only' }, `Ernährung: ${tab.label}`), nutritionNav(ctx, tab.id), body);
+}
+
+/** Unterseiten der Ernährung: kurze Seiten statt einer langen (Tagebuch zuerst, wie in Ernährungs-Apps). */
+const NUTRITION_TABS = /** @type {const} */ ([
+  { id: 'tagebuch', label: 'Tagebuch' },
+  { id: 'analyse', label: 'Nährstoffe' },
+  { id: 'coach', label: 'Coach' },
+  { id: 'praeparate', label: 'Präparate' },
+]);
+
+/**
+ * Leiste der Unterseiten.
+ * @param {Ctx} ctx
+ * @param {string} active
+ */
+function nutritionNav(ctx, active) {
+  const pending = ctx.state.supplements.filter((s) => s.active).length;
   return h(
-    'div',
-    { class: 'stack' },
-    h('h1', {}, 'Ernährung'),
-    nutritionCard(ctx, snap),
-    suggestCard(ctx, snap),
-    behaviorCard(ctx, snap),
-    emotionalCard(ctx),
-    rhythmCard(ctx, snap),
-    pyramidCard(ctx, snap),
-    nutrientsCard(ctx, snap),
-    supplementCard(ctx, snap),
+    'nav',
+    { class: 'subnav', 'aria-label': 'Ernährung' },
+    ...NUTRITION_TABS.map((t) =>
+      h(
+        'a',
+        {
+          href: t.id === 'tagebuch' ? '#ernaehrung' : `#ernaehrung/${t.id}`,
+          id: `sub-${t.id}`,
+          class: t.id === active ? 'active' : '',
+          'aria-current': t.id === active ? 'page' : undefined,
+        },
+        t.label,
+        t.id === 'praeparate' && pending ? h('span', { class: 'subnav-count' }, String(pending)) : null,
+      ),
+    ),
   );
 }
 
@@ -295,7 +329,7 @@ function quickActions(ctx) {
   return h(
     'div',
     { class: 'quick-actions' },
-    h('a', { href: '#ernaehrung', class: 'btn primary', id: 'cta-meal' }, '+ Mahlzeit erfassen'),
+    h('a', { href: '#ernaehrung/erfassen', class: 'btn primary', id: 'cta-meal' }, '+ Mahlzeit erfassen'),
     last
       ? h(
           'button',
@@ -517,8 +551,7 @@ function nutritionCard(ctx, snap) {
       ),
     ),
     statusList(ctx, snap),
-    meter({ value: snap.kcal, target: snap.kcalTarget, label: 'Energie', unit: 'kcal' }),
-    meter({ value: snap.proteinG, target: snap.protein.grams, label: 'Protein', unit: 'g', over: 'good' }),
+    diaryHeader(snap),
     hasMicro
       ? h(
           'p',
@@ -527,6 +560,7 @@ function nutritionCard(ctx, snap) {
           h('span', { class: salt > SALT_LIMIT_G ? 'over' : '' }, `Salz ${fmt(salt, 1)} / max. ${SALT_LIMIT_G} g`),
         )
       : null,
+    slotBar(ctx, food),
     quickTagBlock(ctx, snap),
     food.length ? entryList(ctx, food) : h('p', { class: 'muted small' }, 'Noch nichts erfasst.'),
     h(
@@ -582,7 +616,8 @@ function nutritionCard(ctx, snap) {
   const captureCard = h(
     'section',
     { class: 'card', 'aria-labelledby': 'cap-h', id: 'capture-card' },
-    h('h2', { id: 'cap-h' }, 'Erfassen'),
+    h('h2', { id: 'cap-h' }, activeSlot(ctx.date) ? `Erfassen: ${activeSlot(ctx.date)?.label}` : 'Erfassen'),
+    slotNote(ctx),
     photoBlock(ctx, snap),
     foodSearchBlock(ctx),
     recent.length
@@ -619,6 +654,166 @@ function nutritionCard(ctx, snap) {
     handMethod,
   );
   return [eaten, captureCard];
+}
+
+/**
+ * Tagebuch-Kopf: Ring mit verbleibenden Kalorien, daneben Protein, Kohlenhydrate, Fett.
+ * Kohlenhydrate und Fett nur aus Einträgen mit bekannten Werten (dann als «mind.»).
+ * @param {NonNullable<Ctx['snap']>} snap
+ */
+function diaryHeader(snap) {
+  const food = snap.day.food ?? [];
+  const t = dailyTargets({ kcalTarget: snap.kcalTarget, proteinG: snap.protein.grams, sex: snap.profile.sex, stage: snap.lifeStage });
+  const left = snap.kcalTarget - snap.kcal;
+  const pct = snap.kcalTarget > 0 ? Math.min(snap.kcal / snap.kcalTarget, 1) : 0;
+  const r = 52;
+  const len = 2 * Math.PI * r;
+  const arc = s('circle', { cx: '60', cy: '60', r: String(r), class: left < 0 ? 'ring-val over' : 'ring-val' });
+  arc.setAttribute('stroke-dasharray', `${(pct * len).toFixed(1)} ${len.toFixed(1)}`);
+  /** @param {'carbs' | 'fat'} k */
+  const sum = (k) => {
+    const known = food.filter((f) => typeof f[k] === 'number');
+    return { value: known.reduce((a, f) => a + /** @type {number} */ (f[k]), 0), partial: known.length < food.length };
+  };
+  const carbs = sum('carbs');
+  const fat = sum('fat');
+  return h(
+    'div',
+    { class: 'diary-head', id: 'diary-head' },
+    h(
+      'div',
+      {
+        class: 'kcal-ring',
+        role: 'img',
+        'aria-label': `${fmt(snap.kcal)} von ${fmt(snap.kcalTarget)} kcal gegessen, ${left >= 0 ? `${fmt(left)} kcal übrig` : `${fmt(-left)} kcal darüber`}`,
+      },
+      s('svg', { viewBox: '0 0 120 120', 'aria-hidden': 'true' }, s('circle', { cx: '60', cy: '60', r: String(r), class: 'ring-bg' }), arc),
+      h(
+        'div',
+        { class: 'kcal-ring-text' },
+        h('strong', { id: 'kcal-left' }, fmt(Math.abs(left))),
+        h('small', {}, left >= 0 ? 'kcal übrig' : 'kcal darüber'),
+      ),
+    ),
+    h(
+      'div',
+      { class: 'diary-macros' },
+      h(
+        'p',
+        { class: 'small muted diary-eaten', id: 'diary-eaten' },
+        h('strong', { id: 'kcal-eaten' }, fmt(snap.kcal)),
+        ` / ${fmt(snap.kcalTarget)} kcal gegessen`,
+      ),
+      meter({ value: snap.proteinG, target: snap.protein.grams, label: 'Protein', unit: 'g', over: 'good' }),
+      meter({
+        value: carbs.value,
+        target: t.carbs ?? 0,
+        label: `Kohlenhydrate${carbs.partial ? ' (mind.)' : ''}`,
+        unit: 'g',
+        over: 'neutral',
+      }),
+      meter({ value: fat.value, target: t.fat ?? 0, label: `Fett${fat.partial ? ' (mind.)' : ''}`, unit: 'g', over: 'neutral' }),
+    ),
+  );
+}
+
+/**
+ * Gruppe einer Uhrzeit (wie in der Eintragsliste).
+ * @param {string} t
+ */
+const mealGroupOf = (t) => MEAL_GROUPS.find(([until]) => t < until)?.[1] ?? 'Abendessen';
+
+/**
+ * Mahlzeiten mit kcal und «+»: wählt die Mahlzeit für die Erfassung (Uhrzeit wird übernommen).
+ * @param {Ctx} ctx
+ * @param {import('../store.js').FoodEntry[]} food
+ */
+function slotBar(ctx, food) {
+  const current = activeSlot(ctx.date);
+  return h(
+    'div',
+    { class: 'slot-bar', role: 'group', 'aria-label': 'Mahlzeit hinzufügen' },
+    ...MEAL_SLOTS.map((m) => {
+      const kcal = food.filter((f) => mealGroupOf(f.time) === m.label).reduce((a, f) => a + f.kcal, 0);
+      return h(
+        'button',
+        {
+          type: 'button',
+          class: current?.id === m.id ? 'slot active' : 'slot',
+          id: `mealslot-${m.id}`,
+          'aria-label': `${m.label} hinzufügen${kcal ? `, bisher ${fmt(kcal)} kcal` : ''}`,
+          on: {
+            click: () => {
+              setSlot(ctx.date, m.id);
+              ctx.go('ernaehrung');
+              window.setTimeout(() => document.getElementById('capture-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+            },
+          },
+        },
+        h('span', { class: 'slot-plus', 'aria-hidden': 'true' }, '+'),
+        h('span', { class: 'slot-label' }, m.label === 'Zwischenmahlzeit' ? 'Snack' : m.label.replace('essen', '')),
+        h('small', {}, kcal ? `${fmt(kcal)} kcal` : '–'),
+      );
+    }),
+  );
+}
+
+/**
+ * Hinweis in der Erfassung: gewählte Mahlzeit, «wie gestern» übernehmen, zurück zu «jetzt».
+ * @param {Ctx} ctx
+ */
+function slotNote(ctx) {
+  const m = activeSlot(ctx.date);
+  if (!m) return null;
+  const today = (ctx.state.days[ctx.date]?.food ?? []).filter((f) => mealGroupOf(f.time) === m.label);
+  const yesterday = (ctx.state.days[addDays(ctx.date, -1)]?.food ?? []).filter((f) => mealGroupOf(f.time) === m.label);
+  const kcal = yesterday.reduce((a, f) => a + f.kcal, 0);
+  return h(
+    'div',
+    { class: 'note small slot-note', id: 'slot-note' },
+    h('span', {}, `Neue Einträge landen im ${m.label} (${m.time}).`),
+    h(
+      'div',
+      { class: 'btn-row' },
+      !today.length && yesterday.length
+        ? h(
+            'button',
+            {
+              type: 'button',
+              class: 'btn primary small-btn',
+              id: 'slot-copy',
+              on: {
+                click: () =>
+                  ctx.commit(
+                    (st) => {
+                      let added = 0;
+                      for (const f of yesterday) if (addFood(st, ctx.date, repeatEntry(f, f.time))) added++;
+                      return added > 0;
+                    },
+                    `${m.label} von gestern übernommen (${fmt(kcal)} kcal)`,
+                  ),
+              },
+            },
+            `Wie gestern (${yesterday.length === 1 ? shortName(yesterday[0].name) : `${yesterday.length} Einträge`}, ${fmt(kcal)} kcal)`,
+          )
+        : null,
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'btn small-btn',
+          id: 'slot-clear',
+          on: {
+            click: () => {
+              setSlot(ctx.date, '');
+              ctx.go('ernaehrung');
+            },
+          },
+        },
+        ctx.date === ctx.today ? 'Mit aktueller Uhrzeit' : 'Mahlzeit abwählen',
+      ),
+    ),
+  );
 }
 
 /**
@@ -1098,7 +1293,7 @@ let amountFoodId = '';
  * @param {string} [fallback]
  */
 function entryTimeFor(ctx, fallback = '12:00') {
-  return ctx.date === ctx.today ? nowTime() : fallback;
+  return captureTime(ctx, fallback);
 }
 
 /**
@@ -1154,7 +1349,7 @@ function entryList(ctx, food) {
   const dups = possibleDuplicates(food);
   // Neueste Mahlzeit oben (auch innerhalb der Gruppe)
   const sorted = [...food].sort(byMoment).reverse();
-  const groupOf = (/** @type {string} */ t) => MEAL_GROUPS.find(([until]) => t < until)?.[1] ?? 'Abendessen';
+  const groupOf = mealGroupOf;
   const multi = new Set(sorted.map((f) => groupOf(f.time))).size > 1;
   /** @type {HTMLElement[]} */
   const rows = [];

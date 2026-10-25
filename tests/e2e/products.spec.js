@@ -33,7 +33,9 @@ test('Produktsuche Migros/Coop über Open Food Facts: Händlerfilter, Etikettwer
   });
   await page.goto('/');
   await page.click('#load-demo');
-  await page.goto('/#ernaehrung');
+  await page.goto('/#ernaehrung/analyse');
+  const before = await page.locator('#n-calcium .nrow-val strong').textContent();
+  await page.click('#sub-tagebuch');
   await page.fill('#food-search', 'Skyr');
   await page.click('#store-migros');
   await expect(page.locator('#store-migros')).toHaveAttribute('aria-pressed', 'true');
@@ -46,9 +48,9 @@ test('Produktsuche Migros/Coop über Open Food Facts: Händlerfilter, Etikettwer
   expect(u.searchParams.get('tag_1')).toBe('migros');
   await page.click('#off-0');
   await expect(page.locator('#off-grams')).toHaveValue('150');
-  const before = await page.locator('#n-calcium .nrow-val strong').textContent();
   await page.click('#off-add');
   await expect(page.locator('#food-entries')).toContainText('Skyr nature (M-Classic), 150 g');
+  await page.click('#sub-analyse');
   const after = await page.locator('#n-calcium .nrow-val strong').textContent();
   const n = (/** @type {string | null} */ t) => Number((t ?? '0').replace(/[’']/g, ''));
   expect(n(after) - n(before)).toBe(180);

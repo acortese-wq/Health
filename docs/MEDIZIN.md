@@ -164,14 +164,17 @@ schwach (abends weniger Kohlenhydrate, Hafertage nur mit ärztlicher Begleitung 
 
 ## Nahrungsergänzung
 
-Erfassung unter «Ernährung › Nahrungsergänzung», Abhaken auf «Heute» (ein Tipp, zweiter Tipp nimmt zurück).
-Gespeichert als `supplements` und pro Tag `supps` (Schema 4).
+Erfassung unter «Ernährung › Präparate», Abhaken auf «Heute» (ein Tipp, zweiter Tipp nimmt zurück).
+Gespeichert als `supplements` und pro Tag `supps` (Schema 4). Produkte mit 2–4 ganzen Portionen pro Tag lassen sich
+einzeln abhaken (Mood: «Morgens» und «Abends» je 1 Kapsel); die Einnahme speichert dann `dose`.
 
 - Vorlagen: Burgerstein Mood, Supradyn pro energy-complex, Vitamin D3 1000 IE, Magnesium 150 mg, Omega-3 500 mg.
-  Mood und Supradyn nach Packungsangabe (Stand 21.10.2026): Mood pro 2 Kapseln B6 3.5 mg, B12 7 µg, Niacin 40 mg,
-  Folsäure 500 µg, Pantothensäure 15 mg, Vitamin D3 15 µg, Zink 5 mg, Safranextrakt 28 mg, Melissenextrakt 600 mg;
-  Supradyn pro Tablette u. a. B6 4.0 mg, Folsäure (B9) 430 µg, Eisen 8 mg. Unbekannte Werte zählen nicht und lassen sich
-  unter «Werte bearbeiten» ergänzen. Ändert sich eine Vorlage, bietet die App unveränderten Produkten «Übernehmen» an.
+  Mood und Supradyn nach Packungsangabe (Stand 21.10.2026): Mood pro Kapsel (2 pro Tag) B6 1.75 mg, B12 3.5 µg,
+  Niacin 20 mg, Folsäure 250 µg, Pantothensäure 7.5 mg, Vitamin D3 7.5 µg, Zink 2.5 mg, Safranextrakt 14 mg,
+  Melissenextrakt 300 mg; Supradyn pro Tablette u. a. B6 4.0 mg, Folsäure (B9) 430 µg, Eisen 8 mg. Unbekannte Werte
+  zählen nicht und lassen sich unter «Werte bearbeiten» ergänzen. Ändert sich eine Vorlage, werden unveränderte
+  Produkte beim Laden angepasst; ändert sich die Portion (Mood: «2 Kapseln» → «1 Kapsel»), werden gespeicherte
+  Einnahmen umgerechnet, damit die Nährstoffmenge gleich bleibt. Von Hand ergänzte Produkte bleiben unverändert.
 - Präparate zählen in den Nährstoffsummen als eigene Quelle (0 kcal, Etikettwerte), verbessern aber nicht die
   «Abdeckung» der Ernährung. Folsäure zählt als Folat-Äquivalent (× 1.7). Beta-Carotin wird nicht als Vitamin A gezählt.
 - Höchstmengen (EFSA, Erwachsene): Vitamin D 100 µg, B6 12 mg, Folsäure 1000 µg (nur Präparate), Nicotinamid 900 mg
