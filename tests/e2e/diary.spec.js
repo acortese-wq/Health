@@ -59,7 +59,8 @@ test('Tagebuch: Kalorienring, Mahlzeit wählen, «wie gestern» übernehmen, Unt
   expect(food.map((/** @type {any} */ f) => f.name).sort()).toEqual(['Kaffee mit Milch', 'Skyr mit Beeren']);
   expect(food.every((/** @type {any} */ f) => f.id !== 'y1' && f.id !== 'y2')).toBeTruthy();
   await expect(page.locator('#mealslot-fruehstueck')).toContainText('290 kcal');
-  await expect(page.locator('#kcal-left')).toHaveText(new Intl.NumberFormat('de-CH').format(target - 290));
+  // nur Ziffern vergleichen: das Tausender-Apostroph unterscheidet sich je nach ICU-Version
+  await expect(page.locator('#kcal-left')).toHaveText(new RegExp(`^${String(target - 290).replace(/\B(?=(\d{3})+$)/g, '\\D?')}$`));
   // Bereits etwas im Frühstück: kein «wie gestern» mehr
   await expect(page.locator('#slot-copy')).toHaveCount(0);
 
