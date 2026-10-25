@@ -7,7 +7,7 @@ import { saveWithBackup, snapshot as backupSnapshot, preserveCorrupt, saveDraft,
 import { snapshot } from './model.js';
 import { showcaseState } from './showcase.js';
 import { addDays, daysBetween, toISODate } from './domain/util.js';
-import { shouldNudge } from './domain/hydration.js';
+import { shouldNudge, fluidOf } from './domain/hydration.js';
 import { viewToday, viewNutrition } from './views/today.js';
 import { viewWeight, setWeightRange } from './views/weight.js';
 import { viewRecipes } from './views/recipes.js';
@@ -566,7 +566,7 @@ function waterNudge() {
     /* ohne Speicher: trotzdem erinnern */
   }
   const msg = shouldNudge({
-    ml: state.days[today]?.waterMl ?? 0,
+    ml: fluidOf(state.days[today])?.total ?? 0,
     target: state.profile.waterTargetMl,
     minutes: now.getHours() * 60 + now.getMinutes(),
     lastNudge: last,

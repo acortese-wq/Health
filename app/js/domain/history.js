@@ -3,6 +3,7 @@
 // sie werden weder als 0 gezählt noch überbrückt.
 
 import { addDays, daysBetween, isNum, mean } from './util.js';
+import { fluidOf } from './hydration.js';
 
 /**
  * @typedef {'kcal' | 'protein' | 'steps' | 'sleep' | 'water' | 'training'} MetricId
@@ -42,7 +43,7 @@ export function dayValue(state, metric, date) {
     case 'sleep':
       return { value: isNum(d?.sleepH) ? /** @type {number} */ (d?.sleepH) : null, partial: false };
     case 'water':
-      return { value: isNum(d?.waterMl) ? /** @type {number} */ (d?.waterMl) / 1000 : null, partial: false };
+      return { value: fluidOf(d) ? /** @type {{ total: number }} */ (fluidOf(d)).total / 1000 : null, partial: false };
     case 'training': {
       const ws = state.workouts.filter((w) => w.date === date);
       return { value: ws.reduce((a, w) => a + (w.kind === 'run' ? w.minutes : 45), 0), partial: false };

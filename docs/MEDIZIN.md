@@ -164,6 +164,14 @@ Jedes Prinzip ist mit Studienlage bewertet: hoch (Gemüse, Ballaststoffe, Eiweis
 mittel (Intervallfasten gleichwertig, fermentierte Lebensmittel, anti-entzündliches Muster, langsam essen),
 schwach (abends weniger Kohlenhydrate, Hafertage nur mit ärztlicher Begleitung bei Diabetes-Medikamenten).
 
+## Trinken
+
+Die Trinkmenge ist Wasser plus Kaffee, Tee und andere Getränke aus «Koffein». In üblichen Mengen (bis ca. 4 Tassen)
+hydrieren Kaffee und Tee ähnlich gut wie Wasser (Killer SC et al., PLoS One 2014;9:e84154; Maughan RJ et al., Am J Clin
+Nutr 2016;103:717–723). Mengen pro Knopf: Espresso 30 ml, Kaffee/Lungo 200 ml, Cappuccino 180 ml, Schwarztee 250 ml,
+Energy Drink 250 ml; ältere Einträge ohne Menge werden nach dem Namen geschätzt (sonst 150 ml). «Korrektur» ändert nur
+das Wasser.
+
 ## Nahrungsergänzung
 
 Erfassung unter «Ernährung › Präparate», Abhaken auf «Heute» (ein Tipp, zweiter Tipp nimmt zurück).

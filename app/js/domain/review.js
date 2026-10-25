@@ -8,6 +8,7 @@
 // (Burke LE et al., J Am Diet Assoc 2011;111:92–102).
 
 import { plannedSession } from './training.js';
+import { fluidOf } from './hydration.js';
 import { addDays, isNum, mean, timeToMinutes } from './util.js';
 import { eatingWindow, outsideWindow, windowLabel } from './fasting.js';
 
@@ -245,16 +246,18 @@ export function dayReview(s, { workouts, dayOver, streaks: st }) {
 
   // Trinken
   const waterTarget = s.profile.waterTargetMl ?? 2000;
-  if (isNum(s.day.waterMl)) {
+  // Wasser plus Kaffee und Tee
+  const fluid = fluidOf(s.day)?.total;
+  if (isNum(fluid)) {
     total++;
-    if (s.day.waterMl >= waterTarget) {
+    if (fluid >= waterTarget) {
       met++;
-      wins.push(`${fmt(s.day.waterMl)} ml getrunken.`);
-    } else if (dayOver && s.day.waterMl < waterTarget * 0.6) {
+      wins.push(`${fmt(fluid)} ml getrunken.`);
+    } else if (dayOver && fluid < waterTarget * 0.6) {
       improve.push({
         id: 'water',
         weight: 25,
-        title: `Nur ${fmt(s.day.waterMl)} ml getrunken`,
+        title: `Nur ${fmt(fluid)} ml getrunken`,
         tip: 'Stell dir morgens eine volle Literflasche auf den Schreibtisch. Und trink vor jeder Mahlzeit ein grosses Glas Wasser.',
       });
     }
@@ -432,7 +435,7 @@ export function weekReview(days, ctx) {
       });
   }
 
-  const water = days.map((d) => d.day.waterMl).filter(isNum);
+  const water = days.map((d) => fluidOf(d.day)?.total).filter(isNum);
   const waterTarget = ctx.waterTargetMl ?? 2000;
   if (water.length >= 4) {
     total++;

@@ -2,6 +2,7 @@
 // Abgeleitete Kennzahlen aus dem gespeicherten Zustand für ein Datum.
 
 import { ageOn, adaptiveTdee, bmrMifflin, formulaTdee, planTarget, proteinTarget } from './domain/energy.js';
+import { fluidOf } from './domain/hydration.js';
 import { plannedTotals } from './domain/supplements.js';
 import { emaTrend, projectGoalDate, rolling7, trendSlope, planWeightOn } from './domain/trend.js';
 import { allowedCups, dayAssessment, taperPlan } from './domain/caffeine.js';
@@ -96,7 +97,7 @@ export function snapshot(state, date) {
     return xs.length ? { value: mean(xs), n: xs.length } : null;
   };
   const sleep7 = avg((d) => d.sleepH, 0, 7);
-  const water7 = avg((d) => d.waterMl, 0, 7);
+  const water7 = avg((d) => fluidOf(d)?.total, 0, 7);
   const steps7 = avg((d) => d.steps, 0, 7);
   const rhr7 = avg((d) => d.restingHr, 0, 7);
   const rhrBase = avg((d) => d.restingHr, 7, 35);

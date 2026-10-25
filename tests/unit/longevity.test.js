@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { activityYears, longevityEstimate, metHoursPerWeek, overweightRisks, yearsLostToBmi } from '../../app/js/domain/longevity.js';
-import { waterFact, waterPace } from '../../app/js/domain/hydration.js';
+import { waterFact, waterPace, drinkMl, fluidOf } from '../../app/js/domain/hydration.js';
 import { addDays } from '../../app/js/domain/util.js';
 
 test('Verlorene Jahre nach BMI: Stützpunkte der Prospective Studies Collaboration', () => {
@@ -103,4 +103,19 @@ test('Erinnerungszeiten und Kalenderdatei', async () => {
   assert.match(shouldNudge({ ml: 200, target: 2000, minutes: 14 * 60, lastNudge: null, now }) ?? '', /Gläser/);
   assert.equal(shouldNudge({ ml: 200, target: 2000, minutes: 14 * 60, lastNudge: now - 30 * 60000, now }), null);
   assert.equal(shouldNudge({ ml: 1000, target: 2000, minutes: 14 * 60, lastNudge: null, now }), null);
+});
+
+test('Trinkmenge: Kaffee und Tee zählen mit, eigene ml haben Vorrang, nichts erfasst bleibt unbekannt', () => {
+  assert.equal(drinkMl({ label: 'Espresso' }), 30);
+  assert.equal(drinkMl({ label: 'Kaffee / Lungo' }), 200);
+  assert.equal(drinkMl({ label: 'Schwarztee' }), 250);
+  assert.equal(drinkMl({ label: 'Etwas anderes' }), 150);
+  assert.equal(drinkMl({ label: 'Espresso', ml: 40 }), 40);
+  assert.equal(fluidOf({}), undefined);
+  assert.deepEqual(fluidOf({ waterMl: 500, caffeine: [{ label: 'Espresso' }, { label: 'Kaffee', ml: 250 }] }), {
+    total: 780,
+    water: 500,
+    drinks: 280,
+  });
+  assert.deepEqual(fluidOf({ caffeine: [{ label: 'Cappuccino' }] }), { total: 180, water: 0, drinks: 180 });
 });

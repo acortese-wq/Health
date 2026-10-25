@@ -4,6 +4,44 @@
 // 2012;31:71–78 (ab ca. 2 % Flüssigkeitsverlust leiden Konzentration und Leistung);
 // Dennis EA et al., Obesity 2010;18:300–307 (Wasser vor den Mahlzeiten).
 
+/**
+ * Kaffee und Tee zählen zur Trinkmenge: In üblichen Mengen (bis ca. 4 Tassen) hydrieren sie
+ * ähnlich gut wie Wasser (Killer SC et al., PLoS One 2014;9:e84154; Maughan RJ et al.,
+ * Am J Clin Nutr 2016;103:717–723). Typische Mengen, falls ein Eintrag keine ml hat.
+ */
+const DRINK_ML = /** @type {const} */ ([
+  [/ristretto/, 25],
+  [/espresso/, 30],
+  [/cappuccino/, 180],
+  [/latte|milchkaffee|schale/, 250],
+  [/energy|red bull/, 250],
+  [/cola|mate/, 330],
+  [/tee|tea/, 250],
+  [/kaffee|lungo|americano|filter/, 200],
+]);
+
+/**
+ * Trinkmenge eines Koffein-Eintrags in ml (eigene Angabe, sonst typische Menge, sonst 150 ml).
+ * @param {{ label: string, ml?: number }} c
+ */
+export function drinkMl(c) {
+  if (typeof c.ml === 'number' && Number.isFinite(c.ml) && c.ml >= 0) return c.ml;
+  const l = c.label.toLowerCase();
+  return DRINK_ML.find(([re]) => re.test(l))?.[1] ?? 150;
+}
+
+/**
+ * Getrunkenes eines Tages: Wasser plus Kaffee, Tee usw. undefined = nichts erfasst.
+ * @param {{ waterMl?: number, caffeine?: { label: string, ml?: number }[] } | undefined} day
+ * @returns {{ total: number, water: number, drinks: number } | undefined}
+ */
+export function fluidOf(day) {
+  const water = day?.waterMl ?? 0;
+  const drinks = (day?.caffeine ?? []).reduce((a, c) => a + drinkMl(c), 0);
+  if (!water && !drinks) return undefined;
+  return { total: water + drinks, water, drinks };
+}
+
 /** Wachzeit, über die das Trinkziel verteilt wird. */
 const DAY_START = 7 * 60;
 const DAY_END = 21 * 60;

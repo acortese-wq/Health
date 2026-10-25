@@ -36,7 +36,8 @@ test('Perfekter Tag: nur Erfolge, motivierende Überschrift', () => {
         sleepH: 7.5,
         complete: true,
         food: [meal(700, 50), meal(210, 28, '16:00'), meal(1100, 75, '19:00')],
-        caffeine: [{ id: 'c', label: 'K', mg: 90, time: '08:00' }],
+        // Koffein ohne Getränkemenge (ml: 0), damit Trinken hier nicht bewertet wird
+        caffeine: [{ id: 'c', label: 'Kaffee', mg: 90, ml: 0, time: '08:00' }],
       },
     }),
     {

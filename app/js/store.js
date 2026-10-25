@@ -56,14 +56,14 @@ export const SCHEMA_VERSION = 4;
  *   hunger?: 1 | 2 | 3, trigger?: import('./domain/meals.js').Trigger, nova?: number,
  *   at?: string, repeatOf?: string, dupOf?: string, keep?: boolean, proteinKnown?: false, planId?: string,
  * }} FoodEntry
- * @typedef {{ id: string, label: string, mg: number, time: string }} CaffeineEntry
+ * @typedef {{ id: string, label: string, mg: number, time: string, ml?: number }} CaffeineEntry
  * @typedef {{
  *   weightKg?: number, food?: FoodEntry[], caffeine?: CaffeineEntry[],
  *   steps?: number, sleepH?: number, restingHr?: number, waterMl?: number, complete?: boolean, period?: boolean,
  *   supps?: import('./domain/supplements.js').Intake[],
  * }} Day
  * @typedef {{ id: string, name: string, kcal: number, protein: number, carbs?: number, fat?: number, sugar?: number, satFat?: number, fiber?: number, salt?: number }} FoodPreset
- * @typedef {{ id: string, label: string, mg: number }} CaffeinePreset
+ * @typedef {{ id: string, label: string, mg: number, ml?: number }} CaffeinePreset
  * @typedef {{ id: string, date: string, cm: number }} WaistEntry
  * @typedef {{ id: string, date: string, time: string, sys: number, dia: number, pulse?: number, setting: 'home' | 'office' }} BpEntry
  * @typedef {{ id: string, date: string, value: number }} Vo2Entry
@@ -104,11 +104,11 @@ export function defaultFoodPresets() {
 /** @returns {CaffeinePreset[]} */
 export function defaultCaffeinePresets() {
   return [
-    { id: 'espresso', label: 'Espresso', mg: 70 },
-    { id: 'kaffee', label: 'Kaffee / Lungo', mg: 90 },
-    { id: 'cappuccino', label: 'Cappuccino', mg: 70 },
-    { id: 'energy', label: 'Energy Drink 250 ml', mg: 80 },
-    { id: 'tee', label: 'Schwarztee', mg: 40 },
+    { id: 'espresso', label: 'Espresso', mg: 70, ml: 30 },
+    { id: 'kaffee', label: 'Kaffee / Lungo', mg: 90, ml: 200 },
+    { id: 'cappuccino', label: 'Cappuccino', mg: 70, ml: 180 },
+    { id: 'energy', label: 'Energy Drink 250 ml', mg: 80, ml: 250 },
+    { id: 'tee', label: 'Schwarztee', mg: 40, ml: 250 },
   ];
 }
 
@@ -242,7 +242,9 @@ export function sanitize(raw) {
         : null,
     );
     const caf = arr(raw.presets.caffeine, (x) =>
-      typeof x.label === 'string' && isNum(x.mg) ? { id: id(x.id), label: x.label, mg: x.mg } : null,
+      typeof x.label === 'string' && isNum(x.mg)
+        ? { id: id(x.id), label: x.label, mg: x.mg, ...(isNum(x.ml) && x.ml >= 0 && x.ml <= 2000 ? { ml: x.ml } : {}) }
+        : null,
     );
     if (food.length) s.presets.food = food;
     if (caf.length) s.presets.caffeine = caf;
@@ -445,7 +447,15 @@ function sanitizeDay(d, seen) {
   if (Array.isArray(d.caffeine)) {
     out.caffeine = d.caffeine.flatMap((c) =>
       isObj(c) && typeof c.label === 'string' && isNum(c.mg)
-        ? [{ id: typeof c.id === 'string' ? c.id : uid(), label: c.label, mg: c.mg, time: time(c.time) }]
+        ? [
+            {
+              id: typeof c.id === 'string' ? c.id : uid(),
+              label: c.label,
+              mg: c.mg,
+              time: time(c.time),
+              ...(isNum(c.ml) && c.ml >= 0 && c.ml <= 2000 ? { ml: c.ml } : {}),
+            },
+          ]
         : [],
     );
   }

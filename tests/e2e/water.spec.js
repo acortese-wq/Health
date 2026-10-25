@@ -27,6 +27,30 @@ test('Trinken: Glas und Flasche erfassen, korrigieren, bleibt nach Neuladen', as
   await expect(card).toContainText('5 Gläser');
 });
 
+test('Trinken: Kaffee und Tee aus «Koffein» zählen zur Trinkmenge', async ({ page }) => {
+  await page.goto('/');
+  await page.fill('#p-birth', '1977-05-09');
+  await page.fill('#p-height', '172');
+  await page.fill('#p-startkg', '95');
+  await page.fill('#p-goalkg', '80');
+  await page.fill('#p-goaldate', '2027-03-31');
+  await page.click('#profile-save');
+  const card = page.locator('section[aria-labelledby="water-h"]');
+  await page.click('#water-500');
+  await page.click('#caf-kaffee');
+  await expect(page.locator('#toast')).toContainText('+200 ml getrunken');
+  await page.click('#caf-espresso');
+  await expect(card).toContainText(/730 \/ 2[’']000 ml/);
+  await expect(card).toContainText('Wasser 500 ml + Kaffee/Tee 230 ml');
+  // Korrektur betrifft nur das Wasser
+  await page.click('#water-minus');
+  await page.click('#water-minus');
+  await expect(card).toContainText(/230 \/ 2[’']000 ml/);
+  await expect(page.locator('#water-minus')).toBeDisabled();
+  await page.reload();
+  await expect(card).toContainText(/230 \/ 2[’']000 ml/);
+});
+
 test('Gesundheit: Lebenserwartung, Risiken und Nutzen von Bewegung', async ({ page }) => {
   await page.goto('/');
   await page.click('#load-demo');

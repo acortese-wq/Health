@@ -9,7 +9,7 @@ import { FIBER_TARGET_G, SALT_LIMIT_G } from '../domain/foodvision.js';
 import { plannedSession } from '../domain/training.js';
 import { photoBlock } from './photo.js';
 import { healthPasteBlock } from './garmin.js';
-import { waterPace, waterFact, reminderTimes, buildReminderIcs } from '../domain/hydration.js';
+import { waterPace, waterFact, reminderTimes, buildReminderIcs, drinkMl, fluidOf } from '../domain/hydration.js';
 import { reviewCard } from './review.js';
 import {
   foodSearchBlock,
@@ -825,12 +825,15 @@ function caffeineCard(ctx, snap) {
   const p = snap.profile;
   const list = snap.day.caffeine ?? [];
   const c = snap.caffeine;
-  /** @param {{ label: string, mg: number }} x */
+  /** @param {{ label: string, mg: number, ml?: number }} x */
   const add = (x) =>
-    ctx.commit((s) => {
-      const d = (s.days[ctx.date] = s.days[ctx.date] ?? {});
-      d.caffeine = [...(d.caffeine ?? []), { id: uid(), label: x.label, mg: x.mg, time: nowTime() }];
-    }, `${x.label} erfasst`);
+    ctx.commit(
+      (s) => {
+        const d = (s.days[ctx.date] = s.days[ctx.date] ?? {});
+        d.caffeine = [...(d.caffeine ?? []), { id: uid(), label: x.label, mg: x.mg, ml: drinkMl(x), time: nowTime() }];
+      },
+      `${x.label} erfasst (+${fmt(drinkMl(x))} ml getrunken)`,
+    );
   const cupsInfo =
     snap.cupsAllowed !== null ? `${snap.cupsToday} von ${snap.cupsAllowed} Tassen (Ausschleichplan)` : `${snap.cupsToday} Tassen`;
   return h(
@@ -859,7 +862,7 @@ function caffeineCard(ctx, snap) {
           'button',
           { type: 'button', class: 'chip', id: `caf-${x.id}`, on: { click: () => add(x) } },
           x.label,
-          h('small', {}, `${fmt(x.mg)} mg`),
+          h('small', {}, `${fmt(x.mg)} mg · ${fmt(drinkMl(x))} ml`),
         ),
       ),
     ),
@@ -877,7 +880,7 @@ function caffeineCard(ctx, snap) {
                 {},
                 h('span', { class: 'entry-time' }, x.time),
                 h('span', { class: 'entry-name' }, x.label),
-                h('span', { class: 'entry-num' }, `${fmt(x.mg)} mg`),
+                h('span', { class: 'entry-num' }, `${fmt(x.mg)} mg · ${fmt(drinkMl(x))} ml`),
                 h(
                   'button',
                   {
@@ -978,7 +981,10 @@ function recoveryCard(ctx, snap) {
  * @param {NonNullable<Ctx['snap']>} snap
  */
 function waterCard(ctx, snap) {
-  const ml = snap.day.waterMl ?? 0;
+  // Wasser plus Kaffee und Tee (zählen ebenfalls zur Trinkmenge)
+  const fluid = fluidOf(snap.day);
+  const ml = fluid?.total ?? 0;
+  const waterOnly = snap.day.waterMl ?? 0;
   const target = snap.profile.waterTargetMl;
   /** @param {number} delta */
   const change = (delta) =>
@@ -1001,7 +1007,9 @@ function waterCard(ctx, snap) {
     meter({
       value: ml,
       target,
-      label: `${fmt(ml / 250, (ml / 250) % 1 ? 1 : 0)} ${ml === 250 ? 'Glas' : 'Gläser'} à 250 ml`,
+      label: fluid?.drinks
+        ? `Wasser ${fmt(fluid.water)} ml + Kaffee/Tee ${fmt(fluid.drinks)} ml`
+        : `${fmt(ml / 250, (ml / 250) % 1 ? 1 : 0)} ${ml === 250 ? 'Glas' : 'Gläser'} à 250 ml`,
       unit: 'ml',
       over: 'good',
     }),
@@ -1023,7 +1031,7 @@ function waterCard(ctx, snap) {
       ),
       h(
         'button',
-        { type: 'button', class: 'chip', id: 'water-minus', disabled: !ml, on: { click: () => change(-250) } },
+        { type: 'button', class: 'chip', id: 'water-minus', disabled: !waterOnly, on: { click: () => change(-250) } },
         'Korrektur',
         h('small', {}, '−250 ml'),
       ),
@@ -1037,7 +1045,11 @@ function waterCard(ctx, snap) {
     ),
     snap.water7 ? h('p', { class: 'small muted' }, `7-Tage-Schnitt: ${fmt(snap.water7.value)} ml`) : null,
     reminderBlock(ctx, target),
-    h('p', { class: 'hint' }, 'Kaffee und Tee zählen mit. Bei Herz- oder Nierenerkrankungen gilt die ärztlich empfohlene Trinkmenge.'),
+    h(
+      'p',
+      { class: 'hint' },
+      'Kaffee und Tee aus «Koffein» zählen automatisch mit (in üblichen Mengen hydrieren sie ähnlich wie Wasser). Bei Herz- oder Nierenerkrankungen gilt die ärztlich empfohlene Trinkmenge.',
+    ),
   );
 }
 
