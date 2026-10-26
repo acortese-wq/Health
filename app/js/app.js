@@ -13,6 +13,7 @@ import { viewWeight, setWeightRange } from './views/weight.js';
 import { viewRecipes } from './views/recipes.js';
 import { viewPlanner } from './views/planner.js';
 import { viewGarmin } from './views/garmindash.js';
+import { takeConnectToken } from './garminlink.js';
 import { viewTraining } from './views/training.js';
 import { viewHealth } from './views/health.js';
 import { viewKnowledge } from './views/knowledge.js';
@@ -70,6 +71,8 @@ const root = /** @type {HTMLElement} */ (document.getElementById('app'));
 const storage = safeStorage();
 const loaded = load(storage);
 let state = loaded.state;
+// Rückkehr von der Garmin-Anmeldung (Sync-Schlüssel im Adress-Fragment)
+const garminConnected = takeConnectToken();
 // Unlesbare Daten beiseitelegen, bevor irgendetwas gespeichert wird
 if (loaded.error && loaded.raw) preserveCorrupt(storage, loaded.raw);
 let date = toISODate();
@@ -597,6 +600,7 @@ window.addEventListener('resize', () => {
 
 render();
 waterNudge();
+if (garminConnected) toast('Mit Garmin verbunden. Neue Werte kommen, sobald deine Uhr synchronisiert.');
 
 // Browser bitten, die Daten nicht automatisch zu löschen (v. a. Safari nach 7 Tagen Inaktivität).
 navigator.storage?.persist?.().catch(() => {

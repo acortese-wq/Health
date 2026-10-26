@@ -9,6 +9,150 @@ import { garminSummary, pace } from '../domain/garmin.js';
 import { addDays } from '../domain/util.js';
 import { RUN_TYPES } from '../domain/training.js';
 import { healthPasteBlock } from './garmin.js';
+import { getLink, saveLink, normalizeWorkerUrl, startConnect, fetchGarmin, disconnect } from '../garminlink.js';
+import { mergeGarmin } from '../domain/garminsync.js';
+
+/** Laufender Abgleich (verhindert doppelte Anfragen). */
+let syncing = false;
+/** Letzte Fehlermeldung des Abgleichs. */
+let syncError = '';
+
+/**
+ * Werte vom Worker holen und übernehmen.
+ * @param {Ctx} ctx
+ * @param {boolean} [manual]
+ */
+export async function syncNow(ctx, manual = false) {
+  const link = getLink();
+  if (!link?.token || syncing || ctx.showcase.active) return;
+  syncing = true;
+  syncError = '';
+  if (manual) ctx.go('garmin');
+  try {
+    // Ab drei Tage vor dem letzten Abgleich (Garmin liefert Werte oft nachträglich), höchstens 60 Tage
+    const floor = addDays(ctx.today, -60);
+    const since = link.lastSync && link.lastSync.slice(0, 10) > floor ? addDays(link.lastSync.slice(0, 10), -3) : floor;
+    const days = await fetchGarmin(link, since);
+    /** @type {ReturnType<typeof mergeGarmin> | null} */
+    let res = null;
+    syncing = false;
+    ctx.commit((st) => {
+      res = mergeGarmin(st, days, ctx.today);
+      return res.days + res.workouts + res.vo2 > 0;
+    }, 'Garmin-Daten übernommen');
+    const r = /** @type {ReturnType<typeof mergeGarmin> | null} */ (res);
+    saveLink({ ...link, lastSync: new Date().toISOString(), extras: { ...(link.extras ?? {}), ...(r?.extras ?? {}) } });
+    if (r && r.days + r.workouts + r.vo2 === 0 && manual) ctx.toast('Garmin: nichts Neues.');
+    ctx.go('garmin');
+  } catch (err) {
+    syncing = false;
+    syncError = err instanceof Error ? err.message : String(err);
+    ctx.go('garmin');
+  }
+}
+
+/**
+ * Verbindung zum Garmin-Worker: einrichten, abgleichen, trennen.
+ * @param {Ctx} ctx
+ */
+function connectCard(ctx) {
+  const link = getLink();
+  if (link?.token) {
+    return h(
+      'section',
+      { class: 'card stack-sm', 'aria-labelledby': 'g-con-h', id: 'garmin-connect' },
+      h('div', { class: 'card-head' }, h('h2', { id: 'g-con-h' }, 'Garmin Connect'), badge('ok', 'Verbunden')),
+      h(
+        'p',
+        { class: 'small', id: 'garmin-sync-status' },
+        syncing
+          ? 'Gleiche ab …'
+          : link.lastSync
+            ? `Zuletzt abgeglichen: ${fmtDate(link.lastSync.slice(0, 10))}, ${link.lastSync.slice(11, 16)} UTC`
+            : 'Noch nicht abgeglichen.',
+      ),
+      syncError ? h('p', { class: 'note alert small', id: 'garmin-sync-error' }, syncError) : null,
+      h(
+        'div',
+        { class: 'btn-row' },
+        h(
+          'button',
+          { type: 'button', class: 'btn primary', id: 'garmin-sync', disabled: syncing, on: { click: () => syncNow(ctx, true) } },
+          'Jetzt abgleichen',
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'btn danger-outline',
+            id: 'garmin-disconnect',
+            on: {
+              click: async () => {
+                if (!window.confirm('Verbindung trennen? Die Garmin-Daten im Worker werden gelöscht; was schon in der App ist, bleibt.'))
+                  return;
+                await disconnect(link);
+                ctx.toast('Garmin getrennt.');
+                ctx.go('garmin');
+              },
+            },
+          },
+          'Trennen',
+        ),
+      ),
+      h(
+        'p',
+        { class: 'hint' },
+        'Garmin schickt neue Werte, sobald deine Uhr mit der Garmin-Connect-App synchronisiert. Beim Öffnen dieser Seite gleicht die App automatisch ab.',
+      ),
+    );
+  }
+  return h(
+    'section',
+    { class: 'card stack-sm', 'aria-labelledby': 'g-con-h', id: 'garmin-connect' },
+    h('h2', { id: 'g-con-h' }, 'Mit Garmin verbinden'),
+    h(
+      'p',
+      { class: 'small' },
+      'Über die Garmin Health API und deinen eigenen kleinen Server (Cloudflare Worker). Einrichtung siehe Anleitung «docs/GARMIN.md».',
+    ),
+    h(
+      'form',
+      {
+        class: 'inline-form',
+        on: {
+          submit: (e) => {
+            e.preventDefault();
+            const raw = String(new FormData(/** @type {HTMLFormElement} */ (e.target)).get('worker') ?? '');
+            const url = normalizeWorkerUrl(raw);
+            if (!url) return ctx.toast('Bitte die https-Adresse deines Workers eingeben.', 'error');
+            startConnect(url);
+          },
+        },
+      },
+      h(
+        'div',
+        { class: 'field' },
+        h('label', { for: 'garmin-worker' }, 'Adresse deines Workers'),
+        h('input', {
+          id: 'garmin-worker',
+          name: 'worker',
+          inputmode: 'url',
+          placeholder: 'https://garmin-cockpit.<name>.workers.dev',
+          value: link?.url ?? '',
+        }),
+      ),
+      h('button', { type: 'submit', class: 'btn primary', id: 'garmin-connect-go' }, 'Mit Garmin verbinden'),
+    ),
+    h(
+      'p',
+      { class: 'hint' },
+      'Ohne Verbindung funktionieren weiterhin der CSV-Import unter Training und das Einfügen per Kurzbefehl (unten).',
+    ),
+  );
+}
+
+/** Ab wann automatisch neu abgeglichen wird (Minuten). */
+const AUTO_SYNC_MIN = 15;
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 
@@ -40,6 +184,16 @@ function tile(label, value, unit, sub, tone = '', id = '') {
 /** @param {Ctx} ctx */
 export function viewGarmin(ctx) {
   const g = garminSummary(ctx.state, ctx.today);
+  const link = getLink();
+  // Automatisch abgleichen, wenn verbunden und länger nicht geschehen
+  if (link?.token && !syncing && !syncError && (!link.lastSync || Date.now() - Date.parse(link.lastSync) > AUTO_SYNC_MIN * 60000))
+    window.setTimeout(() => syncNow(ctx), 0);
+  const extras = link?.extras ?? {};
+  const extraDates = Object.keys(extras)
+    .filter((d) => d <= ctx.today)
+    .sort();
+  const ex = extraDates.length ? extras[extraDates[extraDates.length - 1]] : null;
+  const exDate = extraDates[extraDates.length - 1] ?? '';
   const from14 = addDays(ctx.today, -13);
   const from30 = addDays(ctx.today, -29);
   const steps = series(ctx.state, 'steps', from14, ctx.today);
@@ -56,6 +210,7 @@ export function viewGarmin(ctx) {
     'div',
     { class: 'stack' },
     h('h1', {}, 'Garmin-Dashboard'),
+    connectCard(ctx),
     h(
       'p',
       { class: 'small muted', id: 'garmin-freshness' },
@@ -86,7 +241,9 @@ export function viewGarmin(ctx) {
       h(
         'p',
         { class: 'hint' },
-        'Aus Ruhepuls (7 Tage gegen deinen Basiswert der Wochen davor) und Schlaf. Garmins «Body Battery» und HRV werden nicht übertragen.',
+        link?.token
+          ? 'Aus Ruhepuls (7 Tage gegen deinen Basiswert der Wochen davor) und Schlaf. HRV und Body Battery von Garmin stehen unten als Zusatzwerte.'
+          : 'Aus Ruhepuls (7 Tage gegen deinen Basiswert der Wochen davor) und Schlaf. HRV und Body Battery gibt es nur mit der Garmin-Verbindung.',
       ),
     ),
     h(
@@ -137,6 +294,22 @@ export function viewGarmin(ctx) {
         'g-intensity',
       ),
       tile('Laufen', fmt(g.km7, 1), 'km', `${g.runs7} ${g.runs7 === 1 ? 'Lauf' : 'Läufe'} in 7 Tagen`, '', 'g-run'),
+      ex?.hrvMs !== undefined
+        ? tile('HRV (Nacht)', fmt(ex.hrvMs), 'ms', `${fmtDate(exDate)} · nur mit dir selbst vergleichen`, '', 'g-hrv')
+        : null,
+      ex?.bodyBatteryHigh !== undefined
+        ? tile(
+            'Body Battery',
+            fmt(ex.bodyBatteryHigh),
+            '/ 100',
+            `Höchstwert ${fmtDate(exDate)}${ex.bodyBatteryLow !== undefined ? ` · tiefster ${fmt(ex.bodyBatteryLow)}` : ''}`,
+            '',
+            'g-bb',
+          )
+        : null,
+      ex?.stress !== undefined
+        ? tile('Stress', fmt(ex.stress), '/ 100', `Tagesschnitt ${fmtDate(exDate)} (Garmin)`, ex.stress > 50 ? 'bad' : '', 'g-stress')
+        : null,
     ),
     h(
       'section',

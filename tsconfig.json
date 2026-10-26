@@ -13,5 +13,5 @@
     "skipLibCheck": true,
     "types": []
   },
-  "include": ["app/js/**/*.js"]
+  "include": ["app/js/**/*.js", "worker/**/*.js"]
 }

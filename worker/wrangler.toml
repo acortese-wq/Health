@@ -1,0 +1,19 @@
+# Cloudflare Worker für die Garmin-Anbindung des Gesundheitscockpits (Anleitung: docs/GARMIN.md).
+name = "garmin-cockpit"
+main = "garmin-worker.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Adresse der App (nur von hier aus darf die App Daten abholen)
+APP_ORIGIN = "https://acortese-wq.github.io"
+# Öffentlich, steht auch im Garmin-Portal
+GARMIN_CLIENT_ID = "HIER_CLIENT_ID_EINTRAGEN"
+
+# Speicher für Tokens und Tageswerte: «npx wrangler kv namespace create GARMIN» und die id hier eintragen
+[[kv_namespaces]]
+binding = "GARMIN"
+id = "HIER_KV_ID_EINTRAGEN"
+
+# Geheimnisse NICHT hier eintragen, sondern:
+#   npx wrangler secret put GARMIN_CLIENT_SECRET
+#   npx wrangler secret put WEBHOOK_SECRET   (lange Zufallszeichenkette, z. B. openssl rand -hex 24)
