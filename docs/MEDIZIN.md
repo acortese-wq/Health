@@ -193,6 +193,18 @@ Fehlende Angaben (z. B. keine Lebensmittelgruppen) führen zu keinem Abzug. Im C
 7 Tage mit Vorwoche und ein Fotojournal der fotografierten Mahlzeiten (14 Tage, Bilder nur auf dem Gerät). Eine
 Orientierung, keine Diagnose.
 
+## Garmin-Dashboard
+
+Unter Training › «Garmin-Dashboard» (`#garmin`): Erholung, Schritte, Schlaf, Ruhepuls, VO₂max, Intensitätsminuten,
+Laufkilometer, Diagramme (Schritte und Schlaf 14 Tage, Ruhepuls 30 Tage mit Basiswert) und die letzten Aktivitäten
+mit Pace und Ø-Puls. Quellen: Garmin-Aktivitäten-CSV, Tageswerte per Kurzbefehl (Garmin → Apple Health), eigene Einträge.
+
+- Erholung: Ruhepuls 7 Tage gegen Basis (Tage 8–37, mind. 10 Messungen); > 5 Schläge darüber = Achtung, > 3 oder Schlaf
+  unter 6.5 h = eingeschränkt (Buchheit M, Front Physiol 2014;5:73; Watson NF et al., Sleep 2015;38:843).
+- Intensitätsminuten nach WHO 2020: 150 Minuten mässig pro Woche, intensiv zählt doppelt.
+- VO₂max-Änderung gegen den letzten Wert, der mindestens 60 Tage älter ist (Mandsager K et al., JAMA Netw Open 2018).
+- Body Battery, HRV und Stress werden nicht übertragen und deshalb nicht angezeigt.
+
 ## Trinken
 
 Die Trinkmenge ist Wasser plus Kaffee, Tee und andere Getränke aus «Koffein». In üblichen Mengen (bis ca. 4 Tassen)

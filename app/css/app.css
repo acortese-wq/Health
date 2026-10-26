@@ -3061,3 +3061,8 @@ textarea {
   font-size: 0.68rem;
   letter-spacing: 0;
 }
+.chart .line-dots circle {
+  fill: var(--petrol);
+  stroke: var(--surface);
+  stroke-width: 2;
+}

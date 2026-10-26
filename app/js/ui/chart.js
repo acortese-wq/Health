@@ -140,8 +140,8 @@ export function barChart({ points, target = null, unit, digits = 0, label, width
   const bw = Math.max(1, Math.min(28, slot - (slot > 6 ? 2 : 0.5)));
   const x = (/** @type {number} */ i) => m.left + i * slot + (slot - bw) / 2;
   const r = Math.min(4, bw / 2);
-  // Datumsmarken: so viele, wie ohne Überlappung passen (ca. 64 px je Marke), der letzte Tag immer
-  const step = Math.max(1, Math.ceil(points.length / Math.max(2, Math.floor(iw / 64))));
+  // Datumsmarken: so viele, wie ohne Überlappung passen (ca. 84 px je Marke, damit die letzte rechtsbündige Marke nicht überlappt), der letzte Tag immer
+  const step = Math.max(1, Math.ceil(points.length / Math.max(2, Math.floor(iw / 84))));
   const xIdx = points.map((_, i) => i).filter((i) => (points.length - 1 - i) % step === 0);
   const fmtV = (/** @type {number} */ v) => `${fmt(v, digits)}${unit ? ` ${unit}` : ''}`;
   const missing = points.filter((p) => p.value === null).length;
@@ -198,5 +198,68 @@ export function barChart({ points, target = null, unit, digits = 0, label, width
     ),
     // Ziellinie ohne Beschriftung im Diagramm (würde Balken überdecken); der Wert steht in der Legende
     target ? s('line', { class: 'goal-line', x1: m.left, x2: W - m.right, y1: y(target), y2: y(target) }) : null,
+  );
+}
+
+/**
+ * Tageswerte als Linie mit Punkten (z. B. Ruhepuls). Lücken unterbrechen die Linie; die y-Achse
+ * beginnt nicht bei 0, damit kleine Veränderungen sichtbar bleiben. Optional ein Basiswert.
+ * @param {{
+ *   points: { date: string, value: number | null }[],
+ *   baseline?: number | null, unit: string, digits?: 0 | 1, label: string, width?: number,
+ * }} o
+ * @returns {SVGElement}
+ */
+export function lineChart({ points, baseline = null, unit, digits = 0, label, width = 640 }) {
+  const W = Math.round(Math.min(Math.max(width, 280), 1100));
+  const H = Math.round(Math.min(Math.max(W * 0.34, 180), 260));
+  const m = { top: 22, right: 16, bottom: 30, left: 44 };
+  const iw = W - m.left - m.right;
+  const ih = H - m.top - m.bottom;
+  const vals = /** @type {number[]} */ (points.map((p) => p.value).filter((v) => v !== null));
+  const all = baseline !== null ? [...vals, baseline] : vals;
+  const yT = niceTicks(Math.min(...all, Infinity) === Infinity ? 0 : Math.min(...all) - 1, Math.max(...all, 1) + 1, 4);
+  const x = (/** @type {number} */ i) => m.left + (points.length > 1 ? (i / (points.length - 1)) * iw : iw / 2);
+  const y = (/** @type {number} */ v) => m.top + ih - ((v - yT.lo) / (yT.hi - yT.lo)) * ih;
+  // Linie nur zwischen aufeinanderfolgenden erfassten Tagen
+  let d = '';
+  points.forEach((p, i) => {
+    if (p.value === null) return;
+    d += `${i > 0 && points[i - 1].value !== null ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`;
+  });
+  const step = Math.max(1, Math.ceil(points.length / Math.max(2, Math.floor(iw / 84))));
+  const xIdx = points.map((_, i) => i).filter((i) => (points.length - 1 - i) % step === 0);
+  const fmtV = (/** @type {number} */ v) => `${fmt(v, digits)}${unit ? ` ${unit}` : ''}`;
+  return s(
+    'svg',
+    {
+      viewBox: `0 0 ${W} ${H}`,
+      class: 'chart line-chart',
+      role: 'img',
+      'aria-label': `${label} vom ${fmtDate(points[0].date)} bis ${fmtDate(points[points.length - 1].date)}: ${vals.length} von ${points.length} Tagen erfasst${baseline !== null ? `, Basiswert ${fmtV(baseline)}` : ''}.`,
+    },
+    s('text', { class: 'axis-unit', x: m.left - 8, y: 12, 'text-anchor': 'end' }, unit),
+    s('g', { class: 'grid' }, ...yT.ticks.map((t) => s('line', { x1: m.left, x2: W - m.right, y1: y(t), y2: y(t) }))),
+    s(
+      'g',
+      { class: 'axis' },
+      ...yT.ticks.map((t) => s('text', { x: m.left - 8, y: y(t) + 4, 'text-anchor': 'end' }, fmt(t, yT.step < 1 ? 1 : 0))),
+      ...xIdx.map((i, k) =>
+        s(
+          'text',
+          { x: x(i), y: H - 8, 'text-anchor': k === 0 && i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle' },
+          fmtDate(points[i].date, 'dm'),
+        ),
+      ),
+    ),
+    baseline !== null ? s('line', { class: 'plan-line', x1: m.left, x2: W - m.right, y1: y(baseline), y2: y(baseline) }) : null,
+    d ? s('path', { class: 'trend-line', d }) : null,
+    s(
+      'g',
+      { class: 'line-dots' },
+      ...points.flatMap((p, i) =>
+        p.value === null ? [] : [s('circle', { cx: x(i), cy: y(p.value), r: 4 }, s('title', {}, `${fmtDate(p.date)}: ${fmtV(p.value)}`))],
+      ),
+    ),
   );
 }

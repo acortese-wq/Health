@@ -20,6 +20,7 @@ export function viewTraining(ctx) {
     'div',
     { class: 'stack' },
     h('h1', {}, 'Training'),
+    h('a', { href: '#garmin', class: 'btn', id: 'open-garmin' }, 'Garmin-Dashboard: Schritte, Schlaf, Ruhepuls, VO₂max'),
     h(
       'section',
       { class: 'summary', 'aria-label': 'Wochenbilanz' },
