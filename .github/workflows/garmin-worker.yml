@@ -1,0 +1,116 @@
+name: Garmin-Worker veröffentlichen
+
+# Richtet den Cloudflare Worker für die Garmin-Anbindung ein und aktualisiert ihn bei Änderungen
+# (Anleitung: docs/GARMIN.md). Benötigte Repository-Secrets:
+#   CLOUDFLARE_API_TOKEN   API-Token mit der Vorlage «Edit Cloudflare Workers»
+#   CLOUDFLARE_ACCOUNT_ID  Konto-ID aus dem Cloudflare-Dashboard
+#   GARMIN_CLIENT_ID       Client-ID (Consumer Key) aus dem Garmin-Developer-Portal
+#   GARMIN_CLIENT_SECRET   Client-Secret (Consumer Secret)
+#   WEBHOOK_SECRET         lange Zufallszeichenkette, nur Buchstaben und Ziffern
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/**'
+      - '.github/workflows/garmin-worker.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: garmin-worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      GARMIN_CLIENT_ID: ${{ secrets.GARMIN_CLIENT_ID }}
+      GARMIN_CLIENT_SECRET: ${{ secrets.GARMIN_CLIENT_SECRET }}
+      WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+      WRANGLER: npx --yes wrangler@4.150.0
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Secrets prüfen
+        id: check
+        run: |
+          missing=""
+          for v in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID GARMIN_CLIENT_ID GARMIN_CLIENT_SECRET WEBHOOK_SECRET; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            # Beim manuellen Start ein Fehler, bei normalen Pushes nur ein Hinweis (noch nicht eingerichtet)
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "::error::Fehlende Repository-Secrets:$missing (Settings → Secrets and variables → Actions)"
+              exit 1
+            fi
+            echo "::notice::Garmin-Worker noch nicht eingerichtet, fehlende Secrets:$missing"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! printf '%s' "$WEBHOOK_SECRET" | grep -Eq '^[A-Za-z0-9]{32,}$'; then
+            echo "::error::WEBHOOK_SECRET muss mindestens 32 Zeichen lang sein und darf nur Buchstaben und Ziffern enthalten."
+            exit 1
+          fi
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: Speicher (KV «GARMIN») suchen oder anlegen
+        if: steps.check.outputs.ok == 'true'
+        run: |
+          find_id() {
+            $WRANGLER kv namespace list 2>/dev/null | node -e '
+              let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => {
+                const list = JSON.parse(s.slice(s.indexOf("[")));
+                const hit = list.find((n) => n.title === "GARMIN") ?? list.find((n) => /-GARMIN$/.test(n.title));
+                if (hit) process.stdout.write(hit.id);
+              });'
+          }
+          id="$(find_id)"
+          if [ -z "$id" ]; then
+            $WRANGLER kv namespace create GARMIN
+            id="$(find_id)"
+          fi
+          if [ -z "$id" ]; then echo "::error::KV-Speicher GARMIN nicht gefunden und nicht anlegbar (Token-Berechtigung prüfen)."; exit 1; fi
+          sed -i "s/HIER_KV_ID_EINTRAGEN/$id/" wrangler.toml
+          echo "KV-Speicher: $id"
+
+      - name: Worker veröffentlichen
+        if: steps.check.outputs.ok == 'true'
+        run: $WRANGLER deploy --var "GARMIN_CLIENT_ID:$GARMIN_CLIENT_ID" | tee deploy.log
+
+      - name: Geheimnisse hinterlegen
+        if: steps.check.outputs.ok == 'true'
+        run: |
+          printf '%s' "$GARMIN_CLIENT_SECRET" | $WRANGLER secret put GARMIN_CLIENT_SECRET
+          printf '%s' "$WEBHOOK_SECRET" | $WRANGLER secret put WEBHOOK_SECRET
+
+      - name: Prüfen und Adressen für das Garmin-Portal anzeigen
+        if: steps.check.outputs.ok == 'true'
+        run: |
+          url="$(grep -Eo 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)"
+          [ -n "$url" ] || url="https://garmin-cockpit.<dein-subdomain>.workers.dev"
+          code="$(curl -s -o /dev/null -w '%{http_code}' "$url/auth/start?return=https%3A%2F%2Facortese-wq.github.io%2FHealth%2F" || true)"
+          {
+            echo "## Garmin-Worker"
+            echo ""
+            echo "Adresse: \`$url\` (Test der Anmeldung: HTTP $code, erwartet 302)"
+            echo ""
+            echo "Im Garmin-Developer-Portal eintragen:"
+            echo ""
+            echo "- Redirect-/Callback-URL: \`$url/auth/callback\`"
+            echo "- Endpunkte: \`$url/webhook/<WEBHOOK_SECRET>/<art>\` für dailies, sleeps, hrv, stressDetails, userMetrics, activities, deregistrations, userPermissionsChange"
+            echo ""
+            echo "<WEBHOOK_SECRET> durch dein Geheimnis ersetzen (wird hier absichtlich nicht angezeigt)."
+          } >> "$GITHUB_STEP_SUMMARY"

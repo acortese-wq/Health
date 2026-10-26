@@ -25,7 +25,25 @@ In der App landen Schritte, Ruhepuls, Schlaf, VO₂max und Läufe/Krafttraining 
 HRV, Stress und Body Battery sowie Adresse und Sync-Schlüssel bleiben in einem eigenen Speicher auf dem Gerät, nicht im
 Backup.
 
-## Einrichtung (einmalig, ca. 30 Minuten)
+## Einrichtung automatisch über GitHub (empfohlen)
+
+Der Ablauf `.github/workflows/garmin-worker.yml` legt den Speicher an, veröffentlicht den Worker und hinterlegt die
+Geheimnisse. Einmalig nötig:
+
+1. Cloudflare: My Profile → API Tokens → Create Token → Vorlage **«Edit Cloudflare Workers»** → Account Resources:
+   dein Konto, Zone Resources: All zones → Continue → Create Token. Token kopieren.
+2. Cloudflare: Account-ID kopieren (Workers & Pages → rechte Spalte «Account ID», oder aus der Adresse
+   `dash.cloudflare.com/<account-id>/…`).
+3. GitHub: Repository → Settings → Secrets and variables → Actions → **New repository secret**, fünfmal:
+   `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `GARMIN_CLIENT_ID`, `GARMIN_CLIENT_SECRET`, `WEBHOOK_SECRET`
+   (mind. 32 Zeichen, nur Buchstaben und Ziffern).
+4. GitHub: Actions → «Garmin-Worker veröffentlichen» → **Run workflow**. In der Zusammenfassung des Laufs stehen die
+   Adressen für das Garmin-Portal.
+
+Danach wie unten ab Punkt 4 (Garmin-Portal) und 5 (App verbinden). Spätere Änderungen am Worker werden bei jedem Push
+automatisch veröffentlicht.
+
+## Einrichtung von Hand (Alternative)
 
 Voraussetzungen: Zugang zum Garmin Connect Developer Program (Health API) mit Client-ID und Client-Secret,
 ein kostenloses Cloudflare-Konto, Node.js auf dem Computer.
