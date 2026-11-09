@@ -25,7 +25,21 @@ In der App landen Schritte, Ruhepuls, Schlaf, VO₂max und Läufe/Krafttraining 
 HRV, Stress und Body Battery sowie Adresse und Sync-Schlüssel bleiben in einem eigenen Speicher auf dem Gerät, nicht im
 Backup.
 
-## Einrichtung automatisch über GitHub (empfohlen)
+## Einfachste Einrichtung (im Browser, auch am Handy)
+
+1. Cloudflare → Workers & Pages → **Create application** → «Hello World» → Name `garmin-cockpit` → Deploy →
+   **Edit code** → Inhalt durch `worker/garmin-worker.js` ersetzen → Deploy.
+2. Cloudflare → Storage & Databases → Workers KV → **Create** → Name `GARMIN`.
+3. Worker → Settings → Bindings → **Add** → KV namespace → Variable name `GARMIN`, Namespace `GARMIN` → Deploy.
+4. Gleich danach `https://garmin-cockpit.<konto>.workers.dev/setup` öffnen, Client-ID und Client-Secret eintragen,
+   Speichern. Die Seite zeigt **einmalig** die Callback-Adresse und die Webhook-Adressen fürs Garmin-Portal (mit einem
+   selbst erzeugten Geheimnis). Danach ist sie gesperrt. Bis zum Speichern ist sie für jeden mit der Adresse offen;
+   deshalb direkt nach Schritt 3 erledigen (oder zusätzlich ein Secret `SETUP_CODE` setzen und `/setup?code=…` öffnen).
+5. Adressen im Garmin-Developer-Portal eintragen, dann in der App «Mit Garmin verbinden».
+
+Client-ID/-Secret und Webhook-Geheimnis liegen dabei im KV-Speicher des eigenen Cloudflare-Kontos.
+
+## Einrichtung automatisch über GitHub
 
 Der Ablauf `.github/workflows/garmin-worker.yml` legt den Speicher an, veröffentlicht den Worker und hinterlegt die
 Geheimnisse. Einmalig nötig:

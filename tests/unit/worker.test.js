@@ -153,3 +153,52 @@ test('Abmeldung durch Garmin löscht die Daten des Benutzers', async () => {
   assert.equal(r.status, 200);
   assert.equal(e.GARMIN.m.size, 0);
 });
+
+test('Einrichtungsseite: nur mit Code, speichert Garmin-Zugang, danach gesperrt', async () => {
+  const e = { ...env(), GARMIN_CLIENT_ID: '', GARMIN_CLIENT_SECRET: '', WEBHOOK_SECRET: '', SETUP_CODE: 'einmal123' };
+  // Ohne Zugang keine Anmeldung möglich
+  const start = await worker.fetch(new Request(`${W}/auth/start?return=${encodeURIComponent(`${APP}/Health/`)}`), e);
+  assert.equal(start.status, 503);
+  assert.equal((await worker.fetch(new Request(`${W}/setup?code=falsch`), e)).status, 404);
+  const page = await worker.fetch(new Request(`${W}/setup?code=einmal123`), e);
+  assert.match(await page.text(), /Client-Secret/);
+  const form = new FormData();
+  form.set('client_id', 'meine-id');
+  form.set('client_secret', 'geheim-123');
+  const saved = await worker.fetch(new Request(`${W}/setup?code=einmal123`, { method: 'POST', body: form }), e);
+  const html = await saved.text();
+  assert.match(html, /Fertig/);
+  // Webhook-Geheimnis selbst erzeugt und einmalig mit den Adressen angezeigt
+  const hook = String(e.GARMIN.m.get('cfg:webhook'));
+  assert.match(hook, /^[A-Za-z0-9]{20,}$/);
+  assert.ok(html.includes(`${W}/webhook/${hook}/dailies`));
+  assert.ok(!(await (await worker.fetch(new Request(`${W}/setup`), e)).text()).includes(hook), 'später nicht mehr sichtbar');
+  assert.deepEqual(JSON.parse(String(e.GARMIN.m.get('cfg:client'))), { id: 'meine-id', secret: 'geheim-123' });
+  // Zweiter Versuch ändert nichts
+  const form2 = new FormData();
+  form2.set('client_id', 'fremd');
+  form2.set('client_secret', 'fremd');
+  await worker.fetch(new Request(`${W}/setup?code=einmal123`, { method: 'POST', body: form2 }), e);
+  assert.equal(JSON.parse(String(e.GARMIN.m.get('cfg:client'))).id, 'meine-id');
+  // Anmeldung nutzt jetzt den hinterlegten Zugang
+  const ok = await worker.fetch(new Request(`${W}/auth/start?return=${encodeURIComponent(`${APP}/Health/`)}`), e);
+  assert.equal(new URL(String(ok.headers.get('location'))).searchParams.get('client_id'), 'meine-id');
+});
+
+test('Einfachste Einrichtung: ohne Einstellungen ausser dem Speicher', async () => {
+  const e = { GARMIN: kv() };
+  const page = await worker.fetch(new Request(`${W}/setup`), /** @type {any} */ (e));
+  assert.equal(page.status, 200);
+  const form = new FormData();
+  form.set('client_id', 'id-1234');
+  form.set('client_secret', 'secret-1234');
+  await worker.fetch(new Request(`${W}/setup`, { method: 'POST', body: form }), /** @type {any} */ (e));
+  const start = await worker.fetch(new Request(`${W}/auth/start?return=${encodeURIComponent(`${APP}/Health/`)}`), /** @type {any} */ (e));
+  assert.equal(start.status, 302, 'App-Adresse ist voreingestellt');
+  const hook = String(e.GARMIN.m.get('cfg:webhook'));
+  const r = await worker.fetch(
+    new Request(`${W}/webhook/${hook}/dailies`, { method: 'POST', body: '{"dailies":[]}' }),
+    /** @type {any} */ (e),
+  );
+  assert.equal(r.status, 200);
+});

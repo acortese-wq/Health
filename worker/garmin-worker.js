@@ -13,6 +13,10 @@
 //
 // Einstellungen (wrangler.toml / Secrets): GARMIN_CLIENT_ID, GARMIN_CLIENT_SECRET (Secret),
 // WEBHOOK_SECRET (Secret, Teil der Webhook-Adresse), APP_ORIGIN (z. B. https://acortese-wq.github.io),
+// SETUP_CODE (optional, schützt die Einrichtungsseite /setup).
+// Einfachste Einrichtung: nur den KV-Speicher «GARMIN» verknüpfen und /setup öffnen. Dort Client-ID und
+// -Secret eintippen; der Worker erzeugt das Webhook-Geheimnis selbst und zeigt einmalig die Adressen für
+// das Garmin-Portal. Danach ist die Seite gesperrt. APP_ORIGIN ist auf die Cockpit-Adresse voreingestellt.
 // KV-Namespace GARMIN. Die Garmin-Adressen lassen sich überschreiben (GARMIN_AUTH_URL, GARMIN_TOKEN_URL,
 // GARMIN_API), falls Garmins Unterlagen andere nennen.
 
@@ -27,12 +31,34 @@ const DAY = 86400;
 /**
  * @typedef {{ get: (k: string) => Promise<string | null>, put: (k: string, v: string, o?: { expirationTtl?: number }) => Promise<void>,
  *   delete: (k: string) => Promise<void>, list: (o: { prefix: string, cursor?: string }) => Promise<{ keys: { name: string }[], list_complete: boolean, cursor?: string }> }} KV
- * @typedef {{ GARMIN: KV, GARMIN_CLIENT_ID: string, GARMIN_CLIENT_SECRET: string, WEBHOOK_SECRET: string, APP_ORIGIN: string,
+ * @typedef {{ GARMIN: KV, GARMIN_CLIENT_ID?: string, GARMIN_CLIENT_SECRET?: string, WEBHOOK_SECRET?: string, APP_ORIGIN?: string, SETUP_CODE?: string,
  *   GARMIN_AUTH_URL?: string, GARMIN_TOKEN_URL?: string, GARMIN_API?: string }} Env
  * @typedef {{ steps?: number, restingHr?: number, sleepH?: number, hrvMs?: number, stress?: number, bodyBatteryHigh?: number,
  *   bodyBatteryLow?: number, vo2max?: number }} DayValues
  * @typedef {{ id: string, date: string, time: string, type: string, minutes: number, km?: number, avgHr?: number, title: string }} Activity
  */
+
+/**
+ * Garmin-Zugang: aus den Worker-Einstellungen oder von der Einrichtungsseite (KV).
+ * @param {Env} env
+ * @returns {Promise<{ id: string, secret: string } | null>}
+ */
+async function client(env) {
+  if (env.GARMIN_CLIENT_ID && env.GARMIN_CLIENT_SECRET) return { id: env.GARMIN_CLIENT_ID, secret: env.GARMIN_CLIENT_SECRET };
+  const raw = await env.GARMIN.get('cfg:client');
+  return raw ? JSON.parse(raw) : null;
+}
+
+/** Adresse der App (nur sie darf Daten abholen und ist als Rückkehradresse erlaubt). @param {Env} env */
+const appOrigin = (env) => env.APP_ORIGIN || 'https://acortese-wq.github.io';
+
+/**
+ * Webhook-Geheimnis: aus den Einstellungen oder bei der Einrichtung erzeugt (KV).
+ * @param {Env} env
+ */
+async function webhookSecret(env) {
+  return env.WEBHOOK_SECRET || (await env.GARMIN.get('cfg:webhook')) || '';
+}
 
 /** @param {Env} env @param {'GARMIN_AUTH_URL' | 'GARMIN_TOKEN_URL' | 'GARMIN_API'} k */
 const conf = (env, k) => env[k] || DEFAULTS[k];
@@ -164,7 +190,7 @@ async function tokenHash(token) {
  */
 function cors(env, req) {
   const origin = req.headers.get('origin') ?? '';
-  return origin === env.APP_ORIGIN
+  return origin === appOrigin(env)
     ? {
         'access-control-allow-origin': origin,
         'access-control-allow-headers': 'authorization, content-type',
@@ -187,7 +213,7 @@ const json = (body, status = 200, headers = {}) =>
 function safeReturn(env, url) {
   try {
     const u = new URL(url ?? '');
-    return u.origin === env.APP_ORIGIN ? `${u.origin}${u.pathname}` : null;
+    return u.origin === appOrigin(env) ? `${u.origin}${u.pathname}` : null;
   } catch {
     return null;
   }
@@ -203,14 +229,16 @@ async function accessToken(env, userId) {
   if (!raw) return null;
   const t = JSON.parse(raw);
   if (t.expiresAt > Date.now() + 60_000) return /** @type {string} */ (t.access);
+  const c = await client(env);
+  if (!c) return null;
   const res = await fetch(conf(env, 'GARMIN_TOKEN_URL'), {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'refresh_token',
       refresh_token: t.refresh,
-      client_id: env.GARMIN_CLIENT_ID,
-      client_secret: env.GARMIN_CLIENT_SECRET,
+      client_id: c.id,
+      client_secret: c.secret,
     }),
   });
   if (!res.ok) return null;
@@ -270,6 +298,49 @@ async function wipe(env, userId) {
   await env.GARMIN.delete(`tok:${userId}`);
 }
 
+/**
+ * Einfache Einrichtungsseite (ohne Skripte).
+ * @param {string} error
+ * @param {string} code
+ * @param {string} origin
+ * @param {boolean} [done]
+ * @param {string} [hook] Webhook-Geheimnis, nur direkt nach dem Speichern angezeigt
+ */
+function setupPage(error, code, origin, done = false, hook = '') {
+  const esc = (/** @type {string} */ t) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c);
+  const body = done
+    ? `<h1>Fertig</h1><p>Der Garmin-Zugang ist hinterlegt. Diese Seite ist jetzt gesperrt.</p>
+<p>Im Garmin-Developer-Portal eintragen:</p>
+<p><strong>Callback / Redirect-URL</strong><br><code>${esc(origin)}/auth/callback</code></p>
+${
+  hook
+    ? `<p><strong>Endpunkte</strong> (für jede Art eine Zeile; <em>jetzt kopieren</em>, die Adressen werden nur einmal angezeigt):</p><ul>${[
+        'dailies',
+        'sleeps',
+        'hrv',
+        'stressDetails',
+        'userMetrics',
+        'activities',
+        'deregistrations',
+        'userPermissionsChange',
+      ]
+        .map((k) => `<li>${esc(k)}: <code>${esc(origin)}/webhook/${esc(hook)}/${esc(k)}</code></li>`)
+        .join('')}</ul>`
+    : ''
+}`
+    : `<h1>Garmin-Zugang hinterlegen</h1>${error ? `<p class="err">${esc(error)}</p>` : ''}
+<form method="post" action="/setup?code=${encodeURIComponent(code)}">
+<label>Client-ID (Consumer Key)<input name="client_id" autocomplete="off" required></label>
+<label>Client-Secret (Consumer Secret)<input name="client_secret" type="password" autocomplete="off" required></label>
+<button>Speichern</button></form>
+<p class="hint">Die Werte bleiben nur in deinem Cloudflare-Speicher. Nach dem Speichern ist diese Seite gesperrt.</p>`;
+  return new Response(
+    `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Garmin-Einrichtung</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;max-width:32rem;margin:2rem auto;padding:0 1rem;color:#18302e}label{display:block;margin:1rem 0;font-weight:600}input{display:block;width:100%;box-sizing:border-box;font:inherit;padding:.6rem;margin-top:.3rem;border:1px solid #9ab;border-radius:6px}button{font:inherit;font-weight:600;padding:.7rem 1.4rem;border:0;border-radius:6px;background:#0d5f5b;color:#fff}.err{color:#b3261e}.hint{color:#5a6b69;font-size:.9rem}code{word-break:break-all}</style></head><body>${body}</body></html>`,
+    { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-frame-options': 'DENY' } },
+  );
+}
+
 // ---------- Routen ----------
 
 /**
@@ -281,17 +352,43 @@ async function handle(req, env) {
   const path = url.pathname.replace(/\/+$/, '');
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(env, req) });
 
+  // 0. Einmalige Einrichtung: Garmin-Zugang eintippen (Seite nur mit Einrichtungscode, danach gesperrt)
+  if (path === '/setup') {
+    const done = Boolean(await client(env));
+    const code = url.searchParams.get('code') ?? '';
+    // Ohne SETUP_CODE ist die Seite offen, bis der Zugang einmal gespeichert ist
+    const valid = !done && (!env.SETUP_CODE || code === env.SETUP_CODE);
+    if (req.method === 'POST' && valid) {
+      const form = await req.formData();
+      const id = String(form.get('client_id') ?? '').trim();
+      const secret = String(form.get('client_secret') ?? '').trim();
+      if (id.length < 4 || secret.length < 4) return setupPage('Bitte beide Felder ausfüllen.', code, url.origin);
+      await env.GARMIN.put('cfg:client', JSON.stringify({ id, secret }));
+      let hook = await webhookSecret(env);
+      if (!hook) {
+        hook = randomToken(24).replace(/[^A-Za-z0-9]/g, '');
+        await env.GARMIN.put('cfg:webhook', hook);
+      }
+      return setupPage('', '', url.origin, true, hook);
+    }
+    if (done) return setupPage('', '', url.origin, true);
+    if (!valid) return new Response('not found', { status: 404 });
+    return setupPage('', code, url.origin);
+  }
+
   // 1. Anmeldung starten
   if (path === '/auth/start' && req.method === 'GET') {
     const back = safeReturn(env, url.searchParams.get('return'));
     if (!back) return json({ error: 'Rückkehradresse nicht erlaubt' }, 400);
+    const c = await client(env);
+    if (!c) return json({ error: 'Garmin-Zugang noch nicht eingerichtet (Einrichtungsseite /setup)' }, 503);
     const verifier = randomToken(48);
     const state = randomToken(16);
     await env.GARMIN.put(`pkce:${state}`, JSON.stringify({ verifier, back }), { expirationTtl: 600 });
     const auth = new URL(conf(env, 'GARMIN_AUTH_URL'));
     auth.search = new URLSearchParams({
       response_type: 'code',
-      client_id: env.GARMIN_CLIENT_ID,
+      client_id: c.id,
       code_challenge: await challenge(verifier),
       code_challenge_method: 'S256',
       redirect_uri: `${url.origin}/auth/callback`,
@@ -307,6 +404,8 @@ async function handle(req, env) {
     if (!saved) return json({ error: 'Anmeldung abgelaufen, bitte neu starten' }, 400);
     await env.GARMIN.delete(`pkce:${state}`);
     const { verifier, back } = JSON.parse(saved);
+    const c = await client(env);
+    if (!c) return json({ error: 'Garmin-Zugang fehlt' }, 503);
     const code = url.searchParams.get('code');
     if (!code) return Response.redirect(`${back}#garmin`, 302);
     const res = await fetch(conf(env, 'GARMIN_TOKEN_URL'), {
@@ -317,8 +416,8 @@ async function handle(req, env) {
         code,
         code_verifier: verifier,
         redirect_uri: `${url.origin}/auth/callback`,
-        client_id: env.GARMIN_CLIENT_ID,
-        client_secret: env.GARMIN_CLIENT_SECRET,
+        client_id: c.id,
+        client_secret: c.secret,
       }),
     });
     if (!res.ok) return json({ error: `Garmin hat die Anmeldung abgelehnt (${res.status})` }, 502);
@@ -344,7 +443,8 @@ async function handle(req, env) {
   // 3. Garmin-Webhooks: /webhook/<WEBHOOK_SECRET>/<art>
   const hook = path.match(/^\/webhook\/([^/]+)\/([A-Za-z]+)$/);
   if (hook && req.method === 'POST') {
-    if (!env.WEBHOOK_SECRET || hook[1] !== env.WEBHOOK_SECRET) return new Response('not found', { status: 404 });
+    const expected = await webhookSecret(env);
+    if (!expected || hook[1] !== expected) return new Response('not found', { status: 404 });
     const kind = hook[2];
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== 'object') return new Response('bad request', { status: 400 });
