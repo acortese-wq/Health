@@ -29,7 +29,7 @@ test('Eigene Mahlzeit: nur Nährwerte, ohne Uhrzeit, Hunger, Auslöser und Verkn
 });
 
 test('Speichern (Schema 5): eigene Mahlzeiten werden geprüft, ältere Daten bleiben lesbar', () => {
-  assert.equal(SCHEMA_VERSION, 5);
+  assert.ok(SCHEMA_VERSION >= 5);
   const raw = JSON.parse(
     JSON.stringify({
       ...emptyState(),

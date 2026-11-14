@@ -30,7 +30,8 @@ export const STORAGE_KEY = 'gesundheitscockpit';
 // Ältere Daten erhalten leere Sammlungen; nichts wird umgeschrieben.
 // Schema 4 (2026-10): Nahrungsergänzungsmittel («supplements») und Einnahmen pro Tag («supps»).
 // Schema 5 (2026-10): eigene Mahlzeiten aus mehreren Einträgen («savedMeals»).
-export const SCHEMA_VERSION = 5;
+// Schema 6 (2026-11): Heisshunger-Notfall pro Tag («cravings»: Auslöser, Stärke vorher/nachher, Ausgang).
+export const SCHEMA_VERSION = 6;
 
 /**
  * @typedef {'m' | 'f'} Sex
@@ -62,6 +63,7 @@ export const SCHEMA_VERSION = 5;
  *   weightKg?: number, food?: FoodEntry[], caffeine?: CaffeineEntry[],
  *   steps?: number, sleepH?: number, restingHr?: number, waterMl?: number, complete?: boolean, period?: boolean,
  *   supps?: import('./domain/supplements.js').Intake[],
+ *   cravings?: import('./domain/craving.js').CravingLog[],
  * }} Day
  * @typedef {{ id: string, name: string, kcal: number, protein: number, carbs?: number, fat?: number, sugar?: number, satFat?: number, fiber?: number, salt?: number }} FoodPreset
  * @typedef {{ id: string, label: string, mg: number, ml?: number }} CaffeinePreset
@@ -443,6 +445,26 @@ function sanitizeDay(d, seen) {
   if (isNum(d.waterMl) && d.waterMl > 0 && d.waterMl <= 10000) out.waterMl = d.waterMl;
   if (d.complete === true) out.complete = true;
   if (d.period === true) out.period = true;
+  if (Array.isArray(d.cravings)) {
+    const intensity = (/** @type {unknown} */ v) => isNum(v) && Number.isInteger(v) && v >= 1 && v <= 10;
+    const cravings = d.cravings.slice(0, 50).flatMap((x) =>
+      isObj(x) && intensity(x.intensity) && typeof x.trigger === 'string' && (TRIGGER_IDS.includes(x.trigger) || x.trigger === 'nichts')
+        ? [
+            {
+              id: typeof x.id === 'string' && x.id ? x.id : uid(),
+              time: typeof x.time === 'string' && /^\d{2}:\d{2}$/.test(x.time) ? x.time : '12:00',
+              trigger: /** @type {import('./domain/craving.js').CravingTrigger} */ (x.trigger),
+              intensity: /** @type {number} */ (x.intensity),
+              ...(intensity(x.after) ? { after: /** @type {number} */ (x.after) } : {}),
+              ...(x.outcome === 'geschafft' || x.outcome === 'bewusst'
+                ? { outcome: /** @type {'geschafft' | 'bewusst'} */ (x.outcome) }
+                : {}),
+            },
+          ]
+        : [],
+    );
+    if (cravings.length) out.cravings = cravings;
+  }
   if (Array.isArray(d.supps)) {
     const supps = d.supps.flatMap((x) =>
       isObj(x) && typeof x.sid === 'string' && isNum(x.servings) && x.servings > 0 && x.servings <= 20

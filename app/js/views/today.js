@@ -4,6 +4,7 @@ import { MEAL_SLOTS, activeSlot, setSlot, captureTime } from '../ui/slot.js';
 import { photoUrl, cachedPhotoUrl } from '../photostore.js';
 import { mealFromEntries, mealTotals, loggingStreak } from '../domain/savedmeals.js';
 import { mealCheck, averageStars, starText } from '../domain/mealscore.js';
+import { sosButton } from './sos.js';
 import { uid, extraNutrients, recentFoods, addFood } from '../store.js';
 import { repeatEntry, scaleEntry, possibleDuplicates, dayStatus, foodQuality } from '../domain/entries.js';
 import { dailyTargets } from '../domain/micros.js';
@@ -83,7 +84,7 @@ export function viewNutrition(ctx) {
     tab.id === 'analyse'
       ? [nutrientsCard(ctx, snap), pyramidCard(ctx, snap), rhythmCard(ctx, snap)]
       : tab.id === 'coach'
-        ? [journalCard(ctx), behaviorCard(ctx, snap), emotionalCard(ctx)]
+        ? [sosButton('coach-sos'), journalCard(ctx), behaviorCard(ctx, snap), emotionalCard(ctx)]
         : tab.id === 'praeparate'
           ? [supplementCard(ctx, snap)]
           : [...nutritionCard(ctx, snap), suggestCard(ctx, snap)];
@@ -428,6 +429,7 @@ function quickActions(ctx) {
     'div',
     { class: 'quick-actions' },
     h('a', { href: '#ernaehrung/erfassen', class: 'btn primary', id: 'cta-meal' }, '+ Mahlzeit erfassen'),
+    sosButton('cta-sos'),
     last
       ? h(
           'button',

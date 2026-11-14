@@ -205,6 +205,21 @@ mit Pace und Ø-Puls. Quellen: Garmin-Aktivitäten-CSV, Tageswerte per Kurzbefeh
 - VO₂max-Änderung gegen den letzten Wert, der mindestens 60 Tage älter ist (Mandsager K et al., JAMA Netw Open 2018).
 - Body Battery, HRV und Stress werden nicht übertragen und deshalb nicht angezeigt.
 
+## Heisshunger-Notfall
+
+Knopf «Heisshunger? Notfall-Hilfe» auf «Heute» und im Coach (`#sos`). Vier Fragen: letzte Mahlzeit (unter 2 h, 2–4 h,
+über 4 h), Apfel-Test (würde auch ein Apfel/Joghurt gehen?), Auslöser, Stärke 1–10. Daraus (`domain/craving.js`):
+
+- **Echter Hunger** (Apfel ja und letzte Mahlzeit vor ≥ 2 h): gezielt essen, proteinreiche kleine Portion
+  (Leidy 2015), bei knappem Budget nur sehr leichte Optionen; spätabends Küche schliessen.
+- **Unklar** (Apfel ja, gerade gegessen): Wasser, Strategie zum Auslöser, 10 Minuten warten.
+- **Lust auf etwas Bestimmtes**: Welle abwarten (Urge Surfing, Bowen & Marlatt 2009), Strategie zum Auslöser,
+  bei Stärke ≥ 7 15 Minuten und zügig gehen (Ledochowski 2015); bewusst eine kleine Portion ist kein Rückfall.
+
+Nach dem Timer: Stärke erneut 1–10, Ausgang «geschafft» oder «bewusst gegessen» (dann direkt zur Erfassung).
+Gespeichert pro Tag als `cravings` (Schema 6) für die Bilanz der letzten 7 Tage. Die Faustregeln ersetzen keine
+Abklärung: Bei häufigen Essanfällen mit Kontrollverlust ärztlich oder psychotherapeutisch abklären lassen.
+
 ## Trinken
 
 Die Trinkmenge ist Wasser plus Kaffee, Tee und andere Getränke aus «Koffein». In üblichen Mengen (bis ca. 4 Tassen)

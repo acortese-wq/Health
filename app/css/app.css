@@ -3066,3 +3066,56 @@ textarea {
   stroke: var(--surface);
   stroke-width: 2;
 }
+
+/* Heisshunger-Notfall */
+.btn.sos-btn {
+  border-color: var(--alert);
+  color: var(--alert);
+  font-weight: 700;
+}
+.sos-options {
+  display: grid;
+  gap: 8px;
+}
+.btn.sos-opt {
+  min-height: 52px;
+  justify-content: flex-start;
+  text-align: left;
+}
+.sos-scale {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.btn.sos-num {
+  min-height: 52px;
+  font: 700 1.1rem var(--f-data);
+}
+.sos-scale-legend {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+}
+.sos-steps {
+  margin: 0;
+  padding-left: 1.3rem;
+  display: grid;
+  gap: 6px;
+}
+.sos-timer {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 16px;
+  border-radius: var(--r-md);
+  background: var(--petrol-soft);
+  text-align: center;
+}
+.sos-timer strong {
+  font: 700 2.6rem/1 var(--f-data);
+  color: var(--petrol);
+}
+.btn.sos-timer-btn {
+  min-height: 52px;
+}

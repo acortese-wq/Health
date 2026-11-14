@@ -13,6 +13,7 @@ import { viewWeight, setWeightRange } from './views/weight.js';
 import { viewRecipes } from './views/recipes.js';
 import { viewPlanner } from './views/planner.js';
 import { viewGarmin } from './views/garmindash.js';
+import { viewSos } from './views/sos.js';
 import { takeConnectToken } from './garminlink.js';
 import { viewTraining } from './views/training.js';
 import { viewHealth } from './views/health.js';
@@ -63,6 +64,7 @@ const HIDDEN = [
   { id: 'rezepte', label: 'Rezepte', icon: '', render: viewRecipes, dated: true },
   { id: 'planung', label: 'Wochenplan', icon: '', render: viewPlanner, dated: false },
   { id: 'garmin', label: 'Garmin-Dashboard', icon: '', render: viewGarmin, dated: false },
+  { id: 'sos', label: 'Heisshunger-Notfall', icon: '', render: viewSos, dated: false },
 ];
 /** Frühere Adressen weiter unterstützen (Lesezeichen, Home-Bildschirm). */
 const ALIASES = /** @type {Record<string, string>} */ ({ gewicht: 'fortschritt' });

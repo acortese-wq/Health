@@ -1,6 +1,6 @@
 // Service Worker: App-Schale offline verfügbar machen. Gesundheitsdaten liegen im
 // localStorage und werden hier nicht berührt.
-const VERSION = 'v3.16.0';
+const VERSION = 'v3.17.0';
 const CACHE = `cockpit-${VERSION}`;
 const ASSETS = [
   './',
@@ -34,6 +34,8 @@ const ASSETS = [
   './js/views/garmindash.js',
   './js/garminlink.js',
   './js/domain/garminsync.js',
+  './js/domain/craving.js',
+  './js/views/sos.js',
   './js/domain/supplements.js',
   './js/views/supplements.js',
   './js/views/recipes.js',
