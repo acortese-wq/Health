@@ -3227,3 +3227,14 @@ textarea {
   color: #fff;
   font: 700 0.85rem var(--f-data);
 }
+.sos-drinks summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  color: var(--petrol);
+  cursor: pointer;
+}
+.sos-idea .badge {
+  justify-self: start;
+}

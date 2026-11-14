@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { EXPLAIN, STRATEGIES, NEXT_TIME } from '../../app/js/data/specificcraving.js';
+import { EXPLAIN, STRATEGIES, NEXT_TIME, DRINK_FACTS } from '../../app/js/data/specificcraving.js';
 
 test('Lust auf Bestimmtes: Erklärungen und Strategien mit Quelle, Beweislage und Anleitung', () => {
   assert.ok(EXPLAIN.length >= 4);
@@ -15,4 +15,10 @@ test('Lust auf Bestimmtes: Erklärungen und Strategien mit Quelle, Beweislage un
   // Unsichere Befunde sind als vorläufig markiert
   assert.equal(STRATEGIES.find((s) => s.id === 'durchspielen')?.strength, 'vorläufig');
   assert.ok(NEXT_TIME.length >= 3);
+});
+
+test('Tee, Wasser, Eiswürfel: Beweislage ehrlich abgestuft', () => {
+  assert.ok(DRINK_FACTS.some((f) => f.level === 'belegt'));
+  assert.equal(DRINK_FACTS.find((f) => f.text.startsWith('Eiswürfel'))?.level, 'kaum belegt');
+  assert.equal(STRATEGIES.find((s) => s.id === 'mund')?.strength, 'vorläufig');
 });

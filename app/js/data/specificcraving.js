@@ -78,6 +78,19 @@ export const STRATEGIES = /** @type {Strategy[]} */ ([
     strength: 'mittel',
   },
   {
+    id: 'mund',
+    title: 'Mund und Nase beschäftigen: Duft, Tee, Wasser, Eiswürfel',
+    steps: [
+      'Riech eine Minute lang bewusst an etwas, das nicht nach Essen riecht: einem Pfefferminz-Teebeutel, Zitronenschale, Handcreme oder Seife.',
+      'Mach dir einen Tee. Wasser kochen, ziehen lassen, warm halten: Das sind 5 bis 10 Minuten Aufschub mit Duft und Wärme.',
+      'Oder trink ein grosses Glas Wasser, vor allem wenn die nächste Mahlzeit bald ist.',
+      'Ein Eiswürfel zum Lutschen beschäftigt den Mund. Nicht darauf beissen: Eis kauen kann die Zähne beschädigen.',
+    ],
+    why: 'Am besten belegt ist das Riechen: Ein neutraler Duft senkte das Verlangen nach Lieblingsessen und Schokolade, vermutlich weil er die Duft-Vorstellung im Kopf stört. Wasser vor einer Mahlzeit senkte bei älteren Erwachsenen die gegessene Menge um rund 13 %. Zu Tee sind die Studien widersprüchlich, zu Eiswürfeln gegen Heisshunger gibt es keine. Beides hilft vor allem als Aufschub und Beschäftigung.',
+    ref: 'Kemps E, Tiggemann M, Addict Behav 2013;38:1550–1554; Davy BM et al., J Am Diet Assoc 2008;108:1236–1239',
+    strength: 'vorläufig',
+  },
+  {
     id: 'umdenken',
     title: 'Umdenken: an das Später denken',
     steps: [
@@ -133,9 +146,39 @@ export const STRATEGIES = /** @type {Strategy[]} */ ([
 
 /** Fürs nächste Mal. */
 export const NEXT_TIME = [
+  'Hast du häufig starkes Verlangen nach Eis oder Eiswürfeln? Das kann auf Eisenmangel hinweisen. Lass beim Hausarzt den Ferritinwert bestimmen.',
   'Kuchenreste nach einem Fest gleich mitgeben, verschenken oder in Portionen einfrieren.',
   'Kuchen lieber als einzelnes Stück beim Bäcker kaufen als einen ganzen zuhause zu haben.',
   'Was oft lockt, gar nicht erst einkaufen: Was nicht da ist, kann nicht rufen.',
   'Einen festen Genussmoment pro Woche einplanen, z. B. Sonntagskaffee mit einem Stück Kuchen.',
   'Notiere, wann die Lust auf «das Bestimmte» kommt. Nach zwei Wochen erkennst du das Muster.',
 ];
+
+/** Kurzfassung «Tee, Wasser, Eiswürfel, Duft: was ist belegt?» für den Notfall. */
+export const DRINK_FACTS = /** @type {{ text: string, level: 'belegt' | 'vorläufig' | 'kaum belegt', ref?: string }[]} */ ([
+  {
+    text: 'An etwas Nicht-Essbarem riechen (Pfefferminz-Teebeutel, Zitronenschale) senkte das Verlangen nach Lieblingsessen und Schokolade.',
+    level: 'belegt',
+    ref: 'Kemps & Tiggemann 2013',
+  },
+  {
+    text: '5 dl Wasser 30 Minuten vor dem Essen senkten die Menge beim Frühstück um rund 13 % (ältere Erwachsene).',
+    level: 'belegt',
+    ref: 'Davy et al. 2008',
+  },
+  {
+    text: 'Tee: Studien widersprüchlich (Grüntee einmal satter, einmal hungriger). Wirkt vor allem als Ritual und 5–10 Minuten Aufschub.',
+    level: 'vorläufig',
+    ref: 'Josic et al. 2010',
+  },
+  {
+    text: 'Eiswürfel: keine Studie gegen Heisshunger. Beschäftigt den Mund; lutschen, nicht kauen. Häufiges Verlangen nach Eis kann auf Eisenmangel hinweisen.',
+    level: 'kaum belegt',
+    ref: 'Barton et al. 2010',
+  },
+  {
+    text: '«Durst wird mit Hunger verwechselt» ist kaum belegt. Ein Glas Wasser schadet trotzdem nicht.',
+    level: 'kaum belegt',
+    ref: 'McKiernan et al. 2008',
+  },
+]);

@@ -273,6 +273,11 @@ Unterdrücken verstärkt (Wegner 1987; Hooper 2012), Verlangen nimmt bei länger
 | Annehmen statt unterdrücken (Defusion) | vorläufig | Hooper 2012 |
 | In Gedanken ausführlich essen (30 Bissen) | vorläufig, Replikation fehlgeschlagen | Morewedge 2010 |
 | Bewusst geniessen, wenn gegessen wird | stark | Robinson 2014 |
+| Mund und Nase beschäftigen: Duft, Tee, Wasser, Eiswürfel | vorläufig (Duft und Wasser belegt, Tee widersprüchlich, Eis ohne Studie) | Kemps & Tiggemann 2013; Davy 2008; Josic 2010; Barton 2010 |
+
+Im Notfall-Plan steht dazu «Tee, Wasser, Eiswürfel, Duft: Was ist belegt?». Häufiges Verlangen nach Eis kann auf
+Eisenmangel hinweisen (45 % von 262 Erwachsenen mit Eisenmangel, meist Eis; Barton 2010) → Ferritin bestimmen lassen.
+Die Faustregel «Durst wird mit Hunger verwechselt» ist kaum belegt (McKiernan 2008).
 
 ## Trinken
 

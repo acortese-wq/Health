@@ -487,7 +487,7 @@ export const CRAVING_TIPS = [
   {
     id: 'tr003',
     kind: 'trinken',
-    text: 'Trink ein Glas Mineralwasser mit Kohlensäure. Das Prickeln füllt den Magen kurz.',
+    text: 'Trink ein Glas Mineralwasser mit Kohlensäure. Das Prickeln beschäftigt den Mund.',
   },
   {
     id: 'tr004',
@@ -565,7 +565,7 @@ export const CRAVING_TIPS = [
   {
     id: 'tr018',
     kind: 'trinken',
-    text: 'Lutsche einen Eiswürfel mit etwas Zitronensaft.',
+    text: 'Lutsche einen Eiswürfel mit etwas Zitronensaft. Nicht kauen, das schont die Zähne.',
   },
   {
     id: 'tr019',
@@ -627,6 +627,33 @@ export const CRAVING_TIPS = [
     id: 'tr030',
     kind: 'trinken',
     text: 'Mach dir eine Tasse Tee und halte sie mit beiden Händen. Wärme beruhigt.',
+  },
+  {
+    id: 'tr031',
+    kind: 'trinken',
+    text: 'Riech eine Minute an einem Pfefferminz-Teebeutel oder an Zitronenschale. Ein Duft, der nicht nach Essen riecht, senkte in Studien das Verlangen.',
+    ref: 'Kemps E, Tiggemann M, Addict Behav 2013;38:1550–1554',
+  },
+  {
+    id: 'tr032',
+    kind: 'trinken',
+    text: 'Mach dir einen Tee und warte, bis er trinkbar ist. Diese 5 bis 10 Minuten sind dein Aufschub.',
+  },
+  {
+    id: 'tr033',
+    kind: 'trinken',
+    text: 'Ein grosses Glas Wasser 30 Minuten vor dem Essen senkte bei älteren Erwachsenen die Menge beim Frühstück.',
+    ref: 'Davy BM et al., J Am Diet Assoc 2008;108:1236–1239',
+  },
+  {
+    id: 'tr034',
+    kind: 'trinken',
+    text: 'Riech an deinem Kaffee oder Tee, bevor du trinkst. Der Duft beschäftigt die Nase statt der Vorstellung vom Kuchen.',
+  },
+  {
+    id: 'tr035',
+    kind: 'trinken',
+    text: 'Eiswürfel mit einem Minzblatt einfrieren und einen davon langsam lutschen.',
   },
   {
     id: 'be001',
@@ -1589,7 +1616,8 @@ export const CRAVING_TIPS = [
   {
     id: 'fa049',
     kind: 'fakt',
-    text: 'Durst wird manchmal mit Hunger verwechselt. Ein Glas Wasser schadet nie.',
+    text: 'Die oft gehörte Regel «Durst wird mit Hunger verwechselt» ist kaum belegt: Hunger und Durst sagten in einer Tagebuch-Studie das Essen und Trinken nur schwach voraus. Ein Glas Wasser als Aufschub schadet trotzdem nie.',
+    ref: 'McKiernan F, Houchins JA, Mattes RD, Physiol Behav 2008;94:700–708',
   },
   {
     id: 'fa050',
@@ -1649,35 +1677,70 @@ export const CRAVING_TIPS = [
   {
     id: 'fa061',
     kind: 'fakt',
+    text: 'Ein neutraler Duft (in der Studie ein unbekannter, nicht nach Essen riechender Stoff) senkte das Verlangen nach Lieblingsessen und Schokolade deutlich stärker als ein Hör-Test.',
+    ref: 'Kemps E, Tiggemann M, Addict Behav 2013;38:1550–1554',
+  },
+  {
+    id: 'fa062',
+    kind: 'fakt',
+    text: '5 dl Wasser 30 Minuten vor dem Frühstück senkten bei 24 übergewichtigen älteren Erwachsenen die gegessene Menge um rund 13 % (500 statt 574 kcal).',
+    ref: 'Davy BM et al., J Am Diet Assoc 2008;108:1236–1239',
+  },
+  {
+    id: 'fa063',
+    kind: 'fakt',
+    text: 'Zu Tee gegen Hunger sind die Studien widersprüchlich: In einem Versuch machte Grüntee satter, in einem anderen hungriger. Tee hilft vor allem als Ritual und Aufschub.',
+    ref: 'Josic J et al., Nutr J 2010;9:63; randomisierte Crossover-Studie, Clin Nutr ESPEN 2022 (PubMed 35331535)',
+  },
+  {
+    id: 'fa064',
+    kind: 'fakt',
+    text: 'In einer kleinen Studie berichteten Personen, die alle 2 Stunden an Pfefferminze rochen, über weniger Hunger und assen weniger. Die Studie ist klein und nicht unabhängig wiederholt.',
+    ref: 'Reed JA et al., Appetite 2012;58:1087–1090',
+  },
+  {
+    id: 'fa065',
+    kind: 'fakt',
+    text: 'Gegen Heisshunger gibt es zu Eiswürfeln keine Studie. Ein häufiges, starkes Verlangen nach Eis ist aber ein bekanntes Zeichen für Eisenmangel: Von 262 Erwachsenen mit Eisenmangel hatten 45 % ein solches Verlangen, meist nach Eis.',
+    ref: 'Barton JC, Barton JC, Bertoli LF, BMC Blood Disord 2010;10:9',
+  },
+  {
+    id: 'fa066',
+    kind: 'fakt',
+    text: 'Eis kauen kann Zahnschmelz und Füllungen beschädigen. Lutschen statt beissen.',
+  },
+  {
+    id: 'fa067',
+    kind: 'fakt',
     text: 'Wer sich sagte «später, irgendwann» statt «nie», hatte in einer Studie weniger Lust und ass in der Woche danach seltener die Versuchung.',
     ref: 'Mead NL, Patrick VM, J Pers Soc Psychol 2016;110:20–35',
   },
   {
-    id: 'fa062',
+    id: 'fa068',
     kind: 'fakt',
     text: 'Je lebhafter das innere Bild eines Essens, desto stärker das Verlangen danach.',
     ref: 'Tiggemann M, Kemps E, Appetite 2005;45:305–313',
   },
   {
-    id: 'fa063',
+    id: 'fa069',
     kind: 'fakt',
     text: 'Schon der Gedanke an Essen kann Speichelfluss auslösen. Das Gefühl im Mund ist eine erlernte Vorbereitung, kein Energiebedarf.',
     ref: 'Power ML, Schulkin J, Appetite 2008;50:194–206',
   },
   {
-    id: 'fa064',
+    id: 'fa070',
     kind: 'fakt',
     text: 'Wer stark auf Essensreize reagiert, isst nachweislich mehr. Reize entschärfen wirkt darum besser als reine Willenskraft.',
     ref: 'Boswell RG, Kober H, Obes Rev 2016;17:159–177',
   },
   {
-    id: 'fa065',
+    id: 'fa071',
     kind: 'fakt',
     text: 'Eine kurze Schulung im Umdenken (an langfristige Folgen denken) verbesserte in sechs Studien die Essenswahl.',
     ref: 'Boswell RG et al., PNAS 2018;115:E11238–E11247',
   },
   {
-    id: 'fa066',
+    id: 'fa072',
     kind: 'fakt',
     text: 'Wer über Wochen weniger isst, hat im Schnitt weniger Heisshunger auf Süsses und Fettiges. Das Verlangen wird mit der Zeit leiser.',
     ref: 'Kahathuduwa CN et al., Obes Rev 2017;18:1122–1135',

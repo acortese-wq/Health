@@ -9,6 +9,7 @@ import { TRIGGERS } from '../domain/meals.js';
 import { isPremenstrual } from '../domain/cycle.js';
 import { CRAVING_TIPS } from '../data/cravingtips.js';
 import { suggestExercise } from '../data/mindfulness.js';
+import { DRINK_FACTS } from '../data/specificcraving.js';
 import { addDays } from '../domain/util.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -407,6 +408,27 @@ function planView(ctx) {
     h('p', {}, plan.lead),
     h('ol', { class: 'sos-steps' }, ...plan.steps.map((s) => h('li', {}, s))),
     mindBlock(a, plan.kind),
+    plan.kind === 'hunger'
+      ? null
+      : h(
+          'details',
+          { class: 'sos-drinks', id: 'sos-drinks' },
+          h('summary', {}, 'Tee, Wasser, Eiswürfel, Duft: Was ist belegt?'),
+          h(
+            'ul',
+            { class: 'sos-idea-list' },
+            ...DRINK_FACTS.map((f) =>
+              h(
+                'li',
+                { class: 'sos-idea idea-trinken' },
+                h('span', { class: `badge badge-${f.level === 'belegt' ? 'ok' : f.level === 'vorläufig' ? 'info' : 'warn'}` }, f.level),
+                h('span', { class: 'idea-text' }, f.text),
+                f.ref ? h('small', { class: 'hint' }, f.ref) : null,
+              ),
+            ),
+          ),
+          h('a', { href: '#lust', class: 'link-btn small' }, 'Mehr dazu mit Anleitung'),
+        ),
     ideasBlock(ctx),
     reasonsBlock(ctx, a),
     plan.snacks.length

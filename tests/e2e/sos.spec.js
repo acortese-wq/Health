@@ -32,6 +32,9 @@ test('Heisshunger-Notfall: 4 Fragen, Plan, Timer, Stärke danach, geschafft', as
   await expect(page.locator('#sos-plan h2')).toContainText('Welle');
   await expect(page.locator('#sos-plan')).toContainText('Teller');
   await expect(page.locator('#sos-plan')).toContainText('Bowen');
+  await page.locator('#sos-drinks summary').click();
+  await expect(page.locator('#sos-drinks')).toContainText('Eiswürfel: keine Studie');
+  await expect(page.locator('#sos-drinks .badge').first()).toHaveText('belegt');
   // Wechselnde Ideen: drei pro Mal, «Andere Ideen» bringt neue, ohne Wiederholung
   await expect(page.locator('#sos-ideas .sos-idea')).toHaveCount(3);
   const ids = new Set();
@@ -144,6 +147,9 @@ test('Lust auf ein bestimmtes Essen: Anleitung aus dem Notfall, Erklärung, Stra
   await page.locator('#lust-durchspielen summary').click();
   await expect(page.locator('#lust-durchspielen .badge')).toHaveText('Beweislage: vorläufig');
   await expect(page.locator('#lust-next')).toContainText('einfrieren');
+  await page.locator('#lust-mund summary').click();
+  await expect(page.locator('#lust-mund')).toContainText('Kemps E, Tiggemann M');
+  await expect(page.locator('#lust-next')).toContainText('Eisenmangel');
   // Bei echtem Hunger kein Kuchen-Link
   await page.goto('/#sos');
   await page.click('#sos-restart');
