@@ -3143,3 +3143,9 @@ textarea {
   text-transform: uppercase;
   color: var(--muted);
 }
+.sos-idea.idea-warum {
+  border-left-color: var(--muted);
+}
+.sos-idea.idea-vorbeugen {
+  border-left-color: var(--ok);
+}

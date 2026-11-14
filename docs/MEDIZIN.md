@@ -216,11 +216,17 @@ Knopf «Heisshunger? Notfall-Hilfe» auf «Heute» und im Coach (`#sos`). Vier F
 - **Lust auf etwas Bestimmtes**: Welle abwarten (Urge Surfing, Bowen & Marlatt 2009), Strategie zum Auslöser,
   bei Stärke ≥ 7 15 Minuten und zügig gehen (Ledochowski 2015); bewusst eine kleine Portion ist kein Rückfall.
 
-Dazu kommen wechselnde **Ideen für jetzt** aus einer Sammlung von 310 Einträgen (`data/cravingtips.js`, erzeugt mit
+Dazu kommen wechselnde **Ideen für jetzt** aus einer Sammlung von 385 Einträgen (`data/cravingtips.js`, erzeugt mit
 `scripts/build-cravingtips.py`): Ablenkung, Bewegung, Trinken und Geniessen, Im Kopf, Umgebung und Plan sowie Fakten.
 Pro Mal zwei praktische Ideen aus verschiedenen Arten und ein Fakt; passende Ideen (Auslöser, Abend, Bürozeit)
 haben Vorrang. Gesehene Ideen merkt sich das Gerät, sie wiederholen sich erst, wenn eine Art aufgebraucht ist.
 Einträge mit Studienbeleg tragen die Quelle; die übrigen sind praktische Tipps ohne eigene Wirksamkeitsstudie.
+
+**Warum gerade jetzt?** nennt bis zu drei persönliche Gründe aus Antworten und Tagesdaten: Pause über 4 h (Ghrelin),
+weniger als 6.5 h Schlaf, nach 15 Uhr weniger als 40 % des Proteinziels, nach 18 Uhr weniger als die Hälfte der
+Kalorien, Tage vor der Periode, derselbe Auslöser mindestens 3-mal in 14 Tagen (Muster), dazu die Erklärung zum
+Auslöser (25 Einträge «warum»). **Fürs nächste Mal** zeigt zwei wechselnde Vorbeuge-Tipps (50 Einträge «vorbeugen»),
+passend zum Auslöser und zur Tageszeit.
 
 Nach dem Timer: Stärke erneut 1–10, Ausgang «geschafft» oder «bewusst gegessen» (dann direkt zur Erfassung).
 Gespeichert pro Tag als `cravings` (Schema 6) für die Bilanz der letzten 7 Tage. Die Faustregeln ersetzen keine

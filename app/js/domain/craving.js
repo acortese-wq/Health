@@ -197,3 +197,80 @@ export function pickTips(tips, { seen, trigger = '', hour = 12, rng = Math.rando
   }
   return { tips: out, seen: [...used] };
 }
+
+/**
+ * Einträge einer bestimmten Art ziehen (z. B. «vorbeugen»), ohne Wiederholung, passende bevorzugt.
+ * @param {import('../data/cravingtips.js').CravingTip[]} tips
+ * @param {import('../data/cravingtips.js').TipKind} kind
+ * @param {{ seen: Iterable<string>, tags?: string[], n?: number, rng?: () => number }} o
+ */
+export function pickKind(tips, kind, { seen, tags = [], n = 2, rng = Math.random }) {
+  const used = new Set(seen);
+  const want = new Set(tags);
+  /** @type {import('../data/cravingtips.js').CravingTip[]} */
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    let list = tips.filter((t) => t.kind === kind && !used.has(t.id));
+    if (!list.length) {
+      for (const t of tips) if (t.kind === kind && !out.includes(t)) used.delete(t.id);
+      list = tips.filter((t) => t.kind === kind && !out.includes(t));
+    }
+    if (!list.length) break;
+    const fit = list.filter((t) => t.tags?.some((g) => want.has(g)));
+    const from = fit.length && rng() < 0.7 ? fit : list;
+    const t = from[Math.floor(rng() * from.length)];
+    out.push(t);
+    used.add(t.id);
+  }
+  return { tips: out, seen: [...used] };
+}
+
+/**
+ * Persönliche Gründe für den Heisshunger aus den Antworten und den Daten des Tages.
+ * @param {{
+ *   answers: CravingAnswers, hour: number, sleepH?: number, kcal: number, kcalTarget: number,
+ *   protein: number, proteinTarget: number, premenstrual: boolean, sameTrigger14: number, triggerLabel: string,
+ * }} c
+ * @param {import('../data/cravingtips.js').CravingTip[]} tips
+ * @returns {{ text: string, ref?: string }[]}
+ */
+export function cravingReasons(c, tips) {
+  /** @type {{ text: string, ref?: string }[]} */
+  const out = [];
+  if (c.answers.lastMeal === 'ueber4')
+    out.push({
+      text: 'Deine letzte Mahlzeit ist über 4 Stunden her. Nach langen Pausen steigt das Hungerhormon Ghrelin, der Körper will schnelle Energie.',
+      ref: 'Cummings DE et al., Diabetes 2001;50:1714–1719',
+    });
+  if (typeof c.sleepH === 'number' && c.sleepH < 6.5)
+    out.push({
+      text: `Letzte Nacht nur ${String(c.sleepH).replace(/\.0$/, '')} h Schlaf. Nach kurzen Nächten ist der Appetit messbar grösser.`,
+      ref: 'Spiegel K et al., Ann Intern Med 2004;141:846–850',
+    });
+  if (c.hour >= 15 && c.proteinTarget > 0 && c.protein < c.proteinTarget * 0.4)
+    out.push({
+      text: `Bisher erst ${Math.round(c.protein)} g Protein von ${Math.round(c.proteinTarget)} g. Wenig Protein über den Tag macht weniger satt.`,
+      ref: 'Leidy HJ et al., Am J Clin Nutr 2013;97:677–688',
+    });
+  if (c.hour >= 18 && c.kcalTarget > 0 && c.kcal < c.kcalTarget * 0.5)
+    out.push({
+      text: `Tagsüber erst ${Math.round(c.kcal)} kcal gegessen. Ein grosses Defizit holt sich der Körper gerne abends zurück.`,
+    });
+  if (c.premenstrual)
+    out.push({ text: 'Du bist in den Tagen vor der Periode. Mehr Lust auf Süsses ist dann häufig und hormonell bedingt.' });
+  if (c.sameTrigger14 >= 3)
+    out.push({
+      text: `Muster: In den letzten 14 Tagen ${c.sameTrigger14}-mal bei «${c.triggerLabel}». Das ist eine Gewohnheit, und Gewohnheiten lassen sich gezielt umlernen.`,
+      ref: 'Wood W, Neal DT, Psychol Rev 2007;114:843–863',
+    });
+  // Erklärung zum Auslöser aus der Sammlung
+  const t = c.answers.trigger;
+  const fit = tips.find((x) => x.kind === 'warum' && t !== 'nichts' && x.tags?.includes(t));
+  if (fit && out.length < 3) out.push({ text: fit.text, ...(fit.ref ? { ref: fit.ref } : {}) });
+  if (!out.length) {
+    const any = tips.filter((x) => x.kind === 'warum' && !x.tags);
+    const g = any[Math.floor(Math.random() * any.length)];
+    if (g) out.push({ text: g.text, ...(g.ref ? { ref: g.ref } : {}) });
+  }
+  return out.slice(0, 3);
+}

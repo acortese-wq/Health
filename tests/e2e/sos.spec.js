@@ -41,6 +41,12 @@ test('Heisshunger-Notfall: 4 Fragen, Plan, Timer, Stärke danach, geschafft', as
     await page.click('#sos-more-ideas');
   }
   expect(ids.size).toBe(24);
+  // Warum gerade jetzt und Tipps fürs nächste Mal
+  await expect(page.locator('#sos-why .sos-idea').first()).toBeVisible();
+  await expect(page.locator('#sos-next .sos-idea')).toHaveCount(2);
+  const before = await page.locator('#sos-next .sos-idea').first().getAttribute('data-id');
+  await page.click('#sos-more-next');
+  await expect(page.locator('#sos-next .sos-idea').first()).not.toHaveAttribute('data-id', String(before));
   // Gespeichert für die Bilanz
   let st = await page.evaluate(() => JSON.parse(localStorage.getItem('gesundheitscockpit') ?? '{}'));
   const day = /** @type {any} */ (Object.values(st.days).find((/** @type {any} */ d) => d.cravings));

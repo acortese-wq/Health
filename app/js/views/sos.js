@@ -4,7 +4,9 @@
 
 import { h, fmt, nowTime } from '../ui/dom.js';
 import { uid } from '../store.js';
-import { QUESTIONS, cravingPlan, cravingStats, pickTips } from '../domain/craving.js';
+import { QUESTIONS, cravingPlan, cravingStats, pickTips, pickKind, cravingReasons } from '../domain/craving.js';
+import { TRIGGERS } from '../domain/meals.js';
+import { isPremenstrual } from '../domain/cycle.js';
 import { CRAVING_TIPS } from '../data/cravingtips.js';
 import { addDays } from '../domain/util.js';
 
@@ -13,13 +15,13 @@ import { addDays } from '../domain/util.js';
 
 /**
  * Ablauf (überlebt das Neuzeichnen, solange die App offen ist).
- * @type {{ step: number, answers: Partial<CravingAnswers>, logId: string, date: string, timerEnd: number, timerDone: boolean, after: number | null, tips: import('../data/cravingtips.js').CravingTip[] }}
+ * @type {{ step: number, answers: Partial<CravingAnswers>, logId: string, date: string, timerEnd: number, timerDone: boolean, after: number | null, tips: import('../data/cravingtips.js').CravingTip[], next: import('../data/cravingtips.js').CravingTip[] }}
  */
-const flow = { step: 0, answers: {}, logId: '', date: '', timerEnd: 0, timerDone: false, after: null, tips: [] };
+const flow = { step: 0, answers: {}, logId: '', date: '', timerEnd: 0, timerDone: false, after: null, tips: [], next: [] };
 let tick = 0;
 
 function restart() {
-  Object.assign(flow, { step: 0, answers: {}, logId: '', date: '', timerEnd: 0, timerDone: false, after: null, tips: [] });
+  Object.assign(flow, { step: 0, answers: {}, logId: '', date: '', timerEnd: 0, timerDone: false, after: null, tips: [], next: [] });
   window.clearInterval(tick);
 }
 
@@ -46,20 +48,132 @@ const SEEN_KEY = 'gesundheitscockpit.tipsSeen';
  * @param {string} trigger
  */
 function drawTips(trigger) {
-  /** @type {string[]} */
-  let seen = [];
-  try {
-    seen = JSON.parse(localStorage.getItem(SEEN_KEY) ?? '[]');
-  } catch {
-    seen = [];
-  }
-  const r = pickTips(CRAVING_TIPS, { seen: Array.isArray(seen) ? seen : [], trigger, hour: new Date().getHours() });
-  try {
-    localStorage.setItem(SEEN_KEY, JSON.stringify(r.seen));
-  } catch {
-    // ohne Speicher wiederholen sich Ideen eher
-  }
+  const r = pickTips(CRAVING_TIPS, { seen: readSeen(), trigger, hour: new Date().getHours() });
+  writeSeen(r.seen);
   flow.tips = r.tips;
+}
+
+/** @returns {string[]} */
+function readSeen() {
+  try {
+    const v = JSON.parse(localStorage.getItem(SEEN_KEY) ?? '[]');
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+
+/** @param {string[]} seen */
+function writeSeen(seen) {
+  try {
+    localStorage.setItem(SEEN_KEY, JSON.stringify(seen));
+  } catch {
+    // ohne Speicher wiederholen sich Tipps eher
+  }
+}
+
+/**
+ * Vorbeuge-Tipps fürs nächste Mal ziehen.
+ * @param {string[]} tags
+ */
+function drawNext(tags) {
+  const r = pickKind(CRAVING_TIPS, 'vorbeugen', { seen: readSeen(), tags, n: 2 });
+  writeSeen(r.seen);
+  flow.next = r.tips;
+}
+
+/**
+ * «Warum gerade jetzt?»: persönliche Gründe aus Antworten und Tagesdaten.
+ * @param {Ctx} ctx
+ * @param {CravingAnswers} a
+ */
+function reasonsBlock(ctx, a) {
+  const snap = ctx.snap;
+  const day = ctx.state.days[ctx.today] ?? {};
+  const food = day.food ?? [];
+  const trigger = a.trigger;
+  let same = 0;
+  for (let i = 0; i < 14; i++) {
+    const d = ctx.state.days[addDays(ctx.today, -i)];
+    same += (d?.cravings ?? []).filter((c) => c.trigger === trigger).length;
+    same += (d?.food ?? []).filter((f) => f.trigger === trigger).length;
+  }
+  const reasons = cravingReasons(
+    {
+      answers: a,
+      hour: new Date().getHours(),
+      sleepH: day.sleepH,
+      kcal: food.reduce((s, f) => s + f.kcal, 0),
+      kcalTarget: snap?.kcalTarget ?? 0,
+      protein: food.reduce((s, f) => s + f.protein, 0),
+      proteinTarget: snap?.protein.grams ?? 0,
+      premenstrual: Boolean(
+        snap && snap.profile.sex === 'f' && snap.cycleStarts.length && isPremenstrual(ctx.today, snap.cycleStarts, snap.cycleLength),
+      ),
+      sameTrigger14: trigger === 'nichts' ? 0 : same,
+      triggerLabel: TRIGGERS.find((t) => t[0] === trigger)?.[1] ?? String(trigger),
+    },
+    CRAVING_TIPS,
+  );
+  return h(
+    'div',
+    { class: 'stack-sm', id: 'sos-why' },
+    h('h3', { class: 'eyebrow' }, 'Warum gerade jetzt?'),
+    h(
+      'ul',
+      { class: 'sos-idea-list' },
+      ...reasons.map((r) =>
+        h(
+          'li',
+          { class: 'sos-idea idea-warum' },
+          h('span', { class: 'idea-text' }, r.text),
+          r.ref ? h('small', { class: 'hint' }, r.ref) : null,
+        ),
+      ),
+    ),
+  );
+}
+
+/**
+ * «Fürs nächste Mal»: wechselnde Vorbeuge-Tipps passend zum Auslöser.
+ * @param {Ctx} ctx
+ * @param {CravingAnswers} a
+ */
+function nextTimeBlock(ctx, a) {
+  const tags = [String(a.trigger), ...(new Date().getHours() >= 18 ? ['abend'] : [])];
+  if (!flow.next.length) drawNext(tags);
+  return h(
+    'div',
+    { class: 'stack-sm', id: 'sos-next' },
+    h('h3', { class: 'eyebrow' }, 'Fürs nächste Mal'),
+    h(
+      'ul',
+      { class: 'sos-idea-list' },
+      ...flow.next.map((t) =>
+        h(
+          'li',
+          { class: 'sos-idea idea-vorbeugen', 'data-id': t.id },
+          h('span', { class: 'idea-text' }, t.text),
+          t.ref ? h('small', { class: 'hint' }, t.ref) : null,
+        ),
+      ),
+    ),
+    h(
+      'button',
+      {
+        type: 'button',
+        class: 'btn small-btn',
+        id: 'sos-more-next',
+        on: {
+          click: () => {
+            drawNext(tags);
+            ctx.go('sos');
+          },
+        },
+      },
+      '↻ Andere Tipps',
+    ),
+  );
 }
 
 const KIND_LABEL = /** @type {Record<string, string>} */ ({
@@ -274,6 +388,7 @@ function planView(ctx) {
     h('p', {}, plan.lead),
     h('ol', { class: 'sos-steps' }, ...plan.steps.map((s) => h('li', {}, s))),
     ideasBlock(ctx),
+    reasonsBlock(ctx, a),
     plan.snacks.length
       ? h(
           'div',
@@ -362,6 +477,7 @@ function planView(ctx) {
         )
       : null,
     plan.kind === 'hunger' || flow.after !== null || timerOver || !plan.timerMin ? outcome : null,
+    nextTimeBlock(ctx, a),
     h('p', { class: 'hint' }, `Belege: ${plan.refs.join('; ')}.`),
     h(
       'button',

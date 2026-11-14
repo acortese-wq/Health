@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cravingPlan, cravingStats, QUESTIONS, pickTips } from '../../app/js/domain/craving.js';
+import { cravingPlan, cravingStats, QUESTIONS, pickTips, pickKind, cravingReasons } from '../../app/js/domain/craving.js';
 import { emptyState, sanitize, SCHEMA_VERSION } from '../../app/js/store.js';
 
 const ctx = { kcalLeft: 600, hour: 16 };
@@ -79,7 +79,7 @@ test('Ideen-Sammlung: über 300 Einträge, eindeutig, alle Arten, Belege im Ziti
   assert.equal(new Set(CRAVING_TIPS.map((t) => t.id)).size, CRAVING_TIPS.length);
   assert.equal(new Set(CRAVING_TIPS.map((t) => t.text)).size, CRAVING_TIPS.length);
   const kinds = new Set(CRAVING_TIPS.map((t) => t.kind));
-  assert.deepEqual([...kinds].sort(), ['ablenkung', 'bewegung', 'fakt', 'kopf', 'trinken', 'umgebung']);
+  assert.deepEqual([...kinds].sort(), ['ablenkung', 'bewegung', 'fakt', 'kopf', 'trinken', 'umgebung', 'vorbeugen', 'warum']);
   for (const t of CRAVING_TIPS) {
     assert.ok(t.text.length > 15 && t.text.length < 260, t.id);
     if (t.ref) assert.match(t.ref, /\d{4}/, t.id);
@@ -116,4 +116,66 @@ test('Ideen ziehen: keine Wiederholung, bis eine Art aufgebraucht ist; passende 
     fit += x.tips.slice(0, 2).filter((t) => t.tags?.some((g) => g === 'tv' || g === 'abend')).length;
   }
   assert.ok(fit > 150, `${fit}`);
+});
+
+test('Warum gerade jetzt: persönliche Gründe aus Tagesdaten, höchstens drei', async () => {
+  const { CRAVING_TIPS } = await import('../../app/js/data/cravingtips.js');
+  const base = {
+    hour: 21,
+    kcal: 800,
+    kcalTarget: 2200,
+    protein: 30,
+    proteinTarget: 140,
+    premenstrual: false,
+    sameTrigger14: 0,
+    triggerLabel: 'Fernseher/Handy',
+  };
+  const r = cravingReasons(
+    { ...base, answers: { lastMeal: 'ueber4', apple: false, trigger: 'tv', intensity: 7 }, sleepH: 5.5 },
+    CRAVING_TIPS,
+  );
+  assert.equal(r.length, 3);
+  assert.match(r[0].text, /über 4 Stunden/);
+  assert.match(r[1].text, /5\.5 h Schlaf/);
+  assert.match(r[2].text, /30 g Protein von 140 g/);
+  // Muster und Auslöser-Erklärung
+  const m = cravingReasons(
+    {
+      ...base,
+      hour: 12,
+      kcal: 1500,
+      protein: 100,
+      sameTrigger14: 4,
+      answers: { lastMeal: 'unter2', apple: false, trigger: 'tv', intensity: 5 },
+    },
+    CRAVING_TIPS,
+  );
+  assert.match(m[0].text, /4-mal bei «Fernseher\/Handy»/);
+  assert.match(m[1].text, /Fernsehen/);
+  // Ohne besondere Gründe: allgemeine Erklärung
+  const g = cravingReasons(
+    { ...base, hour: 12, kcal: 1500, protein: 100, answers: { lastMeal: 'unter2', apple: false, trigger: 'nichts', intensity: 3 } },
+    CRAVING_TIPS,
+  );
+  assert.equal(g.length, 1);
+});
+
+test('Fürs nächste Mal: zwei verschiedene Vorbeuge-Tipps, passend bevorzugt, ohne Wiederholung', async () => {
+  const { CRAVING_TIPS } = await import('../../app/js/data/cravingtips.js');
+  let seen = /** @type {string[]} */ ([]);
+  const shown = new Set();
+  for (let i = 0; i < 20; i++) {
+    const r = pickKind(CRAVING_TIPS, 'vorbeugen', { seen, tags: ['stress'], n: 2 });
+    assert.equal(r.tips.length, 2);
+    assert.notEqual(r.tips[0].id, r.tips[1].id);
+    for (const t of r.tips) {
+      assert.equal(t.kind, 'vorbeugen');
+      assert.ok(!shown.has(t.id));
+      shown.add(t.id);
+    }
+    seen = r.seen;
+  }
+  // Nach 50 Tipps beginnt es von vorn
+  const again = pickKind(CRAVING_TIPS, 'vorbeugen', { seen, n: 2 });
+  assert.equal(again.tips.length, 2);
 });

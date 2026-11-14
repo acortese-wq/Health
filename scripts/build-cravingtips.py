@@ -331,6 +331,87 @@ F = [  # Fakten
     "Der Körper kann nur begrenzt Protein auf einmal zum Muskelaufbau nutzen. Darum lohnt sich Protein in jeder Mahlzeit.",
 ]
 
+W = [  # Warum Heisshunger entsteht (Erklärungen)
+    ("Nach einer langen Essenspause steigt das Hungerhormon Ghrelin. Der Körper verlangt dann schnell verfügbare Energie, am liebsten Süsses oder Fettiges.", "Cummings DE et al., Diabetes 2001;50:1714–1719"),
+    ("Nach einer kurzen Nacht ist das Hungerhormon erhöht und das Sättigungshormon erniedrigt. Darum ist der Appetit nach schlechtem Schlaf grösser.", "Spiegel K et al., Ann Intern Med 2004;141:846–850", "muede"),
+    ("Schlafmangel macht das Belohnungszentrum im Gehirn empfänglicher für Kalorienreiches, während die Kontrolle im Stirnhirn nachlässt.", "Greer SM et al., Nat Commun 2013;4:2259", "muede"),
+    ("Bei Stress schüttet der Körper Cortisol aus. Das steigert bei vielen die Lust auf süsse und fettige Lebensmittel, die kurzfristig beruhigen.", "Adam TC, Epel ES, Physiol Behav 2007;91:449–458", "stress"),
+    ("Essen ist eine schnelle Belohnung. Bei Frust oder Traurigkeit sucht das Gehirn nach dem einfachsten Weg, sich besser zu fühlen.", None, "frust"),
+    ("Langeweile fühlt sich unangenehm an. Essen ist eine leicht verfügbare Beschäftigung und ein kleiner Reiz, darum greift man bei Langeweile häufiger zu Snacks.", "Moynihan AB et al., Front Psychol 2015;6:369", "langeweile"),
+    ("Beim Fernsehen oder am Handy merkt das Gehirn schlechter, was und wie viel gegessen wurde. Die Sättigung kommt später, und man isst auch danach mehr.", "Robinson E et al., Am J Clin Nutr 2013;97:728–742", "tv"),
+    ("Gewohnheiten hängen an Ort, Uhrzeit und Situation. Wenn du immer um 21 Uhr auf dem Sofa naschst, meldet sich die Lust zur gleichen Zeit am gleichen Ort, auch ohne Hunger.", "Wood W, Neal DT, Psychol Rev 2007;114:843–863", "gewohnheit,abend"),
+    ("Lust entsteht oft als inneres Bild: Du stellst dir den Geschmack vor, das Bild wird lebhafter und das Verlangen stärker.", "Kavanagh DJ et al., Psychol Rev 2005;112:446–467"),
+    ("Wer sich Lebensmittel streng verbietet, denkt öfter daran. Unterdrückte Gedanken kommen häufig stärker zurück.", "Wegner DM et al., J Pers Soc Psychol 1987;53:5–13"),
+    ("Wenig Protein über den Tag macht weniger satt. Wer morgens und mittags wenig Protein isst, hat abends oft mehr Appetit.", "Leidy HJ et al., Am J Clin Nutr 2013;97:677–688"),
+    ("Wer tagsüber sehr wenig isst, holt es oft abends nach. Der Körper gleicht ein grosses Defizit gerne mit Heisshunger aus.", None, "abend"),
+    ("Stark verarbeitete Lebensmittel sind leicht zu essen und sättigen pro Kalorie schlecht. Darum isst man davon leicht mehr, als man wollte.", "Hall KD et al., Cell Metab 2019;30:67–77"),
+    ("In Gesellschaft isst man oft mehr, weil man sich an den anderen orientiert und länger am Tisch sitzt.", "Herman CP et al., Psychol Bull 2003;129:873–886", "gesellschaft"),
+    ("Alkohol senkt die Hemmschwelle und regt den Appetit an. Nach einem Glas fallen Vorsätze leichter.", "Kwok A et al., Br J Nutr 2019;121:481–495", "gesellschaft,abend"),
+    ("Vor der Periode haben viele Frauen mehr Lust auf Süsses. Das hängt mit hormonellen Veränderungen zusammen und ist normal.", None, "zyklus"),
+    ("Werbung, Gerüche und der Anblick von Essen lösen Verlangen aus, auch ohne Hunger. Das Gehirn hat gelernt: Dieser Reiz bedeutet Belohnung.", None),
+    ("Belohnung mit Essen wird gelernt, oft schon in der Kindheit. Was oft geübt wurde, meldet sich in ähnlichen Situationen automatisch.", None, "belohnung"),
+    ("Müdigkeit fühlt sich ähnlich an wie Hunger: wenig Energie, schlechte Konzentration. Der Körper versucht, sie mit Essen auszugleichen.", None, "muede"),
+    ("Durst und Hunger werden manchmal verwechselt, besonders wenn man über den Tag wenig trinkt.", None),
+    ("Ein schneller Blutzuckerabfall nach sehr zuckerhaltigem Essen kann einige Stunden später neue Lust auf Süsses auslösen.", None),
+    ("Je müder und gestresster man ist, desto schwieriger fällt die Selbstkontrolle. Das ist keine Charakterschwäche, sondern Biologie.", None, "stress,muede"),
+    ("Heisshunger nach dem Sport ist oft echter Hunger: Der Körper will Energie und Protein zurück.", None),
+    ("Ein Ausrutscher führt oft zum Gedanken «jetzt ist es eh egal». Genau dieser Gedanke macht aus einem Snack eine ganze Packung.", None, "frust"),
+    ("Abends ist die Willenskraft nach einem langen Tag erschöpft, und die Lust auf Belohnung grösser.", None, "abend"),
+]
+
+V = [  # Vorbeugen: fürs nächste Mal
+    ("Iss zum Frühstück 25–30 g Protein, z. B. Skyr, Eier oder Hüttenkäse. Das senkt den Abendhunger.", "Leidy HJ et al., Am J Clin Nutr 2013;97:677–688"),
+    "Plane zwischen Mittag und Abendessen einen proteinreichen Zvieri ein, damit du nicht ausgehungert nach Hause kommst.",
+    ("Halte keine Pausen von mehr als 5 Stunden zwischen den Mahlzeiten.", None),
+    ("Geh 30 Minuten früher ins Bett. Mehr Schlaf ist eines der wirksamsten Mittel gegen Appetit.", "Al Khatib HK et al., Eur J Clin Nutr 2017;71:614–624", "muede,abend"),
+    ("Schreib einen Wenn-dann-Plan für deinen häufigsten Auslöser, z. B. «Wenn ich nach der Arbeit gestresst bin, dann gehe ich zuerst 10 Minuten raus».", "Gollwitzer PM, Sheeran P, Adv Exp Soc Psychol 2006;38:69–119"),
+    ("Lagere Süsses nicht sichtbar und nicht in Griffweite des Sofas.", "Hollands GJ et al., Cochrane Database Syst Rev 2019;CD012573", "tv,abend"),
+    ("Iss Mahlzeiten nur am Tisch, ohne Fernseher und Handy.", "Robinson E et al., Am J Clin Nutr 2013;97:728–742", "tv"),
+    ("Richte ein neues Abendritual ein: nach dem Znacht Zähne putzen, Tee machen, Küche schliessen.", None, "abend,gewohnheit"),
+    ("Plane für die Abende eine Beschäftigung mit den Händen: Hobby, Spaziergang, Telefonat.", None, "langeweile,abend"),
+    ("Baue täglich 10 Minuten Entspannung ein, z. B. Atemübung oder kurzer Spaziergang. Weniger Grundstress heisst weniger Stresshunger.", None, "stress"),
+    ("Achtsamkeits-Training senkt emotionales Essen. Probier eine geführte 10-Minuten-Übung pro Tag.", "Katterman SN et al., Eat Behav 2014;15:197–204", "stress,frust"),
+    ("Sammle Belohnungen ohne Essen und schreib sie auf: Bad, Serie, Musik, ein kleines Geschenk.", None, "belohnung"),
+    ("Wenn du am Abend oft Lust auf Süsses hast: Plane ein kleines, bewusstes Dessert nach dem Znacht ein. Geplant ist kein Ausrutscher.", None, "abend"),
+    ("Iss tagsüber genug. Ein zu grosses Defizit rächt sich oft am Abend.", None, "abend"),
+    ("Trink über den Tag verteilt regelmässig, z. B. ein Glas zu jeder Mahlzeit und eines dazwischen.", "Dennis EA et al., Obesity 2010;18:300–307"),
+    ("Kauf Snacks nur in kleinen Packungen oder gar nicht auf Vorrat.", "Hollands GJ et al., Cochrane Database Syst Rev 2015;CD011045"),
+    "Geh nie hungrig einkaufen.",
+    "Leg dir Notfall-Snacks bereit, die dir guttun: Skyr, Nüsse, Gemüsesticks, gekochte Eier.",
+    ("Wenn du in Gesellschaft isst: Entscheide vorher, was und wie viel, und trink zu jedem Glas Alkohol ein Glas Wasser.", "Kwok A et al., Br J Nutr 2019;121:481–495", "gesellschaft"),
+    ("Erfasse im Tagebuch beim Essen ohne Hunger den Auslöser. Nach zwei Wochen siehst du dein Muster.", "Burke LE et al., J Am Diet Assoc 2011;111:92–102"),
+    ("Verbiete dir nichts ganz. Erlaube kleine Mengen bewusst, dann verliert das Lebensmittel seinen Reiz.", "Wegner DM et al., J Pers Soc Psychol 1987;53:5–13"),
+    ("Iss langsam, mindestens 15–20 Minuten pro Hauptmahlzeit.", "Robinson E et al., Am J Clin Nutr 2014;100:123–151"),
+    ("Starte das Abendessen mit Salat oder Gemüsesuppe.", "Flood JE, Rolls BJ, Appetite 2007;49:626–634", "abend"),
+    "Füll den Teller zur Hälfte mit Gemüse. Viel Volumen, wenig Kalorien.",
+    ("Bewege dich täglich mindestens 30 Minuten. Bewegung hilft gegen Stress und Heisshunger.", "Taylor AH, Oliver AJ, Appetite 2009;52:155–160", "stress"),
+    ("Mach eine Bildschirm-Pause eine Stunde vor dem Schlafen. Besserer Schlaf, weniger Appetit am nächsten Tag.", None, "muede,tv"),
+    ("Stell nach dem Abendessen alle Snacks weg und mach das Küchenlicht aus.", None, "abend,gewohnheit"),
+    ("Plane fixe Essenszeiten. Regelmässigkeit hilft dem Hungerhormon, sich einzupendeln.", "Cummings DE et al., Diabetes 2001;50:1714–1719"),
+    ("Wähle Lebensmittel mit wenigen Zutaten statt stark verarbeiteter Produkte.", "Hall KD et al., Cell Metab 2019;30:67–77"),
+    ("Mach dir eine Liste deiner Top-3-Auslöser und je einen Gegenplan.", None),
+    ("Schaffe eine Pause zwischen Arbeit und Zuhause: ein kurzer Spaziergang oder Musik im Auto hilft, Stress nicht in die Küche mitzunehmen.", None, "stress"),
+    ("Sprich mit jemandem über das, was dich belastet. Geteilte Sorgen müssen nicht weggegessen werden.", None, "frust"),
+    ("Häufen sich Essanfälle mit Kontrollverlust, lohnt sich ein Gespräch mit Hausärztin, Ernährungsberatung oder Psychotherapie.", None, "frust"),
+    ("Iss vor einem Fest oder Apéro etwas Proteinreiches, damit du nicht ausgehungert ankommst.", None, "gesellschaft"),
+    ("Iss im Büro nicht am Schreibtisch, sondern bewusst in der Pause.", None, "buero"),
+    ("Nimm dir Snacks fürs Büro mit, damit der Automat oder der Bäcker nicht lockt.", None, "buero"),
+    ("Plane in der Woche vor der Periode bewusst etwas Süsses mit Mass ein, statt es zu verbieten.", None, "zyklus"),
+    ("Speichere ein gutes Frühstück als eigene Mahlzeit, dann ist es morgens nur ein Tipp.", None),
+    ("Wenn die Lust oft zur gleichen Zeit kommt: Leg genau dann eine kleine geplante Zwischenmahlzeit hin.", "Wood W, Neal DT, Psychol Rev 2007;114:843–863", "gewohnheit"),
+    ("Schreib nach einem überstandenen Heisshunger kurz auf, was geholfen hat. Beim nächsten Mal weisst du es.", None),
+    ("Belohne dich für überstandene Wellen, z. B. mit einem Strich im Kalender oder etwas Schönem am Wochenende.", None, "belohnung"),
+    ("Iss ausreichend Ballaststoffe: Vollkorn, Hülsenfrüchte, Gemüse. Sie halten länger satt.", "Rolls BJ, Physiol Behav 2009;97:609–615"),
+    ("Kauf keine Grosspackungen. Was nicht da ist, kann nicht locken.", "Hollands GJ et al., Cochrane Database Syst Rev 2019;CD012573"),
+    ("Mach deinen Abend planbar: Was esse ich, wann höre ich auf, was mache ich danach?", None, "abend"),
+    ("Lerne einen Schnell-Entspannungs-Trick und übe ihn, wenn es dir gut geht. Dann klappt er im Stress.", None, "stress"),
+    ("Mach regelmässig etwas, das dir Freude macht. Wer genug schöne Momente hat, braucht Essen weniger als Trost.", None, "frust,belohnung"),
+    ("Gönn dir Pausen im Tag. Wer nie abschaltet, sucht die Pause oft im Kühlschrank.", None, "stress"),
+    ("Iss die gleiche Menge an Wochentagen und am Wochenende. Grosse Unterschiede fördern Heisshunger.", None),
+    ("Plane beim Fernsehabend eine kleine Portion auf einem Teller, statt die Packung mitzunehmen.", None, "tv"),
+    ("Achte auf deinen Zyklus: In den Tagen vor der Periode mehr Protein und Ballaststoffe einplanen.", None, "zyklus"),
+]
+
 
 def norm(x):
     if isinstance(x, str):
@@ -343,7 +424,7 @@ def norm(x):
     return d
 
 
-cats = [("ablenkung", A), ("trinken", T), ("bewegung", B), ("kopf", K), ("umgebung", U), ("fakt", F)]
+cats = [("ablenkung", A), ("trinken", T), ("bewegung", B), ("kopf", K), ("umgebung", U), ("fakt", F), ("warum", W), ("vorbeugen", V)]
 out = []
 seen = set()
 for kind, lst in cats:
@@ -359,7 +440,7 @@ js = """// @ts-check
 // aus der Ernährungsberatung ohne eigene Wirksamkeitsstudie.
 
 /**
- * @typedef {'ablenkung' | 'trinken' | 'bewegung' | 'kopf' | 'umgebung' | 'fakt'} TipKind
+ * @typedef {'ablenkung' | 'trinken' | 'bewegung' | 'kopf' | 'umgebung' | 'fakt' | 'warum' | 'vorbeugen'} TipKind
  * @typedef {{ id: string, kind: TipKind, text: string, ref?: string, tags?: string[] }} CravingTip
  */
 
