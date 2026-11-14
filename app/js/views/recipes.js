@@ -48,6 +48,14 @@ const view = {
 };
 
 /**
+ * Rezept-Detail öffnen (z. B. aus «Gezielt auffüllen»).
+ * @param {Recipe} r
+ */
+export function openRecipe(r) {
+  openDetail(r);
+}
+
+/**
  * Alle Rezepte: eingebaute und gespeicherte (eigene, Referenzen, Importe).
  * @param {import('../store.js').State} state
  */

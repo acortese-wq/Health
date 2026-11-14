@@ -82,7 +82,12 @@ export function viewNutrition(ctx) {
   if (ctx.sub === 'erfassen') window.setTimeout(() => document.getElementById('capture-card')?.scrollIntoView({ block: 'start' }), 0);
   const body =
     tab.id === 'analyse'
-      ? [nutrientsCard(ctx, snap), pyramidCard(ctx, snap), rhythmCard(ctx, snap)]
+      ? [
+          h('a', { href: '#auffuellen', class: 'btn', id: 'nut-fill' }, 'Mangel ausgleichen: Lebensmittel und Rezepte'),
+          nutrientsCard(ctx, snap),
+          pyramidCard(ctx, snap),
+          rhythmCard(ctx, snap),
+        ]
       : tab.id === 'coach'
         ? [
             h(
@@ -93,6 +98,7 @@ export function viewNutrition(ctx) {
               h('a', { href: '#lust', class: 'btn', id: 'coach-lust' }, 'Lust auf Bestimmtes'),
               h('a', { href: '#intuitiv', class: 'btn', id: 'coach-intuitiv' }, 'Intuitives Essen'),
               h('a', { href: '#gelueste', class: 'btn', id: 'coach-gelueste' }, 'Gelüste und Mangel'),
+              h('a', { href: '#auffuellen', class: 'btn', id: 'coach-fill' }, 'Nährstoffe gezielt auffüllen'),
             ),
             journalCard(ctx),
             behaviorCard(ctx, snap),

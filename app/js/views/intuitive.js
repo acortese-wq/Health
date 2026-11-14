@@ -6,6 +6,8 @@ import { PRINCIPLES, scaleStats, scaleFeedback } from '../domain/intuitive.js';
 import { CRAVING_CAUSES, NO_EVIDENCE } from '../data/cravingcauses.js';
 import { averageAmounts, dailyTargets, NUTRIENTS } from '../domain/micros.js';
 import { addDays } from '../domain/util.js';
+import { replenishLink } from './replenish.js';
+import { REPLENISHABLE } from '../domain/replenish.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
 
@@ -153,7 +155,8 @@ function personal(ctx, c) {
         'li',
         {},
         h('strong', {}, `${n.label}: `),
-        `Ø ${fmt(v, n.digits)} ${n.unit} von ${limit ? 'max. ' : ''}${fmt(target, n.digits)} ${n.unit} (${pct} %), ${text}.`,
+        `Ø ${fmt(v, n.digits)} ${n.unit} von ${limit ? 'max. ' : ''}${fmt(target, n.digits)} ${n.unit} (${pct} %), ${text}. `,
+        !limit && pct < 100 && REPLENISHABLE.includes(k) ? replenishLink(k, n.label) : null,
       ),
     ];
   });

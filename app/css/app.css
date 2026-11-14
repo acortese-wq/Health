@@ -3269,3 +3269,29 @@ textarea {
   display: flex;
   justify-content: space-between;
 }
+
+/* Gezielt auffüllen */
+.fill-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.fill-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.fill-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.fill-item .btn {
+  flex: none;
+  white-space: nowrap;
+}

@@ -88,7 +88,7 @@ function addProduct(ctx, p, grams) {
  * @param {import('../data/foods.js').Food} food
  * @param {number} grams
  */
-function addFood(ctx, food, grams) {
+export function addFood(ctx, food, grams) {
   const e = entryFromFood(food, grams);
   ctx.commit((st) => addFoodEntry(st, ctx.date, { time: captureTime(ctx), ...e }) !== null, `${e.name} erfasst`);
 }

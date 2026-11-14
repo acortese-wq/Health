@@ -288,6 +288,15 @@ Compr Physiol 2014). Für Schokolade, Süsses, Fleisch, Käse und Brot ist kein 
 das so, dazu die eigenen 7-Tage-Werte der passenden Nährstoffe (Magnesium, Eisen, Protein, B12, Calcium,
 Kohlenhydrate, Ballaststoffe, Natrium) mit Abdeckung und dem Hinweis, dass Essdaten keinen Bluttest ersetzen.
 
+## Gezielt auffüllen
+
+Seite `#auffuellen/<nährstoff>` (Nährstoffe, Coach, Links bei knappen Werten in «Gelüste und Mangel»). Vorauswahl:
+knappster Nährstoff der letzten 7 Tage. Lebensmittel aus der Nährwertdatenbank nach Menge pro üblicher Portion,
+geteilt durch die Wurzel der kcal/100 (kalorienreiche Portionen rutschen nach unten), Vorlieben Fisch/Fleisch/Milch
+beachtet, «+ Erfassen». Rezepte nach Menge pro Portion. Aufnahme-Tipps: Häm-Eisen, Vitamin C, Calcium (Hurrell &
+Egli 2010), Kaffee und Tee hemmen Eisen (Morck 1983; Disler 1975), pflanzliches Omega-3 wird kaum zu EPA/DHA (Burdge
+& Calder 2005), Vitamin D im Winter (EEK 2012); weitere als praktische Hinweise ohne eigene Quelle.
+
 ## Intuitives Essen (ergänzend)
 
 Seite `#intuitiv`: zehn Grundsätze nach Tribole & Resch mit Bezug zur App, Skala Hunger vorher und Sättigung danach
