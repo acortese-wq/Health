@@ -3202,3 +3202,28 @@ textarea {
     transition: none;
   }
 }
+.lust-strategy {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 4px 12px;
+}
+.lust-strategy summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lust-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--petrol);
+  color: #fff;
+  font: 700 0.85rem var(--f-data);
+}

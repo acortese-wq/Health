@@ -254,6 +254,26 @@ schlägt eine passende Übung vor (stark → Welle reiten, Stress/Frust → RAIN
 
 Die Belege betreffen die Methode, nicht jede Formulierung der Anleitung.
 
+## Lust auf ein bestimmtes Essen (z. B. Kuchen im Kühlschrank)
+
+Seite `#lust` (aus dem Notfall, wenn der Apfel-Test «Nein» ergibt, und im Coach), Daten in `data/specificcraving.js`,
+Quellen geprüft am 14.11.2026.
+
+Erklärung: inneres Bild und Geschmack im Kopf (Tiggemann & Kemps 2005; Kavanagh 2005), vorbereitende Körperreaktion
+wie Speichelfluss (Power & Schulkin 2008), erlernte Reize sagen Essen voraus (Boswell & Kober 2016, Meta-Analyse),
+Unterdrücken verstärkt (Wegner 1987; Hooper 2012), Verlangen nimmt bei längerer Kalorienreduktion ab
+(Kahathuduwa 2017, Meta-Analyse).
+
+| Strategie | Beweislage | Quelle |
+| --- | --- | --- |
+| Aus den Augen, aus der Reichweite (Dose, hinten, einfrieren) | mittel (Cochrane, Sicherheit niedrig) | Hollands 2019 |
+| «Später, irgendwann» statt «nie» | mittel | Mead & Patrick 2016 |
+| Inneres Bild stören (3 Min. Tetris, Ort vorstellen) | mittel | Skorka-Brown 2014 |
+| Umdenken: langfristige Folgen | mittel | Boswell 2018 (PNAS) |
+| Annehmen statt unterdrücken (Defusion) | vorläufig | Hooper 2012 |
+| In Gedanken ausführlich essen (30 Bissen) | vorläufig, Replikation fehlgeschlagen | Morewedge 2010 |
+| Bewusst geniessen, wenn gegessen wird | stark | Robinson 2014 |
+
 ## Trinken
 
 Die Trinkmenge ist Wasser plus Kaffee, Tee und andere Getränke aus «Koffein». In üblichen Mengen (bis ca. 4 Tassen)

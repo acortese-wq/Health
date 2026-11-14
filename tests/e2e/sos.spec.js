@@ -124,3 +124,32 @@ test('Achtsamkeit: passende Übung aus dem Notfall, geführt mit Timer, zurück 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 });
+
+test('Lust auf ein bestimmtes Essen: Anleitung aus dem Notfall, Erklärung, Strategien mit Beweislage', async ({ page }) => {
+  await createProfile(page);
+  await page.goto('/#sos');
+  await page.click('#sos-lastMeal-2bis4');
+  await page.click('#sos-apple-nein');
+  await page.click('#sos-trigger-gewohnheit');
+  await page.click('#sos-int-7');
+  await page.click('#sos-lust');
+  await expect(page).toHaveURL(/#lust$/);
+  await expect(page.locator('#lust-why')).toContainText('Gefühl im Mund');
+  await expect(page.locator('#lust-why')).toContainText('Power ML, Schulkin J');
+  // Erste Strategie offen, weitere aufklappbar
+  await expect(page.locator('#lust-weg')).toHaveAttribute('open', '');
+  await page.locator('#lust-spaeter summary').click();
+  await expect(page.locator('#lust-spaeter')).toContainText('Mead NL, Patrick VM');
+  await expect(page.locator('#lust-spaeter .badge')).toHaveText('Beweislage: mittel');
+  await page.locator('#lust-durchspielen summary').click();
+  await expect(page.locator('#lust-durchspielen .badge')).toHaveText('Beweislage: vorläufig');
+  await expect(page.locator('#lust-next')).toContainText('einfrieren');
+  // Bei echtem Hunger kein Kuchen-Link
+  await page.goto('/#sos');
+  await page.click('#sos-restart');
+  await page.click('#sos-lastMeal-ueber4');
+  await page.click('#sos-apple-ja');
+  await page.click('#sos-trigger-nichts');
+  await page.click('#sos-int-4');
+  await expect(page.locator('#sos-lust')).toHaveCount(0);
+});

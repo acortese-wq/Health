@@ -1647,6 +1647,42 @@ export const CRAVING_TIPS = [
     text: 'Der Körper kann nur begrenzt Protein auf einmal zum Muskelaufbau nutzen. Darum lohnt sich Protein in jeder Mahlzeit.',
   },
   {
+    id: 'fa061',
+    kind: 'fakt',
+    text: 'Wer sich sagte «später, irgendwann» statt «nie», hatte in einer Studie weniger Lust und ass in der Woche danach seltener die Versuchung.',
+    ref: 'Mead NL, Patrick VM, J Pers Soc Psychol 2016;110:20–35',
+  },
+  {
+    id: 'fa062',
+    kind: 'fakt',
+    text: 'Je lebhafter das innere Bild eines Essens, desto stärker das Verlangen danach.',
+    ref: 'Tiggemann M, Kemps E, Appetite 2005;45:305–313',
+  },
+  {
+    id: 'fa063',
+    kind: 'fakt',
+    text: 'Schon der Gedanke an Essen kann Speichelfluss auslösen. Das Gefühl im Mund ist eine erlernte Vorbereitung, kein Energiebedarf.',
+    ref: 'Power ML, Schulkin J, Appetite 2008;50:194–206',
+  },
+  {
+    id: 'fa064',
+    kind: 'fakt',
+    text: 'Wer stark auf Essensreize reagiert, isst nachweislich mehr. Reize entschärfen wirkt darum besser als reine Willenskraft.',
+    ref: 'Boswell RG, Kober H, Obes Rev 2016;17:159–177',
+  },
+  {
+    id: 'fa065',
+    kind: 'fakt',
+    text: 'Eine kurze Schulung im Umdenken (an langfristige Folgen denken) verbesserte in sechs Studien die Essenswahl.',
+    ref: 'Boswell RG et al., PNAS 2018;115:E11238–E11247',
+  },
+  {
+    id: 'fa066',
+    kind: 'fakt',
+    text: 'Wer über Wochen weniger isst, hat im Schnitt weniger Heisshunger auf Süsses und Fettiges. Das Verlangen wird mit der Zeit leiser.',
+    ref: 'Kahathuduwa CN et al., Obes Rev 2017;18:1122–1135',
+  },
+  {
     id: 'wa001',
     kind: 'warum',
     text: 'Nach einer langen Essenspause steigt das Hungerhormon Ghrelin. Der Körper verlangt dann schnell verfügbare Energie, am liebsten Süsses oder Fettiges.',

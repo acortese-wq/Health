@@ -188,6 +188,9 @@ function mindBlock(a, kind) {
     'div',
     { class: 'mind-suggest', id: 'sos-mind' },
     h('a', { href: `#achtsam/${ex.id}`, class: 'btn', id: 'sos-mind-go' }, `Geführte Übung: ${ex.title} (${ex.minutes} Min.)`),
+    a.apple
+      ? null
+      : h('a', { href: '#lust', class: 'btn', id: 'sos-lust' }, 'Ich weiss genau, was zuhause wartet (z. B. Kuchen) → Anleitung'),
     h('a', { href: '#achtsam', class: 'link-btn small', id: 'sos-mind-all' }, 'Alle Achtsamkeitsübungen'),
   );
 }

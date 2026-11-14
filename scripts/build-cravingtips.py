@@ -329,6 +329,12 @@ F = [  # Fakten
     "Ballaststoffe quellen im Magen auf und verlangsamen die Verdauung. Das hält länger satt.",
     "Pfefferminzgeschmack, z. B. von Zahnpasta oder Tee, ist für viele ein Signal: Das Essen ist vorbei.",
     "Der Körper kann nur begrenzt Protein auf einmal zum Muskelaufbau nutzen. Darum lohnt sich Protein in jeder Mahlzeit.",
+    ("Wer sich sagte «später, irgendwann» statt «nie», hatte in einer Studie weniger Lust und ass in der Woche danach seltener die Versuchung.", "Mead NL, Patrick VM, J Pers Soc Psychol 2016;110:20–35"),
+    ("Je lebhafter das innere Bild eines Essens, desto stärker das Verlangen danach.", "Tiggemann M, Kemps E, Appetite 2005;45:305–313"),
+    ("Schon der Gedanke an Essen kann Speichelfluss auslösen. Das Gefühl im Mund ist eine erlernte Vorbereitung, kein Energiebedarf.", "Power ML, Schulkin J, Appetite 2008;50:194–206"),
+    ("Wer stark auf Essensreize reagiert, isst nachweislich mehr. Reize entschärfen wirkt darum besser als reine Willenskraft.", "Boswell RG, Kober H, Obes Rev 2016;17:159–177"),
+    ("Eine kurze Schulung im Umdenken (an langfristige Folgen denken) verbesserte in sechs Studien die Essenswahl.", "Boswell RG et al., PNAS 2018;115:E11238–E11247"),
+    ("Wer über Wochen weniger isst, hat im Schnitt weniger Heisshunger auf Süsses und Fettiges. Das Verlangen wird mit der Zeit leiser.", "Kahathuduwa CN et al., Obes Rev 2017;18:1122–1135"),
 ]
 
 W = [  # Warum Heisshunger entsteht (Erklärungen)
