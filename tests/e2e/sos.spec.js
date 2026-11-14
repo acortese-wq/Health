@@ -32,6 +32,15 @@ test('Heisshunger-Notfall: 4 Fragen, Plan, Timer, Stärke danach, geschafft', as
   await expect(page.locator('#sos-plan h2')).toContainText('Welle');
   await expect(page.locator('#sos-plan')).toContainText('Teller');
   await expect(page.locator('#sos-plan')).toContainText('Bowen');
+  // Wechselnde Ideen: drei pro Mal, «Andere Ideen» bringt neue, ohne Wiederholung
+  await expect(page.locator('#sos-ideas .sos-idea')).toHaveCount(3);
+  const ids = new Set();
+  for (let i = 0; i < 8; i++) {
+    for (const id of await page.locator('#sos-ideas .sos-idea').evaluateAll((els) => els.map((e) => e.getAttribute('data-id'))))
+      (expect(ids.has(id)).toBeFalsy(), ids.add(id));
+    await page.click('#sos-more-ideas');
+  }
+  expect(ids.size).toBe(24);
   // Gespeichert für die Bilanz
   let st = await page.evaluate(() => JSON.parse(localStorage.getItem('gesundheitscockpit') ?? '{}'));
   const day = /** @type {any} */ (Object.values(st.days).find((/** @type {any} */ d) => d.cravings));

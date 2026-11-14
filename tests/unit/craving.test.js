@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cravingPlan, cravingStats, QUESTIONS } from '../../app/js/domain/craving.js';
+import { cravingPlan, cravingStats, QUESTIONS, pickTips } from '../../app/js/domain/craving.js';
 import { emptyState, sanitize, SCHEMA_VERSION } from '../../app/js/store.js';
 
 const ctx = { kcalLeft: 600, hour: 16 };
@@ -71,4 +71,49 @@ test('Bilanz und Speichern (Schema 6)', () => {
   const s = sanitize(raw);
   assert.equal(s.days['2026-11-14'].cravings?.length, 2);
   assert.deepEqual(cravingStats(['2026-11-14', '2026-11-13'], s.days), { n: 2, done: 1, avgDrop: 5 });
+});
+
+test('Ideen-Sammlung: über 300 Einträge, eindeutig, alle Arten, Belege im Zitierformat', async () => {
+  const { CRAVING_TIPS } = await import('../../app/js/data/cravingtips.js');
+  assert.ok(CRAVING_TIPS.length >= 300, `${CRAVING_TIPS.length}`);
+  assert.equal(new Set(CRAVING_TIPS.map((t) => t.id)).size, CRAVING_TIPS.length);
+  assert.equal(new Set(CRAVING_TIPS.map((t) => t.text)).size, CRAVING_TIPS.length);
+  const kinds = new Set(CRAVING_TIPS.map((t) => t.kind));
+  assert.deepEqual([...kinds].sort(), ['ablenkung', 'bewegung', 'fakt', 'kopf', 'trinken', 'umgebung']);
+  for (const t of CRAVING_TIPS) {
+    assert.ok(t.text.length > 15 && t.text.length < 260, t.id);
+    if (t.ref) assert.match(t.ref, /\d{4}/, t.id);
+  }
+});
+
+test('Ideen ziehen: keine Wiederholung, bis eine Art aufgebraucht ist; passende bevorzugt', async () => {
+  const { CRAVING_TIPS } = await import('../../app/js/data/cravingtips.js');
+  let seed = 1;
+  const rng = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  /** @type {string[]} */
+  let seen = [];
+  const shown = new Set();
+  // 25 Mal drei Ideen: 75 verschiedene, ohne Doppel
+  for (let i = 0; i < 25; i++) {
+    const r = pickTips(CRAVING_TIPS, { seen, trigger: 'tv', hour: 21, rng });
+    assert.equal(r.tips.length, 3);
+    assert.equal(r.tips[2].kind, 'fakt');
+    assert.notEqual(r.tips[0].kind, r.tips[1].kind);
+    for (const t of r.tips) {
+      assert.ok(!shown.has(t.id), `doppelt: ${t.id}`);
+      shown.add(t.id);
+    }
+    seen = r.seen;
+  }
+  // Fakten aufgebraucht → beginnt von vorn, ohne Fehler
+  const facts = CRAVING_TIPS.filter((t) => t.kind === 'fakt').map((t) => t.id);
+  const r = pickTips(CRAVING_TIPS, { seen: facts, rng });
+  assert.equal(r.tips[r.tips.length - 1].kind, 'fakt');
+  // Am Abend mit Fernseher kommen passende Ideen häufiger
+  let fit = 0;
+  for (let i = 0; i < 200; i++) {
+    const x = pickTips(CRAVING_TIPS, { seen: [], trigger: 'tv', hour: 21, rng });
+    fit += x.tips.slice(0, 2).filter((t) => t.tags?.some((g) => g === 'tv' || g === 'abend')).length;
+  }
+  assert.ok(fit > 150, `${fit}`);
 });

@@ -4,7 +4,8 @@
 
 import { h, fmt, nowTime } from '../ui/dom.js';
 import { uid } from '../store.js';
-import { QUESTIONS, cravingPlan, cravingStats } from '../domain/craving.js';
+import { QUESTIONS, cravingPlan, cravingStats, pickTips } from '../domain/craving.js';
+import { CRAVING_TIPS } from '../data/cravingtips.js';
 import { addDays } from '../domain/util.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -12,13 +13,13 @@ import { addDays } from '../domain/util.js';
 
 /**
  * Ablauf (überlebt das Neuzeichnen, solange die App offen ist).
- * @type {{ step: number, answers: Partial<CravingAnswers>, logId: string, date: string, timerEnd: number, timerDone: boolean, after: number | null }}
+ * @type {{ step: number, answers: Partial<CravingAnswers>, logId: string, date: string, timerEnd: number, timerDone: boolean, after: number | null, tips: import('../data/cravingtips.js').CravingTip[] }}
  */
-const flow = { step: 0, answers: {}, logId: '', date: '', timerEnd: 0, timerDone: false, after: null };
+const flow = { step: 0, answers: {}, logId: '', date: '', timerEnd: 0, timerDone: false, after: null, tips: [] };
 let tick = 0;
 
 function restart() {
-  Object.assign(flow, { step: 0, answers: {}, logId: '', date: '', timerEnd: 0, timerDone: false, after: null });
+  Object.assign(flow, { step: 0, answers: {}, logId: '', date: '', timerEnd: 0, timerDone: false, after: null, tips: [] });
   window.clearInterval(tick);
 }
 
@@ -35,6 +36,80 @@ function updateLog(ctx, change, message) {
     change(l);
     return true;
   }, message);
+}
+
+/** Gesehene Ideen (nur auf diesem Gerät, damit nicht immer dasselbe kommt). */
+const SEEN_KEY = 'gesundheitscockpit.tipsSeen';
+
+/**
+ * Neue Ideen ziehen und als gesehen merken.
+ * @param {string} trigger
+ */
+function drawTips(trigger) {
+  /** @type {string[]} */
+  let seen = [];
+  try {
+    seen = JSON.parse(localStorage.getItem(SEEN_KEY) ?? '[]');
+  } catch {
+    seen = [];
+  }
+  const r = pickTips(CRAVING_TIPS, { seen: Array.isArray(seen) ? seen : [], trigger, hour: new Date().getHours() });
+  try {
+    localStorage.setItem(SEEN_KEY, JSON.stringify(r.seen));
+  } catch {
+    // ohne Speicher wiederholen sich Ideen eher
+  }
+  flow.tips = r.tips;
+}
+
+const KIND_LABEL = /** @type {Record<string, string>} */ ({
+  ablenkung: 'Ablenkung',
+  bewegung: 'Bewegung',
+  trinken: 'Trinken und Geniessen',
+  kopf: 'Im Kopf',
+  umgebung: 'Umgebung und Plan',
+  fakt: 'Gut zu wissen',
+});
+
+/**
+ * Wechselnde Ideen mit «Andere Ideen».
+ * @param {Ctx} ctx
+ */
+function ideasBlock(ctx) {
+  if (!flow.tips.length) drawTips(String(flow.answers.trigger ?? ''));
+  return h(
+    'div',
+    { class: 'stack-sm sos-ideas', id: 'sos-ideas' },
+    h('h3', { class: 'eyebrow' }, 'Ideen für jetzt'),
+    h(
+      'ul',
+      { class: 'sos-idea-list' },
+      ...flow.tips.map((t) =>
+        h(
+          'li',
+          { class: `sos-idea idea-${t.kind}`, 'data-id': t.id },
+          h('span', { class: 'idea-kind' }, KIND_LABEL[t.kind] ?? t.kind),
+          h('span', { class: 'idea-text' }, t.text),
+          t.ref ? h('small', { class: 'hint' }, t.ref) : null,
+        ),
+      ),
+    ),
+    h(
+      'button',
+      {
+        type: 'button',
+        class: 'btn small-btn',
+        id: 'sos-more-ideas',
+        on: {
+          click: () => {
+            drawTips(String(flow.answers.trigger ?? ''));
+            ctx.go('sos');
+          },
+        },
+      },
+      '↻ Andere Ideen',
+    ),
+  );
 }
 
 /**
@@ -198,6 +273,7 @@ function planView(ctx) {
     h('h2', { id: 'sos-plan-h' }, plan.title),
     h('p', {}, plan.lead),
     h('ol', { class: 'sos-steps' }, ...plan.steps.map((s) => h('li', {}, s))),
+    ideasBlock(ctx),
     plan.snacks.length
       ? h(
           'div',

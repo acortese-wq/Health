@@ -148,3 +148,52 @@ export function cravingStats(dates, days) {
     avgDrop: drops.length ? Math.round((drops.reduce((a, v) => a + v, 0) / drops.length) * 10) / 10 : null,
   };
 }
+
+/** Arten, aus denen die praktischen Ideen gezogen werden (Fakten kommen separat dazu). */
+const ACTION_KINDS = /** @type {const} */ (['ablenkung', 'bewegung', 'trinken', 'kopf', 'umgebung']);
+
+/**
+ * Ideen ziehen, ohne zu wiederholen: zwei praktische Ideen aus verschiedenen Arten und ein Fakt.
+ * Passende Ideen (Auslöser, Abend) haben Vorrang. Sind alle Ideen einer Art gesehen, beginnt die Art von vorn.
+ * @param {import('../data/cravingtips.js').CravingTip[]} tips
+ * @param {{ seen: Iterable<string>, trigger?: string, hour?: number, rng?: () => number, actions?: number }} o
+ * @returns {{ tips: import('../data/cravingtips.js').CravingTip[], seen: string[] }}
+ */
+export function pickTips(tips, { seen, trigger = '', hour = 12, rng = Math.random, actions = 2 }) {
+  const used = new Set(seen);
+  const tags = new Set([trigger, ...(hour >= 19 || hour < 5 ? ['abend'] : []), ...(hour >= 8 && hour < 18 ? ['buero'] : [])]);
+  /** @param {(t: import('../data/cravingtips.js').CravingTip) => boolean} ok */
+  const pool = (ok) => {
+    let list = tips.filter((t) => ok(t) && !used.has(t.id));
+    if (!list.length) {
+      // Alle gesehen: diese Art wieder freigeben
+      for (const t of tips) if (ok(t)) used.delete(t.id);
+      list = tips.filter(ok);
+    }
+    return list;
+  };
+  /** @param {import('../data/cravingtips.js').CravingTip[]} list */
+  const draw = (list) => {
+    const fit = list.filter((t) => t.tags?.some((g) => tags.has(g)));
+    // Passende Idee mit 60 % Wahrscheinlichkeit bevorzugen, sonst Abwechslung
+    const from = fit.length && rng() < 0.6 ? fit : list;
+    return from[Math.floor(rng() * from.length)];
+  };
+  /** @type {import('../data/cravingtips.js').CravingTip[]} */
+  const out = [];
+  const kinds = [...ACTION_KINDS].sort(() => rng() - 0.5);
+  for (const kind of kinds) {
+    if (out.length >= actions) break;
+    const t = draw(pool((x) => x.kind === kind));
+    if (t) {
+      out.push(t);
+      used.add(t.id);
+    }
+  }
+  const fact = draw(pool((x) => x.kind === 'fakt'));
+  if (fact) {
+    out.push(fact);
+    used.add(fact.id);
+  }
+  return { tips: out, seen: [...used] };
+}
