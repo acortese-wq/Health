@@ -3238,3 +3238,34 @@ textarea {
 .sos-idea .badge {
   justify-self: start;
 }
+
+/* Hunger- und Sättigungsskala 1–10 */
+.scale-row {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0;
+}
+.scale-buttons {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 3px;
+}
+.scale-btn {
+  min-height: 40px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: 600 0.85rem var(--f-data);
+  cursor: pointer;
+}
+.scale-btn.on {
+  border-color: var(--petrol);
+  background: var(--petrol);
+  color: #fff;
+}
+.scale-ends {
+  display: flex;
+  justify-content: space-between;
+}

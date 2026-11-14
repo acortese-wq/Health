@@ -51,7 +51,18 @@ export function createEntry(list, fields, { id, now }) {
 }
 
 /** Felder, die nur zum ursprünglichen Essmoment gehören und nicht kopiert werden. */
-const MOMENT_ONLY = /** @type {const} */ (['id', 'at', 'hunger', 'trigger', 'keep', 'dupOf', 'repeatOf', 'planId']);
+const MOMENT_ONLY = /** @type {const} */ ([
+  'id',
+  'at',
+  'hunger',
+  'hungerBefore',
+  'fullAfter',
+  'trigger',
+  'keep',
+  'dupOf',
+  'repeatOf',
+  'planId',
+]);
 
 /**
  * Kopie eines Eintrags für eine weitere Portion (gleiches Lebensmittel, gleiche Menge, gleiche

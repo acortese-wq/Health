@@ -31,7 +31,8 @@ export const STORAGE_KEY = 'gesundheitscockpit';
 // Schema 4 (2026-10): Nahrungsergänzungsmittel («supplements») und Einnahmen pro Tag («supps»).
 // Schema 5 (2026-10): eigene Mahlzeiten aus mehreren Einträgen («savedMeals»).
 // Schema 6 (2026-11): Heisshunger-Notfall pro Tag («cravings»: Auslöser, Stärke vorher/nachher, Ausgang).
-export const SCHEMA_VERSION = 6;
+// Schema 7 (2026-11): Hunger vor und Sättigung nach dem Essen auf der Skala 1–10 («hungerBefore», «fullAfter»).
+export const SCHEMA_VERSION = 7;
 
 /**
  * @typedef {'m' | 'f'} Sex
@@ -55,7 +56,7 @@ export const SCHEMA_VERSION = 6;
  *   grams?: number, source?: FoodSource,
  *   micros?: import('./domain/micros.js').Amounts, microSrc?: 'db' | 'ki' | 'mix' | 'etikett',
  *   groups?: import('./domain/foodgroups.js').Groups,
- *   hunger?: 1 | 2 | 3, trigger?: import('./domain/meals.js').Trigger, nova?: number,
+ *   hunger?: 1 | 2 | 3, hungerBefore?: number, fullAfter?: number, trigger?: import('./domain/meals.js').Trigger, nova?: number,
  *   at?: string, repeatOf?: string, dupOf?: string, keep?: boolean, proteinKnown?: false, planId?: string,
  * }} FoodEntry
  * @typedef {{ id: string, label: string, mg: number, time: string, ml?: number }} CaffeineEntry
@@ -639,6 +640,10 @@ export function extraNutrients(f) {
   }
   if (typeof f.source === 'string' && SOURCES.includes(f.source)) out.source = /** @type {FoodSource} */ (f.source);
   if (f.hunger === 1 || f.hunger === 2 || f.hunger === 3) out.hunger = f.hunger;
+  for (const k of /** @type {const} */ (['hungerBefore', 'fullAfter'])) {
+    const v = f[k];
+    if (isNum(v) && Number.isInteger(v) && v >= 1 && v <= 10) out[k] = v;
+  }
   if (typeof f.trigger === 'string' && TRIGGER_IDS.includes(f.trigger))
     out.trigger = /** @type {import('./domain/meals.js').Trigger} */ (f.trigger);
   if (f.nova === 1 || f.nova === 2 || f.nova === 3 || f.nova === 4) out.nova = f.nova;
@@ -735,7 +740,7 @@ export function recentFoods(state, date, limit = 8) {
  * @param {Partial<FoodEntry>} e
  */
 function withoutEvent(e) {
-  const { hunger: _h, trigger: _t, ...rest } = e;
+  const { hunger: _h, trigger: _t, hungerBefore: _hb, fullAfter: _fa, ...rest } = e;
   return rest;
 }
 

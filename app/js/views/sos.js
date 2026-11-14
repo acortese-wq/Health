@@ -192,6 +192,9 @@ function mindBlock(a, kind) {
     a.apple
       ? null
       : h('a', { href: '#lust', class: 'btn', id: 'sos-lust' }, 'Ich weiss genau, was zuhause wartet (z. B. Kuchen) → Anleitung'),
+    a.apple
+      ? null
+      : h('a', { href: '#gelueste', class: 'link-btn small', id: 'sos-gelueste' }, 'Steckt ein Mangel dahinter? Was belegt ist'),
     h('a', { href: '#achtsam', class: 'link-btn small', id: 'sos-mind-all' }, 'Alle Achtsamkeitsübungen'),
   );
 }

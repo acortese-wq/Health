@@ -52,7 +52,7 @@ test('Lust auf etwas Bestimmtes: Welle abwarten; stark → 15 Minuten und gehen'
 });
 
 test('Bilanz und Speichern (Schema 6)', () => {
-  assert.equal(SCHEMA_VERSION, 6);
+  assert.ok(SCHEMA_VERSION >= 6);
   const raw = JSON.parse(
     JSON.stringify({
       ...emptyState(),

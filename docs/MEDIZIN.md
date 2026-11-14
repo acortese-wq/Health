@@ -279,6 +279,24 @@ Im Notfall-Plan steht dazu «Tee, Wasser, Eiswürfel, Duft: Was ist belegt?». H
 Eisenmangel hinweisen (45 % von 262 Erwachsenen mit Eisenmangel, meist Eis; Barton 2010) → Ferritin bestimmen lassen.
 Die Faustregel «Durst wird mit Hunger verwechselt» ist kaum belegt (McKiernan 2008).
 
+## Gelüste und Mangel
+
+Seite `#gelueste/<gelüst>` (Notfall, Coach, Intuitives Essen), Daten in `data/cravingcauses.js`, geprüft im November 2026.
+Gezeigt werden **nur belegte Zusammenhänge**: Eis bei Eisenmangel (45 % von 262 Erwachsenen mit Eisenmangel,
+meist Eis; Barton 2010) und Salzhunger als seltenes Zeichen einer Nebennierenschwäche (Mayo Clinic; Übersicht
+Compr Physiol 2014). Für Schokolade, Süsses, Fleisch, Käse und Brot ist kein Mangel-Zusammenhang belegt; dort steht
+das so, dazu die eigenen 7-Tage-Werte der passenden Nährstoffe (Magnesium, Eisen, Protein, B12, Calcium,
+Kohlenhydrate, Ballaststoffe, Natrium) mit Abdeckung und dem Hinweis, dass Essdaten keinen Bluttest ersetzen.
+
+## Intuitives Essen (ergänzend)
+
+Seite `#intuitiv`: zehn Grundsätze nach Tribole & Resch mit Bezug zur App, Skala Hunger vorher und Sättigung danach
+(1–10, Schema 7: `hungerBefore`, `fullAfter`; der grobe Wert `hunger` wird daraus abgeleitet: 1–3 kaum, 4–6 mittel,
+7–10 stark), Bilanz der letzten 14 Tage (ohne Hunger gegessen ≤ 3, ausgehungert ≥ 9, angenehm satt 5–7, übervoll ≥ 9).
+Studienlage: Linardon 2021 (97 Studien, meist Querschnitt: weniger gestörtes Essverhalten, besseres Körperbild,
+niedrigerer BMI; Kausalität offen), Fuentes Artiles 2019 (10 RCT: rund 0.35 kg gegenüber keiner Massnahme, kein
+Unterschied zu Diätprogrammen), Schaefer & Magnuson 2014. Darum ergänzend: Das Kaloriendefizit bleibt die Grundlage.
+
 ## Trinken
 
 Die Trinkmenge ist Wasser plus Kaffee, Tee und andere Getränke aus «Koffein». In üblichen Mengen (bis ca. 4 Tassen)

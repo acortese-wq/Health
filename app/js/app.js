@@ -16,6 +16,7 @@ import { viewGarmin } from './views/garmindash.js';
 import { viewSos } from './views/sos.js';
 import { viewMindful } from './views/mindful.js';
 import { viewLust } from './views/lust.js';
+import { viewIntuitive, viewCravings } from './views/intuitive.js';
 import { takeConnectToken } from './garminlink.js';
 import { viewTraining } from './views/training.js';
 import { viewHealth } from './views/health.js';
@@ -69,6 +70,8 @@ const HIDDEN = [
   { id: 'sos', label: 'Heisshunger-Notfall', icon: '', render: viewSos, dated: false },
   { id: 'achtsam', label: 'Achtsamkeit', icon: '', render: viewMindful, dated: false },
   { id: 'lust', label: 'Lust auf ein bestimmtes Essen', icon: '', render: viewLust, dated: false },
+  { id: 'intuitiv', label: 'Intuitives Essen', icon: '', render: viewIntuitive, dated: false },
+  { id: 'gelueste', label: 'Gelüste und Mangel', icon: '', render: viewCravings, dated: false },
 ];
 /** Frühere Adressen weiter unterstützen (Lesezeichen, Home-Bildschirm). */
 const ALIASES = /** @type {Record<string, string>} */ ({ gewicht: 'fortschritt' });

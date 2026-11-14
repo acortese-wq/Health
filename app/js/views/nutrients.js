@@ -1121,9 +1121,9 @@ export function behaviorCard(ctx, snap) {
  */
 export function quickTagBlock(ctx, snap) {
   const food = snap.day.food ?? [];
-  // Neuester Eintrag von heute ohne Notiz (ab 100 kcal)
+  // Neuester Eintrag von heute ohne Grund (ab 100 kcal); offen, bis der Grund notiert ist
   const open = [...food]
-    .filter((f) => f.kcal >= 100 && !f.trigger && !f.hunger && !skippedTag.has(f.id))
+    .filter((f) => f.kcal >= 100 && !f.trigger && !(f.hunger && f.fullAfter) && !skippedTag.has(f.id))
     .sort((a, b) => (a.time < b.time ? 1 : -1))[0];
   /** @param {Partial<import('../store.js').FoodEntry>} patch */
   const tag = (patch) =>
@@ -1134,6 +1134,38 @@ export function quickTagBlock(ctx, snap) {
       list[i] = { ...list[i], ...patch };
       return true;
     }, 'Notiert');
+  /**
+   * Skala 1–10 als Knopfreihe.
+   * @param {string} label
+   * @param {string} idPrefix
+   * @param {number | undefined} value
+   * @param {(n: number) => void} pick
+   * @param {[string, string]} ends Beschriftung für 1 und 10
+   */
+  const scale = (label, idPrefix, value, pick, ends) =>
+    h(
+      'div',
+      { class: 'scale-row', role: 'group', 'aria-label': `${label} von 1 (${ends[0]}) bis 10 (${ends[1]})` },
+      h('span', { class: 'small muted scale-label' }, label),
+      h(
+        'div',
+        { class: 'scale-buttons' },
+        ...Array.from({ length: 10 }, (_, k) =>
+          h(
+            'button',
+            {
+              type: 'button',
+              id: `${idPrefix}${k + 1}`,
+              class: value === k + 1 ? 'scale-btn on' : 'scale-btn',
+              'aria-pressed': String(value === k + 1),
+              on: { click: () => pick(k + 1) },
+            },
+            String(k + 1),
+          ),
+        ),
+      ),
+      h('span', { class: 'scale-ends small muted' }, h('span', {}, `1 ${ends[0]}`), h('span', {}, `10 ${ends[1]}`)),
+    );
 
   // Direkt nach dem Erfassen offen, sonst eingeklappt (die Liste bleibt ohne Scrollen sichtbar)
   const fresh = Boolean(open?.at && Date.now() - Date.parse(open.at) < 10 * 60 * 1000);
@@ -1141,14 +1173,21 @@ export function quickTagBlock(ctx, snap) {
     ? h(
         'details',
         { class: 'quick-tag', id: 'quick-tag', open: fresh },
-        h('summary', { class: 'small' }, h('strong', {}, `${open.time} ${open.name}`), ': Hunger und Grund notieren'),
-        h('p', { class: 'small muted' }, 'Kurz notieren hilft, Muster wie Stress, Langeweile oder Fernseher zu erkennen.'),
+        h('summary', { class: 'small' }, h('strong', {}, `${open.time} ${open.name}`), ': Hunger, Sättigung und Grund notieren'),
         h(
-          'div',
-          { class: 'segmented wrap', role: 'group', 'aria-label': 'Wie hungrig warst du?' },
-          h('span', { class: 'small muted' }, 'Hunger:'),
-          ...HUNGER.map(([v, label]) => h('button', { type: 'button', id: `qt-h${v}`, on: { click: () => tag({ hunger: v }) } }, label)),
+          'p',
+          { class: 'small muted' },
+          'Kurz notieren hilft, Hunger von Lust zu unterscheiden und Muster wie Stress oder Fernseher zu erkennen.',
         ),
+        scale(
+          'Hunger vorher',
+          'qt-hb',
+          open.hungerBefore,
+          // Für Auswertungen zusätzlich grob: kaum (1–3), mittel (4–6), stark (7–10)
+          (n) => tag({ hungerBefore: n, hunger: n <= 3 ? 1 : n <= 6 ? 2 : 3 }),
+          ['kein Hunger', 'sehr hungrig'],
+        ),
+        scale('Sättigung jetzt', 'qt-fa', open.fullAfter, (n) => tag({ fullAfter: n }), ['noch hungrig', 'übervoll']),
         h(
           'div',
           { class: 'segmented wrap', role: 'group', 'aria-label': 'Warum gegessen?' },
@@ -1171,6 +1210,7 @@ export function quickTagBlock(ctx, snap) {
             'Später',
           ),
         ),
+        h('a', { href: '#intuitiv', class: 'link-btn small' }, 'Was bedeuten Hunger und Sättigung 1–10?'),
       )
     : null;
 }

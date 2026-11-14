@@ -91,6 +91,8 @@ export function viewNutrition(ctx) {
               sosButton('coach-sos'),
               h('a', { href: '#achtsam', class: 'btn', id: 'coach-mind' }, 'Achtsamkeitsübungen'),
               h('a', { href: '#lust', class: 'btn', id: 'coach-lust' }, 'Lust auf Bestimmtes'),
+              h('a', { href: '#intuitiv', class: 'btn', id: 'coach-intuitiv' }, 'Intuitives Essen'),
+              h('a', { href: '#gelueste', class: 'btn', id: 'coach-gelueste' }, 'Gelüste und Mangel'),
             ),
             journalCard(ctx),
             behaviorCard(ctx, snap),
