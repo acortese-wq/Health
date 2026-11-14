@@ -84,7 +84,17 @@ export function viewNutrition(ctx) {
     tab.id === 'analyse'
       ? [nutrientsCard(ctx, snap), pyramidCard(ctx, snap), rhythmCard(ctx, snap)]
       : tab.id === 'coach'
-        ? [sosButton('coach-sos'), journalCard(ctx), behaviorCard(ctx, snap), emotionalCard(ctx)]
+        ? [
+            h(
+              'div',
+              { class: 'btn-row' },
+              sosButton('coach-sos'),
+              h('a', { href: '#achtsam', class: 'btn', id: 'coach-mind' }, 'Achtsamkeitsübungen'),
+            ),
+            journalCard(ctx),
+            behaviorCard(ctx, snap),
+            emotionalCard(ctx),
+          ]
         : tab.id === 'praeparate'
           ? [supplementCard(ctx, snap)]
           : [...nutritionCard(ctx, snap), suggestCard(ctx, snap)];

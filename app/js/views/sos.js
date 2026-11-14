@@ -8,6 +8,7 @@ import { QUESTIONS, cravingPlan, cravingStats, pickTips, pickKind, cravingReason
 import { TRIGGERS } from '../domain/meals.js';
 import { isPremenstrual } from '../domain/cycle.js';
 import { CRAVING_TIPS } from '../data/cravingtips.js';
+import { suggestExercise } from '../data/mindfulness.js';
 import { addDays } from '../domain/util.js';
 
 /** @typedef {import('../app.js').Ctx} Ctx */
@@ -173,6 +174,21 @@ function nextTimeBlock(ctx, a) {
       },
       '↻ Andere Tipps',
     ),
+  );
+}
+
+/**
+ * Passende geführte Achtsamkeitsübung.
+ * @param {CravingAnswers} a
+ * @param {string} kind
+ */
+function mindBlock(a, kind) {
+  const ex = suggestExercise(String(a.trigger), a.intensity, kind);
+  return h(
+    'div',
+    { class: 'mind-suggest', id: 'sos-mind' },
+    h('a', { href: `#achtsam/${ex.id}`, class: 'btn', id: 'sos-mind-go' }, `Geführte Übung: ${ex.title} (${ex.minutes} Min.)`),
+    h('a', { href: '#achtsam', class: 'link-btn small', id: 'sos-mind-all' }, 'Alle Achtsamkeitsübungen'),
   );
 }
 
@@ -387,6 +403,7 @@ function planView(ctx) {
     h('h2', { id: 'sos-plan-h' }, plan.title),
     h('p', {}, plan.lead),
     h('ol', { class: 'sos-steps' }, ...plan.steps.map((s) => h('li', {}, s))),
+    mindBlock(a, plan.kind),
     ideasBlock(ctx),
     reasonsBlock(ctx, a),
     plan.snacks.length

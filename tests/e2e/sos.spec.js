@@ -88,3 +88,39 @@ test('Heisshunger-Notfall: echter Hunger → essen und erfassen', async ({ page 
   await page.click('#sos-ate');
   await expect(page).toHaveURL(/#ernaehrung\/erfassen$/);
 });
+
+test('Achtsamkeit: passende Übung aus dem Notfall, geführt mit Timer, zurück zum Plan', async ({ page }) => {
+  await page.clock.install();
+  await createProfile(page);
+  await page.goto('/#sos');
+  await page.click('#sos-lastMeal-2bis4');
+  await page.click('#sos-apple-nein');
+  await page.click('#sos-trigger-stress');
+  await page.click('#sos-int-5');
+  await expect(page.locator('#sos-mind-go')).toContainText('RAIN');
+  await page.click('#sos-mind-go');
+  await expect(page).toHaveURL(/#achtsam\/rain$/);
+  await expect(page.locator('#mind-step')).toHaveText('Schritt 1 von 5');
+  await expect(page.locator('#mind-text')).toContainText('Erkennen');
+  // Von Hand weiter und zurück
+  await page.click('#mind-next');
+  await expect(page.locator('#mind-step')).toHaveText('Schritt 2 von 5');
+  await page.click('#mind-prev');
+  await expect(page.locator('#mind-step')).toHaveText('Schritt 1 von 5');
+  // Automatisch mit Timer
+  await page.click('#mind-toggle');
+  await page.clock.fastForward('00:31');
+  await expect(page.locator('#mind-step')).toHaveText('Schritt 2 von 5');
+  await page.clock.runFor('03:30');
+  await expect(page.locator('#mind-done')).toContainText('Geschafft');
+  await page.click('#mind-back-sos');
+  await expect(page.locator('#sos-plan')).toBeVisible();
+
+  // Übersicht mit allen Übungen
+  await page.goto('/#achtsam');
+  expect(await page.locator('#mind-list > li').count()).toBeGreaterThanOrEqual(10);
+  await page.click('#mind-open-stopp');
+  await expect(page.locator('#mind-step')).toHaveText('Schritt 1 von 5');
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+});

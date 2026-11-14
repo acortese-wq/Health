@@ -232,6 +232,28 @@ Nach dem Timer: Stärke erneut 1–10, Ausgang «geschafft» oder «bewusst gege
 Gespeichert pro Tag als `cravings` (Schema 6) für die Bilanz der letzten 7 Tage. Die Faustregeln ersetzen keine
 Abklärung: Bei häufigen Essanfällen mit Kontrollverlust ärztlich oder psychotherapeutisch abklären lassen.
 
+## Achtsamkeitsübungen bei Heisshunger
+
+12 geführte Übungen (`data/mindfulness.js`, Seite `#achtsam`, Abspieler `#achtsam/<id>`) mit Schritten und Zeit pro
+Schritt; «Starten» schaltet automatisch weiter, man kann jederzeit selbst weiter- oder zurückschalten. Der Notfall
+schlägt eine passende Übung vor (stark → Welle reiten, Stress/Frust → RAIN, müde → Bodyscan, echter Hunger → Hunger-Check).
+
+| Übung | Min. | Grundlage |
+| --- | --- | --- |
+| Die Welle reiten (Urge Surfing) | 5 | Bowen & Marlatt 2009 |
+| RAIN | 4 | Mason AE et al., J Behav Med 2018 |
+| STOPP | 1 | Katterman 2014 |
+| 4 ein, 6 aus / Box-Atmung | 3 / 2 | Zaccaro A et al., Front Hum Neurosci 2018 |
+| 5-4-3-2-1 | 3 | Kavanagh 2005 (innere Bilder) |
+| Ein Bissen in Zeitlupe | 3 | Robinson 2014 (langsam essen) |
+| Gedanken als Wolken | 3 | Forman 2016 (Akzeptanz-basiert) |
+| Mitgefühls-Pause nach einem Ausrutscher | 3 | Adams & Leary 2007 |
+| Kurzer Bodyscan | 4 | Katterman 2014 |
+| Achtsames Gehen | 5 | Taylor & Oliver 2009 |
+| Hunger-Check mit der Skala | 2 | Faustregeln der Ernährungsberatung |
+
+Die Belege betreffen die Methode, nicht jede Formulierung der Anleitung.
+
 ## Trinken
 
 Die Trinkmenge ist Wasser plus Kaffee, Tee und andere Getränke aus «Koffein». In üblichen Mengen (bis ca. 4 Tassen)

@@ -1,6 +1,6 @@
 // Service Worker: App-Schale offline verfügbar machen. Gesundheitsdaten liegen im
 // localStorage und werden hier nicht berührt.
-const VERSION = 'v3.19.0';
+const VERSION = 'v3.20.0';
 const CACHE = `cockpit-${VERSION}`;
 const ASSETS = [
   './',
@@ -37,6 +37,8 @@ const ASSETS = [
   './js/domain/craving.js',
   './js/views/sos.js',
   './js/data/cravingtips.js',
+  './js/data/mindfulness.js',
+  './js/views/mindful.js',
   './js/domain/supplements.js',
   './js/views/supplements.js',
   './js/views/recipes.js',

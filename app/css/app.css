@@ -3149,3 +3149,56 @@ textarea {
 .sos-idea.idea-vorbeugen {
   border-left-color: var(--ok);
 }
+
+/* Achtsamkeitsübungen */
+.mind-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.mind-item h2 {
+  font-size: 1.1rem;
+}
+.mind-suggest {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.mind-progress {
+  display: flex;
+  gap: 4px;
+}
+.mind-progress span {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-2);
+}
+.mind-progress span.done {
+  background: var(--petrol);
+}
+.mind-progress span.now {
+  background: var(--amber);
+}
+.mind-text {
+  margin: 8px 0;
+  font-size: 1.3rem;
+  line-height: 1.45;
+  min-height: 6.5em;
+}
+.mind-time {
+  margin: 0;
+  font: 600 1rem var(--f-data);
+  color: var(--muted);
+}
+.mind-controls .btn {
+  flex: 1 1 0;
+  min-height: 52px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mind-progress span {
+    transition: none;
+  }
+}
